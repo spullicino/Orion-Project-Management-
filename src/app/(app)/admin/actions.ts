@@ -1,0 +1,138 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth/session";
+import { rateLimit } from "@/lib/rate-limit";
+import { getSiteUrl } from "@/lib/site-url";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import {
+  approveSchema,
+  changeRoleSchema,
+  inviteSchema,
+  setStatusSchema,
+  settingsSchema,
+} from "@/lib/validation/admin";
+import type { AppRole } from "@/types/database";
+
+export type ActionResult = { ok?: boolean; error?: string; message?: string };
+
+const done = (message?: string): ActionResult => {
+  revalidatePath("/admin");
+  return { ok: true, message };
+};
+
+// All profile changes below use the signed-in admin's own session, so the
+// database (RLS + guard trigger) double-checks the permission.
+
+export async function approveUser(input: { userId: string; role: AppRole }): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = approveSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "active", role: parsed.data.role })
+    .eq("id", parsed.data.userId)
+    .eq("status", "pending");
+  if (error) return { error: error.message };
+  return done("User approved");
+}
+
+export async function changeRole(input: { userId: string; role: AppRole }): Promise<ActionResult> {
+  const me = await requireRole("admin");
+  const parsed = changeRoleSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  if (parsed.data.userId === me.id) return { error: "You can't change your own level." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ role: parsed.data.role }).eq("id", parsed.data.userId);
+  if (error) return { error: error.message };
+  return done("Level updated");
+}
+
+export async function setUserStatus(input: { userId: string; status: "active" | "deactivated" }): Promise<ActionResult> {
+  const me = await requireRole("admin");
+  const parsed = setStatusSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  if (parsed.data.userId === me.id) return { error: "You can't deactivate yourself." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ status: parsed.data.status }).eq("id", parsed.data.userId);
+  if (error) return { error: error.message };
+
+  // Also block / unblock sign-in at the Auth level so existing sessions can't be refreshed.
+  try {
+    await createAdminClient().auth.admin.updateUserById(parsed.data.userId, {
+      ban_duration: parsed.data.status === "deactivated" ? "876000h" : "none",
+    });
+  } catch (e) {
+    console.error("auth ban update failed", e);
+  }
+  return done(parsed.data.status === "deactivated" ? "User deactivated" : "User reactivated");
+}
+
+export async function inviteUser(input: { email: string; role: AppRole }): Promise<ActionResult> {
+  const me = await requireRole("admin");
+  const parsed = inviteSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+  if (!(await rateLimit("invite", me.id))) return { error: "Too many invitations. Please wait a while." };
+  const { email, role } = parsed.data;
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("profiles").select("id, status").eq("email", email).maybeSingle();
+  if (existing) {
+    return {
+      error:
+        existing.status === "pending"
+          ? "This person has already signed up. Approve them in the list above."
+          : "This person already has an account.",
+    };
+  }
+
+  // Replace any earlier open invite for the same email.
+  await supabase
+    .from("invites")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("email", email)
+    .is("accepted_at", null)
+    .is("revoked_at", null);
+  const { error: insertError } = await supabase.from("invites").insert({ email, role, invited_by: me.id });
+  if (insertError) return { error: insertError.message };
+
+  const site = await getSiteUrl();
+  const { error } = await createAdminClient().auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${site}/auth/set-password`,
+    data: { invited_role: role },
+  });
+  if (error) {
+    await supabase.from("invites").update({ revoked_at: new Date().toISOString() }).eq("email", email).is("accepted_at", null);
+    return { error: `Couldn't send the invitation: ${error.message}` };
+  }
+  return done(`Invitation sent to ${email}`);
+}
+
+export async function revokeInvite(input: { inviteId: string }): Promise<ActionResult> {
+  await requireRole("admin");
+  if (typeof input.inviteId !== "string") return { error: "Invalid request" };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("invites")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", input.inviteId)
+    .is("accepted_at", null);
+  if (error) return { error: error.message };
+  return done("Invitation cancelled");
+}
+
+export async function updateSettings(input: { basicCanPostChat: boolean }): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = settingsSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request" };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ basic_can_post_chat: parsed.data.basicCanPostChat })
+    .eq("id", true);
+  if (error) return { error: error.message };
+  return done("Settings saved");
+}

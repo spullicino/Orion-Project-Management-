@@ -1,0 +1,80 @@
+# Local development settings for the Supabase CLI (`npx supabase start`).
+# The hosted project is configured in the Supabase dashboard — see README.
+project_id = "orion-projects"
+
+[api]
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+enabled = true
+
+[studio]
+port = 54323
+
+[inbucket]
+# Local test inbox: every email sent locally appears at http://localhost:54324
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "25MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+minimum_password_length = 8
+
+[auth.rate_limit]
+email_sent = 30
+sign_in_sign_ups = 30
+token_verifications = 30
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = false
+max_frequency = "30s"
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Confirm your email for Orion Projects"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Orion Projects password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You're invited to Orion Projects"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email for Orion Projects"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.magic_link]
+subject = "Your Orion Projects sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true
