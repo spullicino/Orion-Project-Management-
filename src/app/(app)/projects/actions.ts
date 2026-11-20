@@ -5,6 +5,7 @@ import { z } from "zod";
 import { hasRole } from "@/lib/auth/roles";
 import { requireActiveProfile, requireRole } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/rate-limit";
+import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
 import {
   ATTACHMENT_MAX_BYTES,
@@ -391,6 +392,7 @@ export async function updateTask(taskId: string, patch: unknown): Promise<Result
   if (error) return fail(friendly(error.message));
   if (!data?.length) return fail("You don't have permission to change this task.");
   refreshProject(data[0].project_id);
+  if (values.status_id !== undefined) queuePush();
   return { ok: true };
 }
 
@@ -434,6 +436,7 @@ export async function setTaskAssignee(taskId: string, userId: string, assigned: 
   if (error) return fail(friendly(error.message));
   const projectId = await taskProjectId(supabase, taskId);
   if (projectId) refreshProject(projectId);
+  if (assigned) queuePush();
   return { ok: true };
 }
 
@@ -520,6 +523,7 @@ export async function addComment(input: unknown): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.from("comments").insert({ ...parsed.data, author_id: me.id });
   if (error) return fail(friendly(error.message));
+  queuePush();
   const projectId = await taskProjectId(supabase, parsed.data.task_id);
   if (projectId) refreshProject(projectId);
   return { ok: true };

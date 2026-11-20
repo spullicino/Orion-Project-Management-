@@ -5,6 +5,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useState } from "r
 import { toast } from "sonner";
 import { getTaskDetail, updateTask, type Result } from "@/app/(app)/projects/actions";
 import { EMPTY_FILTERS, type BoardFilters } from "@/lib/board";
+import { taskRisk, type Risk } from "@/lib/health";
 import type { Board, BoardTask, Member, StatusLabel, TaskDetail } from "@/types/board";
 import type { AppRole } from "@/types/database";
 
@@ -24,6 +25,8 @@ type Ctx = {
   byId: Map<string, BoardTask>;
   labelsById: Map<string, StatusLabel>;
   membersById: Map<string, Member>;
+  /** Delay warnings per task (see src/lib/health.ts). */
+  risks: Map<string, Risk>;
   perms: BoardPerms;
   filters: BoardFilters;
   setFilters: (f: BoardFilters) => void;
@@ -71,6 +74,7 @@ export function BoardProvider({
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const labelsById = useMemo(() => new Map(board.labels.map((l) => [l.id, l])), [board.labels]);
   const membersById = useMemo(() => new Map(board.members.map((m) => [m.user_id, m])), [board.members]);
+  const risks = useMemo(() => new Map(tasks.map((t) => [t.id, taskRisk(t, byId)])), [tasks, byId]);
 
   const patchTask = useCallback(
     async (id: string, patch: Partial<BoardTask>) => {
@@ -109,8 +113,8 @@ export function BoardProvider({
   );
 
   const value = useMemo(
-    () => ({ board, tasks, byId, labelsById, membersById, perms, filters, setFilters, patchTask, openTaskId, openTask, loadTaskDetail }),
-    [board, tasks, byId, labelsById, membersById, perms, filters, patchTask, openTaskId, openTask, loadTaskDetail],
+    () => ({ board, tasks, byId, labelsById, membersById, risks, perms, filters, setFilters, patchTask, openTaskId, openTask, loadTaskDetail }),
+    [board, tasks, byId, labelsById, membersById, risks, perms, filters, patchTask, openTaskId, openTask, loadTaskDetail],
   );
   return <BoardContext value={value}>{children}</BoardContext>;
 }

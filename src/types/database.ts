@@ -211,6 +211,31 @@ export type Database = {
       >;
       message_attachments: Table<{ id: string; message_id: string; storage_path: string; file_name: string; mime_type: string | null; size_bytes: number | null; width: number | null; height: number | null; created_at: string }>;
       message_reactions: Table<{ message_id: string; user_id: string; emoji: string; created_at: string }, { message_id: string; emoji: string; user_id?: string }>;
+      notifications: Table<
+        {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body: string | null;
+          link: string | null;
+          project_id: string | null;
+          task_id: string | null;
+          actor_id: string | null;
+          read_at: string | null;
+          pushed_at: string | null;
+          created_at: string;
+        },
+        { user_id: string; type: string; title: string; body?: string | null; link?: string | null; project_id?: string | null; task_id?: string | null; actor_id?: string | null }
+      >;
+      notification_preferences: Table<
+        { user_id: string; push_enabled: boolean; email_digest: boolean; types: Json; quiet_hours_from: string | null; quiet_hours_to: string | null; updated_at: string },
+        { user_id?: string; push_enabled?: boolean; email_digest?: boolean; types?: Json; quiet_hours_from?: string | null; quiet_hours_to?: string | null }
+      >;
+      push_subscriptions: Table<
+        { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: string; last_used_at: string | null },
+        { endpoint: string; p256dh: string; auth: string; user_id?: string; user_agent?: string | null }
+      >;
       attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;
@@ -238,6 +263,10 @@ export type Database = {
       get_daily_status: { Args: { p_date: string }; Returns: Json };
       get_postable_projects: { Args: Record<string, never>; Returns: Json };
       list_my_channels: { Args: Record<string, never>; Returns: Json };
+      create_due_notifications: { Args: Record<string, never>; Returns: number };
+      claim_push_batch: { Args: { p_limit?: number }; Returns: Json };
+      get_digest_recipients: { Args: Record<string, never>; Returns: Json };
+      cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
       get_channel_messages: { Args: { p_channel: string; p_before?: string | null; p_limit?: number }; Returns: Json };
       get_channel_messages_since: { Args: { p_channel: string; p_since: string }; Returns: Json };

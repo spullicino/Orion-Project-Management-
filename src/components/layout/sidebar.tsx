@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { UnreadBadge } from "@/components/chat/unread-provider";
+import { NotificationBell } from "@/components/notifications/notifications-provider";
 import { UserAvatar } from "@/components/ui/avatar";
 import { hasRole, ROLE_LABEL } from "@/lib/auth/roles";
 import { cn, fullName } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function Sidebar({ profile, avatarUrl }: { profile: Profile; avatarUrl: s
         {PRIMARY_NAV.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />
         ))}
+        <NotificationBell withLabel />
         {secondary.length > 0 && <div className="my-3 h-px bg-border" />}
         {secondary.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />

@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/auth", // callback, confirm, sign-out, set-password (which checks its own session)
   "/share", // client read-only Gantt links (phase 3)
   "/offline",
+  "/api/cron", // checks its own secret (CRON_SECRET)
 ];
 
 export function isPublicPath(pathname: string) {

@@ -7,6 +7,7 @@ import { hasRole } from "@/lib/auth/roles";
 import { getCurrentProfile, requireActiveProfile, requireRole } from "@/lib/auth/session";
 import { decorateMessages, getChannelPeople, getMessages, listChannels } from "@/lib/data/chat";
 import { rateLimit } from "@/lib/rate-limit";
+import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
 import { chatThumbPath, type ChannelSummary, type ChatMessage, type ChatPerson } from "@/types/chat";
 
@@ -211,6 +212,7 @@ export async function sendMessage(input: unknown): Promise<Result<ChatMessage>> 
     return fail(friendly(error.message));
   }
   const [msg] = await decorateMessages(supabase, [data as unknown as ChatMessage]);
+  if (mentions.length) queuePush();
   return { ok: true, data: msg };
 }
 

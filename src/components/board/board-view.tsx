@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { RiskIcon } from "@/components/health-badge";
 import { DUE_STYLES, dueState, filterTasks, filtersActive, shortDate } from "@/lib/board";
 import { cn } from "@/lib/utils";
 import type { BoardTask, BuiltinColumn, CustomColumn, Group } from "@/types/board";
@@ -103,7 +104,8 @@ function TaskBadges({ task }: { task: BoardTask }) {
 }
 
 function TaskRow({ task, color }: { task: BoardTask; color: string }) {
-  const { openTask } = useBoard();
+  const { openTask, risks } = useBoard();
+  const risk = risks.get(task.id);
   const { builtins, custom, template } = useColumns();
   return (
     <div role="row" className="grid items-center border-b bg-card hover:bg-accent/40" style={{ gridTemplateColumns: template }}>
@@ -115,6 +117,7 @@ function TaskRow({ task, color }: { task: BoardTask; color: string }) {
         >
           {task.title}
         </button>
+        {risk && <RiskIcon level={risk.level} reason={risk.reason} />}
         <TaskBadges task={task} />
       </div>
       {builtins.map((c) => (
@@ -139,7 +142,8 @@ function TaskRow({ task, color }: { task: BoardTask; color: string }) {
 
 /** Phone layout: one card per task. Tap opens the task; status is one tap away. */
 function TaskCard({ task, color }: { task: BoardTask; color: string }) {
-  const { openTask, membersById } = useBoard();
+  const { openTask, membersById, risks } = useBoard();
+  const risk = risks.get(task.id);
   const state = dueState(task.due_date, !!task.completed_at);
   return (
     <li className="overflow-hidden rounded-xl border bg-card" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
@@ -149,6 +153,11 @@ function TaskCard({ task, color }: { task: BoardTask; color: string }) {
           {task.due_date && <span className={DUE_STYLES[state]}>{state === "overdue" ? "Overdue · " : "Due "}{shortDate(task.due_date)}</span>}
           <TaskBadges task={task} />
         </span>
+        {risk && risk.reason !== "Overdue" && (
+          <span className="mt-1 block">
+            <RiskIcon level={risk.level} reason={risk.reason} withText />
+          </span>
+        )}
       </button>
       <div className="flex items-center gap-3 px-4 pb-3">
         <StatusPicker task={task} className="flex-1" full />

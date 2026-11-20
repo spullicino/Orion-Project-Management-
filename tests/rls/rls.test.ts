@@ -733,3 +733,112 @@ describe("phase 5: chat", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("phase 6: notifications and delay warnings", () => {
+  type Row = Record<string, unknown>;
+  const val = async (db: { query: (s: string) => Promise<Row[]> }, sql: string) => (await db.query(`select ${sql} as v`))[0].v;
+  const notes = async (db: { query: (s: string) => Promise<Row[]> }) =>
+    (await db.query("select type, title from public.notifications order by created_at")) as { type: string; title: string }[];
+
+  it("assigning someone to a task notifies them (not the person who did it)", async () => {
+    await asUser(USERS.manager, async (db) => {
+      await db.query(`insert into public.task_assignees (task_id, user_id, assigned_by) values ('${TASKS.vallettaPartitions}', '${USERS.basic}', '${USERS.manager}')`);
+      await db.query(`insert into public.task_assignees (task_id, user_id, assigned_by) values ('${TASKS.mostaRails}', '${USERS.manager}', '${USERS.manager}')`);
+      expect(await notes(db)).toEqual([]); // the manager gets nothing for assigning themselves
+    });
+    await withSetup(
+      `insert into public.task_assignees (task_id, user_id, assigned_by) values ('${TASKS.vallettaPartitions}', '${USERS.basic}', '${USERS.manager}')`,
+      USERS.basic,
+      async (db) => {
+        expect(await notes(db)).toEqual([{ type: "task.assigned", title: "Mark Borg assigned you a task" }]);
+      },
+    );
+  });
+
+  it("status changes, comments and @mentions notify the right people", async () => {
+    await asUser(USERS.manager, async (db) => {
+      await db.query(`update public.tasks set status_id = (select id from public.status_labels where project_id = '${PROJECTS.valletta}' and name = 'Done') where id = '${TASKS.vallettaPartitions}'`);
+      await db.query(`insert into public.comments (task_id, author_id, body) values ('${TASKS.vallettaPartitions}', '${USERS.manager}', 'Nice work')`);
+      await db.query(`insert into public.messages (channel_id, author_id, body, mentions)
+        values ((select id from public.channels where project_id = '${PROJECTS.valletta}'), '${USERS.manager}', '@Tina hi', '{${USERS.tech1}}')`);
+      const rows = (await db.query(`select user_id, type from public.notifications order by type`)) as { user_id: string; type: string }[];
+      // The manager can't read other people's notifications (RLS) — check as Tina below.
+      expect(rows).toEqual([]);
+    });
+  });
+
+  it("people can switch a notification type off", async () => {
+    await withSetup(
+      `insert into public.notification_preferences (user_id, types) values ('${USERS.tech1}', '{"task.status": false}');
+       set local role authenticated;
+       select set_config('request.jwt.claims', '{"sub":"${USERS.manager}","role":"authenticated"}', true);
+       update public.tasks set status_id = (select id from public.status_labels where project_id = '${PROJECTS.valletta}' and name = 'Done') where id = '${TASKS.vallettaPartitions}';
+       insert into public.messages (channel_id, author_id, body, mentions)
+         values ((select id from public.channels where project_id = '${PROJECTS.valletta}'), '${USERS.manager}', '@Tina hi', '{${USERS.tech1}}');
+       reset role;`,
+      USERS.tech1,
+      async (db) => {
+        expect((await notes(db)).map((n) => n.type)).toEqual(["mention"]);
+      },
+    );
+  });
+
+  it("a new daily update notifies managers on the project", async () => {
+    await withSetup(
+      `set local role authenticated;
+       select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true);
+       insert into public.daily_updates (project_id, author_id, work_done) values ('${PROJECTS.valletta}', '${USERS.tech1}', 'Did things');
+       reset role;`,
+      USERS.manager,
+      async (db) => {
+        expect((await notes(db)).map((n) => n.type)).toEqual(["daily.new"]);
+      },
+    );
+  });
+
+  it("the daily job sends due/overdue reminders once and only the server may run it", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.create_due_notifications()")).toMatch(/permission denied/);
+      expect(await db.fails("select * from public.claim_push_batch()")).toMatch(/permission denied/);
+    });
+    await withSetup(
+      `update public.tasks set due_date = public.malta_today() + 1, start_date = null where id = '${TASKS.vallettaPartitions}';
+       select public.create_due_notifications(); select public.create_due_notifications();`,
+      USERS.tech1,
+      async (db) => {
+        expect(await notes(db)).toEqual([{ type: "task.due_soon", title: "Due tomorrow: Partition walls" }]);
+      },
+    );
+  });
+
+  it("health: delay rules on the demo data", async () => {
+    await asUser(USERS.manager, async (db) => {
+      const risks = (await db.query(
+        `select t.title, app.task_risk(t, public.malta_today()) as r from public.tasks t where t.project_id = '${PROJECTS.valletta}' order by t.position, t.title`,
+      )) as { title: string; r: { level: string; reason: string } | null }[];
+      const by = Object.fromEntries(risks.map((x) => [x.title, x.r?.level ?? "ok"]));
+      expect(by["Electrical first fix"]).toBe("amber"); // due in 2 days, 20 %
+      expect(by["Data cabling"]).toBe("amber"); // waiting for an unfinished task, starts in 3 days
+      expect(by["Partition walls"]).toBe("ok");
+      const projects = (await val(db, "public.list_projects()")) as { name: string; health: { level: string } }[];
+      expect(projects.find((p) => p.name === "Valletta Office Fit-out")!.health.level).toBe("amber");
+      expect(projects.find((p) => p.name === "Mosta Solar Installation")!.health.level).toBe("green");
+    });
+    await withSetup(
+      `update public.tasks set due_date = public.malta_today() - 1, start_date = public.malta_today() - 6 where id = '40000000-0000-4000-8000-000000000004';`,
+      USERS.manager,
+      async (db) => {
+        const r = (await db.query(`select t.title, app.task_risk(t, public.malta_today()) as r from public.tasks t where t.title in ('Electrical first fix', 'Data cabling') order by t.title`)) as {
+          title: string;
+          r: { level: string; reason: string };
+        }[];
+        expect(r.map((x) => [x.title, x.r.level])).toEqual([["Data cabling", "red"], ["Electrical first fix", "red"]]);
+        expect(r[0].r.reason).toBe("Waiting for a late task: Electrical first fix");
+        // A critical task is overdue → the whole project is red.
+        const projects = (await val(db, "public.list_projects()")) as { name: string; health: { level: string } }[];
+        expect(projects.find((p) => p.name === "Valletta Office Fit-out")!.health.level).toBe("red");
+      },
+    );
+  });
+});

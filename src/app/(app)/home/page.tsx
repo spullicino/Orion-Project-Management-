@@ -8,7 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { can, ROLE_LABEL } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
 import { todayISO } from "@/lib/board";
-import { getMyTasks } from "@/lib/data/projects";
+import { getMyTasks, listProjects } from "@/lib/data/projects";
+import { HealthBadge } from "@/components/health-badge";
+import { healthSummary } from "@/lib/health";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Home" };
@@ -32,6 +34,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     .select("id", { count: "exact", head: true })
     .eq("is_template", false)
     .neq("status", "archived");
+
+  // Managers: projects whose health is amber or red, worst first.
+  const attention = can.seeAllProjects(profile.role)
+    ? (await listProjects().catch(() => []))
+        .filter((p) => p.health && p.health.level !== "green")
+        .sort((a, b) => (a.health!.level === b.health!.level ? b.health!.red - a.health!.red : a.health!.level === "red" ? -1 : 1))
+    : [];
 
   let pendingCount = 0;
   if (can.manageUsers(profile.role)) {
@@ -105,6 +114,28 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </CardContent>
         </Card>
       </Link>
+
+      {attention.length > 0 && (
+        <Card className="mb-4">
+          <CardContent className="p-5">
+            <p className="mb-3 text-lg font-semibold">Projects that need attention</p>
+            <ul className="divide-y">
+              {attention.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/projects/${p.id}/dashboard`} className="flex items-center gap-3 py-2.5 hover:underline">
+                    <span className="size-3 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{p.name}</span>
+                      <span className="block truncate text-sm text-muted-foreground">{healthSummary(p.health!)}</span>
+                    </span>
+                    <HealthBadge level={p.health!.level} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shortcuts.map(({ href, label, detail, icon: Icon }) => (

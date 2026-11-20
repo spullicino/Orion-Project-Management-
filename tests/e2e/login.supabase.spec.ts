@@ -117,3 +117,19 @@ test("@supabase a technician sends a chat message and a basic user can read but 
   await expect(basic.getByText(text)).toBeVisible();
   await expect(basic.getByText("You can read this chat but not write in it.")).toBeVisible();
 });
+
+test("@supabase assigning a task notifies the person in their bell", async ({ page, browser }) => {
+  await signIn(page, "manager@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/projects");
+  await page.getByText("Valletta Office Fit-out").click();
+  await page.getByRole("button", { name: "Painting & finishes" }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: /Add an owner|Owners/ }).click();
+  await page.getByRole("button", { name: /Tina Camilleri/ }).click();
+
+  const tech = await (await browser.newContext()).newPage();
+  await signIn(tech, "tech1@orion.test");
+  await tech.waitForURL(/\/home/);
+  await tech.goto("/notifications");
+  await expect(tech.getByText("Mark Borg assigned you a task")).toBeVisible();
+});

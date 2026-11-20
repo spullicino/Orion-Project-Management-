@@ -7,6 +7,7 @@ import { hasRole } from "@/lib/auth/roles";
 import { getCurrentProfile, requireActiveProfile, requireRole } from "@/lib/auth/session";
 import { getDailyFeed, getDailyStatus, getProjectPhotos } from "@/lib/data/diary";
 import { rateLimit } from "@/lib/rate-limit";
+import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
 import { dailyUpdateEditSchema, dailyUpdateSchema, photoRegisterSchema, photoTicketSchema, reportSchema } from "@/lib/validation/diary";
 import { thumbPath, type DailyStatus, type DailyUpdate, type FeedQuery, type GalleryPhoto } from "@/types/diary";
@@ -71,6 +72,7 @@ export async function createDailyUpdate(input: unknown): Promise<Result<{ id: st
     .single();
   if (error) return fail(friendly(error.message));
   refresh(data.project_id);
+  queuePush();
   return { ok: true, data };
 }
 

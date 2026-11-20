@@ -76,6 +76,7 @@ export type Board = {
 };
 
 export type ProjectSummary = Project & {
+  health: { level: "red" | "amber" | "green"; red: number; amber: number; open: number; past_end: boolean } | null;
   task_count: number;
   done_count: number;
   overdue_count: number;

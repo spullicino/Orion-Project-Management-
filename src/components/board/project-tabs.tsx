@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Columns3, GanttChartSquare, Images, MessagesSquare, NotebookPen, Settings, Table2 } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Columns3, GanttChartSquare, Images, MessagesSquare, NotebookPen, Settings, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export function ProjectTabs({ projectId, canManage }: { projectId: string; canManage: boolean }) {
   const pathname = usePathname();
   const tabs = [
+    { href: `/projects/${projectId}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
     { href: `/projects/${projectId}/board`, label: "Board", icon: Table2 },
     { href: `/projects/${projectId}/kanban`, label: "Kanban", icon: Columns3 },
     { href: `/projects/${projectId}/gantt`, label: "Gantt", icon: GanttChartSquare },

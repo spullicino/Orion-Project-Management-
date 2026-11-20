@@ -18,6 +18,7 @@ import { DUE_STYLES, dueState, filterTasks, shortDate } from "@/lib/board";
 import { cn } from "@/lib/utils";
 import type { BoardTask, StatusLabel } from "@/types/board";
 import { useBoard } from "./board-context";
+import { RiskIcon } from "@/components/health-badge";
 import { AvatarStack } from "./cells";
 import { FilterBar } from "./filter-bar";
 
@@ -26,7 +27,8 @@ const NO_STATUS = "__none__";
 let lastDragEnd = 0;
 
 function CardBody({ task, dragging }: { task: BoardTask; dragging?: boolean }) {
-  const { board, membersById } = useBoard();
+  const { board, membersById, risks } = useBoard();
+  const risk = risks.get(task.id);
   const group = board.groups.find((g) => g.id === task.group_id);
   const state = dueState(task.due_date, !!task.completed_at);
   return (
@@ -39,7 +41,10 @@ function CardBody({ task, dragging }: { task: BoardTask; dragging?: boolean }) {
       )}
       <p className={cn("font-medium leading-snug", task.completed_at && "text-muted-foreground line-through")}>{task.title}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <span className={cn("text-sm", DUE_STYLES[state])}>{task.due_date ? shortDate(task.due_date) : ""}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {risk && <RiskIcon level={risk.level} reason={risk.reason} />}
+          <span className={cn("text-sm", DUE_STYLES[state])}>{task.due_date ? shortDate(task.due_date) : ""}</span>
+        </span>
         {task.assignees.length > 0 && <AvatarStack ids={task.assignees} members={membersById} size={26} />}
       </div>
       {task.progress > 0 && !task.completed_at && (

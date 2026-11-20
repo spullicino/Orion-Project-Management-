@@ -2,7 +2,7 @@
 
 Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
 
-> **Status: Phase 5 of 7.** Sign-in and user levels; projects, boards, Kanban, tasks and templates; Gantt, Calendar, exports and client links; daily site diary with photos (works offline); and chats — project, management and company channels with live messages, @mentions, reactions, replies, photos/files and unread badges. Notifications and dashboards come next.
+> **Status: Phase 6 of 7.** Everything up to chats, plus notifications (in the app, phone push, daily email summary), delay warnings with red/amber/green project health, and project dashboards. Phase 7 (install-as-app polish, offline app shell, final tests and deployment guide) is next.
 
 ---
 
@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0011_chat.sql`).
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0012_notifications_health.sql`).
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 
@@ -213,6 +213,22 @@ Add a client's logo on the **Clients** page; it then appears on exports and clie
 - Tap a message for reactions, **Reply** (a thread), copy, edit or delete. Type **@** to mention someone. Use the paperclip for photos/files (photos are shrunk first) and the ✓ button to link a task — tapping the link opens the task.
 - **Mute** a chat from its ⋮ menu so it doesn't count in the badge. Managers can create extra management or announcement chats (**+ New**) and archive them.
 - Basic users can read project chats; whether they can also write is the *Basic users can post* switch in **Admin → Settings**.
+
+---
+
+## 9e. Notifications, delay warnings and dashboards
+
+**What people get notified about:** being given a task, @mentions, comments and status changes on their tasks, tasks due today/tomorrow or overdue, and (managers) new daily updates on their projects. Everything shows in the **bell** 🔔; each person chooses in **Profile → Notifications** what also reaches their phone, sets quiet hours, and can switch on a **daily email summary**.
+
+**Set-up (once, by an administrator):**
+
+1. In the app, open **Admin → Setup: notifications & daily job** and tap **Generate keys for Vercel**.
+2. In **Vercel → Settings → Environment Variables** add the three values shown (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`) plus `VAPID_SUBJECT` = `mailto:` + your email.
+3. For the email summary, also add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `EMAIL_FROM` — the same details you used for Supabase's email (step 5).
+4. Redeploy. The Setup card should show three green ticks. The daily job runs every morning at about 07:30 Malta time (see `vercel.json`).
+5. Each person turns notifications on for their phone in **Profile → Notifications → Turn on notifications**. On iPhone this works only after **Share → Add to Home Screen** (iOS 16.4 or newer), opened from the Home Screen icon.
+
+**Delay warnings:** tasks show a red ⛔ when overdue or waiting for a late task, and an amber ⚠ when due within 2 days with under 50 % progress, behind schedule, or waiting for an unfinished task that should start soon. Projects get a badge: **On track**, **Needs attention** or **At risk** (any important task late, several late tasks, or past the planned end date). Each project has a **Dashboard** tab; managers see projects needing attention on **Home**.
 
 ---
 

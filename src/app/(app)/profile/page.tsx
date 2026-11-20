@@ -2,6 +2,7 @@ import { Building2, ChevronRight, ListChecks, LogOut, ShieldCheck } from "lucide
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { NotificationSettings } from "@/components/notifications/notification-settings";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { can, ROLE_LABEL, ROLES } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
+import { loadPrefs } from "@/app/(app)/notifications/actions";
 import { resolveAvatarUrls } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,7 +19,7 @@ export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const profile = await requireActiveProfile();
-  const [avatarUrl] = await resolveAvatarUrls(await createClient(), [profile.avatar_url]);
+  const [[avatarUrl], prefs] = await Promise.all([resolveAvatarUrls(await createClient(), [profile.avatar_url]), loadPrefs()]);
   const roleInfo = ROLES.find((r) => r.value === profile.role);
 
   return (
@@ -35,6 +37,7 @@ export default async function ProfilePage() {
         </Card>
 
         <div className="grid content-start gap-5">
+          {prefs.ok && prefs.data && <NotificationSettings initial={prefs.data} pushAvailable={prefs.data.pushAvailable} />}
           <Card>
             <CardHeader>
               <CardTitle>Your access level</CardTitle>

@@ -1,4 +1,5 @@
 import { UnreadProvider } from "@/components/chat/unread-provider";
+import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -18,17 +19,21 @@ export default async function AppLayout({
 }) {
   const profile = await requireActiveProfile();
   const supabase = await createClient();
-  const [[avatarUrl], unread] = await Promise.all([
+  const [[avatarUrl], unread, notifCount] = await Promise.all([
     resolveAvatarUrls(supabase, [profile.avatar_url]),
-    // The unread badge works only once the chat database update has been run; until then it shows nothing.
+    // Badges work once the related database updates have been run; until then they show nothing.
+    supabase.rpc("get_unread_total").then((r) => (r.error ? 0 : Number(r.data ?? 0))),
     supabase
-      .rpc("get_unread_total")
-      .then((r) => (r.error ? 0 : Number(r.data ?? 0))),
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null)
+      .then((r) => r.count ?? 0),
   ]);
 
   return (
     <OutboxProvider userId={profile.id}>
       <UnreadProvider initial={unread}>
+      <NotificationsProvider userId={profile.id} initial={notifCount}>
         <div className="flex min-h-dvh">
           <a
             href="#main"
@@ -49,6 +54,7 @@ export default async function AppLayout({
           </div>
           <BottomTabs />
         </div>
+      </NotificationsProvider>
       </UnreadProvider>
     </OutboxProvider>
   );

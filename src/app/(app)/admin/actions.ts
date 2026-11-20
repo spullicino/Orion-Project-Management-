@@ -136,3 +136,13 @@ export async function updateSettings(input: { basicCanPostChat: boolean }): Prom
   if (error) return { error: error.message };
   return done("Settings saved");
 }
+
+/** Admin setup helper: fresh push (VAPID) keys and a random secret, shown once to copy into Vercel. Nothing is stored. */
+export async function generateSetupKeys(): Promise<{ ok: true; publicKey: string; privateKey: string; cronSecret: string } | { ok: false; error: string }> {
+  await requireRole("admin");
+  const webpush = await import("web-push");
+  const { publicKey, privateKey } = webpush.generateVAPIDKeys();
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const cronSecret = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return { ok: true, publicKey, privateKey, cronSecret };
+}

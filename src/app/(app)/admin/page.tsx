@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { InviteForm, OpenInvites } from "@/components/admin/invite-form";
 import { PendingList } from "@/components/admin/pending-list";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { SetupCard } from "@/components/admin/setup-card";
+import { emailConfigured } from "@/lib/notify/email";
+import { pushConfigured } from "@/lib/notify/push";
 import { UsersList } from "@/components/admin/users-list";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +78,16 @@ export default async function AdminPage() {
             <CardTitle>Settings</CardTitle>
           </CardHeader>
           <CardContent>{settings && <SettingsForm settings={settings} />}</CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Setup: notifications & daily job</CardTitle>
+            <CardDescription>What&apos;s switched on for this installation.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SetupCard status={{ push: pushConfigured(), cron: !!process.env.CRON_SECRET, email: emailConfigured() }} />
+          </CardContent>
         </Card>
       </div>
     </>

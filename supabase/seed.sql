@@ -146,3 +146,8 @@ from public.channels c where c.type = 'project';
 insert into public.messages (channel_id, author_id, body)
 select c.id, '00000000-0000-4000-8000-000000000001', 'Welcome to Orion Projects 👋 Announcements will appear here.'
 from public.channels c where c.type = 'general';
+
+-- Loading demo data fires the notification triggers; start with a clean inbox.
+do $$ begin
+  if to_regclass('public.notifications') is not null then delete from public.notifications; end if;
+end $$;

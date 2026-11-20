@@ -2,6 +2,7 @@ import { AlertTriangle, ListChecks, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DatabaseUpdateNotice } from "@/components/database-update-notice";
+import { HealthBadge } from "@/components/health-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { can } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
 import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
 import { listProjects } from "@/lib/data/projects";
+import { healthSummary } from "@/lib/health";
 import { cn, formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Projects" };
@@ -98,7 +100,10 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
                     <div className="h-1.5" style={{ background: p.color }} />
                     <CardContent className="grid gap-3 p-5">
                       <div>
-                        <p className="text-lg font-semibold leading-tight">{p.name}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-lg font-semibold leading-tight">{p.name}</p>
+                          {p.health && <HealthBadge level={p.health.level} title={healthSummary(p.health)} className="shrink-0" />}
+                        </div>
                         <p className="text-sm text-muted-foreground">{[p.client?.name, p.code].filter(Boolean).join(" · ") || " "}</p>
                       </div>
                       <div className="grid gap-1.5">
