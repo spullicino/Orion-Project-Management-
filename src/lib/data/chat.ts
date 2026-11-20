@@ -1,3 +1,4 @@
+import { cache } from "react";
 import "server-only";
 import { dbError } from "@/lib/data/db-errors";
 import { resolveAvatarUrls } from "@/lib/storage";
@@ -28,12 +29,12 @@ export async function decorateMessages(supabase: Supa, messages: ChatMessage[]):
   }));
 }
 
-export async function listChannels(): Promise<ChannelSummary[]> {
+export const listChannels = cache(async (): Promise<ChannelSummary[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("list_my_channels");
   if (error) throw dbError("Could not load chats", error);
   return (data ?? []) as unknown as ChannelSummary[];
-}
+});
 
 export async function getMessages(channelId: string, before?: string | null): Promise<ChatMessage[]> {
   const supabase = await createClient();

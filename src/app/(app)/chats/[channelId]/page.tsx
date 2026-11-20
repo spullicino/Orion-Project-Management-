@@ -17,13 +17,16 @@ export default async function ChannelPage({ params }: { params: Promise<{ channe
   const { channelId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(channelId)) notFound();
   const me = await requireActiveProfile();
-  const channel = (await listChannels()).find((c) => c.id === channelId);
-  if (!channel) notFound();
-  const [messages, people, [avatar]] = await Promise.all([
-    getMessages(channelId),
-    getChannelPeople(channelId),
+  // Loaded together; a chat you can't see still shows "not found" rather than an error.
+  const [channels, loaded, [avatar]] = await Promise.all([
+    listChannels(),
+    Promise.all([getMessages(channelId), getChannelPeople(channelId)]).catch((e: unknown) => e as Error),
     resolveAvatarUrls(await createClient(), [me.avatar_url]),
   ]);
+  const channel = channels.find((c) => c.id === channelId);
+  if (!channel) notFound();
+  if (loaded instanceof Error) throw loaded;
+  const [messages, people] = loaded;
   return (
     <Conversation
       key={channelId}

@@ -142,6 +142,7 @@ Keep these SMTP details — the daily email summary uses them too (step 10).
 3. **Deploy.** Your app is at `https://<name>.vercel.app`.
 4. Put that address in Supabase **URL Configuration** (step 4.2).
 5. After changing any variable: **Deployments → ⋯ → Redeploy**.
+6. The app's server runs in **Frankfurt** (`fra1`, set in `vercel.json`), next to the database. If **Settings → Functions → Function Region** shows anything else, set it to Frankfurt and redeploy. **Admin → Speed check** confirms it.
 
 ---
 
@@ -286,6 +287,7 @@ Database files applied so far: `…0001` to `…0013` (`supabase/setup/all-in-on
 | No phone notifications | Admin → Setup shows ticks? Person turned them on in Profile? iPhone: installed to Home Screen and opened from there? Quiet hours? Try *Send a test*. |
 | Google: "redirect_uri_mismatch" | The redirect URI in Google must exactly match Supabase's Google provider page. |
 | A page says "Sorry, this page couldn't load" | Tap *Try again*. If it persists, send the code shown, plus Vercel → *Logs* around that time, to your developer. |
+| The app feels slow | **Admin → Speed check**: the server should be Frankfurt (`fra1`) and the database response under 40 ms. If not, see step 7.6. On Supabase's free plan the database also pauses after a week of no use, and the first visit after that is slow. |
 | The logo doesn't show in emails | Outlook/Gmail may block pictures: click *Show images*. |
 
 ---

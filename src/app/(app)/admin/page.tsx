@@ -3,6 +3,7 @@ import { InviteForm, OpenInvites } from "@/components/admin/invite-form";
 import { PendingList } from "@/components/admin/pending-list";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { SetupCard } from "@/components/admin/setup-card";
+import { SpeedCheck } from "@/components/admin/speed-check";
 import { emailConfigured } from "@/lib/notify/email";
 import { pushConfigured } from "@/lib/notify/push";
 import { UsersList } from "@/components/admin/users-list";
@@ -87,6 +88,16 @@ export default async function AdminPage() {
           </CardHeader>
           <CardContent>
             <SetupCard status={{ push: pushConfigured(), cron: !!process.env.CRON_SECRET, email: emailConfigured() }} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Speed check</CardTitle>
+            <CardDescription>Measured just now, when this page opened.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SpeedCheck supabase={supabase} userId={me.id} />
           </CardContent>
         </Card>
       </div>

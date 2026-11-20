@@ -23,30 +23,25 @@ function greeting() {
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
 
-  // If the latest database update hasn't been run yet, show Home without the task summary.
-  const myTasks = (await getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>)).filter((t) => !t.completed_at);
+  // Everything Home needs, fetched at the same time (not one after another).
+  const [allMyTasks, { count: projectCount }, projects, pendingCount] = await Promise.all([
+    // If the latest database update hasn't been run yet, show Home without the task summary.
+    getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>),
+    supabase.from("projects").select("id", { count: "exact", head: true }).eq("is_template", false).neq("status", "archived"),
+    can.seeAllProjects(profile.role) ? listProjects().catch(() => []) : Promise.resolve([]),
+    can.manageUsers(profile.role)
+      ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending").then((r) => r.count ?? 0)
+      : Promise.resolve(0),
+  ]);
+  const myTasks = allMyTasks.filter((t) => !t.completed_at);
   const today = todayISO();
   const overdue = myTasks.filter((t) => t.due_date && t.due_date < today).length;
   const dueToday = myTasks.filter((t) => t.due_date === today).length;
 
-  const { count: projectCount } = await supabase
-    .from("projects")
-    .select("id", { count: "exact", head: true })
-    .eq("is_template", false)
-    .neq("status", "archived");
-
   // Managers: projects whose health is amber or red, worst first.
-  const attention = can.seeAllProjects(profile.role)
-    ? (await listProjects().catch(() => []))
-        .filter((p) => p.health && p.health.level !== "green")
-        .sort((a, b) => (a.health!.level === b.health!.level ? b.health!.red - a.health!.red : a.health!.level === "red" ? -1 : 1))
-    : [];
-
-  let pendingCount = 0;
-  if (can.manageUsers(profile.role)) {
-    const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending");
-    pendingCount = count ?? 0;
-  }
+  const attention = projects
+    .filter((p) => p.health && p.health.level !== "green")
+    .sort((a, b) => (a.health!.level === b.health!.level ? b.health!.red - a.health!.red : a.health!.level === "red" ? -1 : 1));
 
   const shortcuts = [
     { href: "/projects", label: "Projects", detail: `${projectCount ?? 0} active`, icon: FolderKanban },
