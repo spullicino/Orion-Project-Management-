@@ -21,3 +21,14 @@ describe("utils", () => {
     });
   });
 });
+
+import { normaliseSupabaseUrl } from "@/lib/env";
+
+describe("normaliseSupabaseUrl", () => {
+  it.each([
+    ["https://abc.supabase.co", "https://abc.supabase.co"],
+    ["https://abc.supabase.co/", "https://abc.supabase.co"],
+    [" https://abc.supabase.co/rest/v1/ ", "https://abc.supabase.co"],
+    ["", ""],
+  ])("%s → %s", (input, expected) => expect(normaliseSupabaseUrl(input)).toBe(expected));
+});
