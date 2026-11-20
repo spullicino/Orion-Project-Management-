@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to `…0006_storage.sql`.
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to `…0007_table_grants.sql`.
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 

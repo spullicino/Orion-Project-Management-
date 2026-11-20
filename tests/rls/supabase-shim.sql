@@ -80,7 +80,6 @@ grant select on storage.buckets to authenticated;
 
 create publication supabase_realtime;
 
--- Supabase grants these by default on the public schema.
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+-- Like newer Supabase projects, NO automatic table grants for the API roles:
+-- migration 0007 must grant them explicitly (this is what caught the
+-- "permission denied for table profiles" bug).

@@ -16,9 +16,30 @@ describe("anonymous visitors", () => {
   it("cannot read or write anything", async () => {
     await asUser(null, async (db) => {
       for (const t of ["profiles", "projects", "tasks", "daily_updates", "messages", "share_links", "clients"]) {
-        expect(await count(db, `select 1 from public.${t}`)).toBe(0);
+        expect(await db.fails(`select 1 from public.${t}`)).toMatch(/permission denied/);
       }
-      expect(await db.fails("insert into public.projects (name) values ('x')")).toMatch(/row-level security/);
+      expect(await db.fails("insert into public.projects (name) values ('x')")).toMatch(/permission denied/);
+    });
+  });
+});
+
+describe("table privileges", () => {
+  it("signed-in users can query every app table (RLS then filters rows)", async () => {
+    const tables = await (async () => {
+      let names: string[] = [];
+      await asUser(USERS.admin, async (db) => {
+        names = (
+          await db.query<{ tablename: string }>(
+            "select tablename from pg_tables where schemaname = 'public' and tablename <> 'rate_limits' order by 1",
+          )
+        ).map((r) => r.tablename);
+      });
+      return names;
+    })();
+    expect(tables.length).toBeGreaterThan(20);
+    await asUser(USERS.tech1, async (db) => {
+      for (const t of tables) expect(await db.fails(`select 1 from public.${t} limit 1`), t).toBeNull();
+      expect(await db.fails("select 1 from public.rate_limits")).toMatch(/permission denied/);
     });
   });
 });
