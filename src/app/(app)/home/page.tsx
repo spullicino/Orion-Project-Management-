@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, UserPen, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
@@ -59,13 +59,25 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <>
       <PageHeader
-        title={`${greeting()}, ${profile.first_name || "there"}`}
+        title={profile.first_name.trim() ? `${greeting()}, ${profile.first_name.trim()}` : greeting()}
         description={
           <span className="inline-flex items-center gap-2">
             You are signed in as <Badge>{ROLE_LABEL[profile.role]}</Badge>
           </span>
         }
       />
+
+      {!profile.first_name.trim() && (
+        <Link href="/profile" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Alert variant="info" className="flex items-center gap-3 [&>svg]:static [&>svg~*]:pl-0">
+            <UserPen className="text-primary" aria-hidden />
+            <AlertDescription className="flex-1">
+              <span className="font-medium">Add your name</span> so colleagues recognise you on tasks, chats and daily updates.
+            </AlertDescription>
+            <ArrowRight className="size-4" aria-hidden />
+          </Alert>
+        </Link>
+      )}
 
       {denied && (
         <Alert variant="destructive" className="mb-4">
