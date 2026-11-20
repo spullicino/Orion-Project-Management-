@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
+import { maybeBootstrapAdmin } from "@/lib/auth/bootstrap";
 import { getSessionState } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Waiting for approval" };
@@ -12,6 +13,9 @@ export default async function PendingPage() {
   if (!userId) redirect("/login");
   if (!profile) redirect("/account-problem");
   if (profile.status === "active") redirect("/home");
+  if (profile.status === "pending" && (await maybeBootstrapAdmin({ id: profile.id, email: profile.email }))) {
+    redirect("/home");
+  }
 
   const deactivated = profile.status === "deactivated";
   return (
