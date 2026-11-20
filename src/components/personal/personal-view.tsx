@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, ChevronDown, ChevronRight, Lock, Pin, PinOff, Plus, Search, StickyNote, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Check, ChevronDown, ChevronRight, List, Lock, Pin, PinOff, Plus, Search, StickyNote, Trash2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   addTodo,
@@ -19,6 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DUE_STYLES, dueState, shortDate } from "@/lib/board";
 import { listTime } from "@/lib/chat";
+import { autoBullet, enterInBullet, toggleBullets, type Edit } from "@/lib/note-bullets";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,24 @@ function NoteEditor({ note, onSaved, onDeleted, onClose }: { note: PersonalNote 
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef(draft);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const { confirm, dialog } = useConfirm();
+
+  const pendingCursor = useRef<Edit | null>(null);
+
+  // Applies a bullet-list edit; the cursor is put back as soon as the new text is on screen.
+  const applyEdit = (e: Edit) => {
+    pendingCursor.current = e;
+    update({ body: e.text });
+  };
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    const want = pendingCursor.current;
+    if (!el || !want || el.value !== want.text) return;
+    pendingCursor.current = null;
+    el.focus();
+    el.setSelectionRange(want.start, want.end);
+  });
 
   const save = async (d: Draft) => {
     if (!id && !d.title.trim() && !d.body.trim()) return; // don't create empty notes
@@ -272,9 +290,38 @@ function NoteEditor({ note, onSaved, onDeleted, onClose }: { note: PersonalNote 
             maxLength={200}
             className="w-full bg-transparent text-xl font-semibold placeholder:text-slate-500 focus:outline-none"
           />
+          <div className="-ml-3 flex">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const el = bodyRef.current;
+                const start = el?.selectionStart ?? draft.body.length;
+                const end = el?.selectionEnd ?? draft.body.length;
+                applyEdit(toggleBullets(draft.body, start, end));
+              }}
+              className="flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium hover:bg-slate-900/5"
+            >
+              <List className="size-4" aria-hidden /> Bullet list
+            </button>
+          </div>
           <textarea
+            ref={bodyRef}
             value={draft.body}
-            onChange={(e) => update({ body: e.target.value })}
+            onChange={(e) => {
+              const auto = autoBullet(e.target.value, e.target.selectionStart);
+              if (auto) applyEdit(auto);
+              else update({ body: e.target.value });
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+              const el = e.currentTarget;
+              const edit = enterInBullet(el.value, el.selectionStart, el.selectionEnd);
+              if (edit) {
+                e.preventDefault();
+                applyEdit(edit);
+              }
+            }}
             placeholder="Write anything…"
             aria-label="Note"
             maxLength={20000}

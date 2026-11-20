@@ -423,6 +423,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Open **Personal** → **Notes** → **New note**.",
           "Type a title and your note — it saves by itself as you type.",
+          "For a list, tap **Bullet list** (or start a line with - and a space). Press Enter for the next bullet, and Enter twice to end the list.",
           "Pick a colour or tap **Pin to top** to keep it first.",
           "Tap **Done** to close it. Use **Search notes** to find it later.",
         ],
