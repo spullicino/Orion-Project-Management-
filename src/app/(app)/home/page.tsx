@@ -21,7 +21,8 @@ function greeting() {
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
 
-  const myTasks = (await getMyTasks()).filter((t) => !t.completed_at);
+  // If the latest database update hasn't been run yet, show Home without the task summary.
+  const myTasks = (await getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>)).filter((t) => !t.completed_at);
   const today = todayISO();
   const overdue = myTasks.filter((t) => t.due_date && t.due_date < today).length;
   const dueToday = myTasks.filter((t) => t.due_date === today).length;

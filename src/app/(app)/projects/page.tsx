@@ -1,12 +1,14 @@
 import { AlertTriangle, ListChecks, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DatabaseUpdateNotice } from "@/components/database-update-notice";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress";
 import { can } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
+import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
 import { listProjects } from "@/lib/data/projects";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -22,7 +24,20 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const [{ view = "active" }, me] = await Promise.all([searchParams, requireActiveProfile()]);
   const isManager = can.createProjects(me.role);
   const current = VIEWS.find((v) => v.key === view && (!("managerOnly" in v) || isManager))?.key ?? "active";
-  const projects = await listProjects({ archived: current === "archived", templates: current === "templates" });
+  let projects: Awaited<ReturnType<typeof listProjects>>;
+  try {
+    projects = await listProjects({ archived: current === "archived", templates: current === "templates" });
+  } catch (e) {
+    if (e instanceof DatabaseUpdateNeeded) {
+      return (
+        <>
+          <PageHeader title="Projects" />
+          <DatabaseUpdateNotice isAdmin={me.role === "admin"} />
+        </>
+      );
+    }
+    throw e;
+  }
 
   return (
     <>

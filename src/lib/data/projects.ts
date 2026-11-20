@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { dbError } from "@/lib/data/db-errors";
 import { resolveAvatarUrls } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 import type { Board, Client, MyTask, ProjectSummary } from "@/types/board";
@@ -10,7 +11,7 @@ export const getBoard = cache(async (projectId: string): Promise<Board | null> =
   if (!/^[0-9a-f-]{36}$/i.test(projectId)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_project_board", { p_project: projectId });
-  if (error) throw new Error(`Could not load the project: ${error.message}`);
+  if (error) throw dbError("Could not load the project", error);
   if (!data) return null;
   const board = data as unknown as Board;
   const urls = await resolveAvatarUrls(supabase, board.members.map((m) => m.avatar_url));
@@ -24,14 +25,14 @@ export async function listProjects(opts: { archived?: boolean; templates?: boole
     p_include_archived: opts.archived ?? false,
     p_templates: opts.templates ?? false,
   });
-  if (error) throw new Error(`Could not load projects: ${error.message}`);
+  if (error) throw dbError("Could not load projects", error);
   return (data ?? []) as unknown as ProjectSummary[];
 }
 
 export async function getMyTasks(): Promise<MyTask[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_my_tasks");
-  if (error) throw new Error(`Could not load your tasks: ${error.message}`);
+  if (error) throw dbError("Could not load your tasks", error);
   return (data ?? []) as unknown as MyTask[];
 }
 

@@ -7,6 +7,8 @@ import { RealtimeRefresh } from "@/components/board/realtime-refresh";
 import { TaskDrawer } from "@/components/board/task-drawer";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DatabaseUpdateNotice } from "@/components/database-update-notice";
+import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
 import { hasRole } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
 import { getBoard } from "@/lib/data/projects";
@@ -16,7 +18,14 @@ const STATUS_LABEL = { active: null, on_hold: "On hold", completed: "Completed",
 
 export default async function ProjectLayout({ children, params }: { children: React.ReactNode; params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const [me, board] = await Promise.all([requireActiveProfile(), getBoard(projectId)]);
+  const me = await requireActiveProfile();
+  let board: Awaited<ReturnType<typeof getBoard>>;
+  try {
+    board = await getBoard(projectId);
+  } catch (e) {
+    if (e instanceof DatabaseUpdateNeeded) return <DatabaseUpdateNotice isAdmin={me.role === "admin"} />;
+    throw e;
+  }
   if (!board) notFound();
 
   const isMember = board.members.some((m) => m.user_id === me.id);

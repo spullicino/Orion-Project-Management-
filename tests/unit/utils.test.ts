@@ -32,3 +32,14 @@ describe("normaliseSupabaseUrl", () => {
     ["", ""],
   ])("%s → %s", (input, expected) => expect(normaliseSupabaseUrl(input)).toBe(expected));
 });
+
+import { isMissingSchema } from "@/lib/data/db-errors";
+
+describe("isMissingSchema", () => {
+  it("recognises 'run the latest database update' errors", () => {
+    expect(isMissingSchema({ code: "PGRST202", message: "Could not find the function public.get_my_tasks without parameters in the schema cache" })).toBe(true);
+    expect(isMissingSchema({ code: "42703", message: 'column projects.hidden_columns does not exist' })).toBe(true);
+    expect(isMissingSchema({ code: "42501", message: "permission denied for table tasks" })).toBe(false);
+    expect(isMissingSchema(null)).toBe(false);
+  });
+});
