@@ -7,7 +7,7 @@ export function MobileHeader({ profile, avatarUrl }: { profile: Profile; avatarU
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/95 px-4 pt-safe backdrop-blur md:hidden">
       <Link href="/home" aria-label="Orion Projects home">
-        <Logo showText={false} className="[&_img]:size-8" />
+        <Logo showText={false} />
       </Link>
       <Link href="/profile" aria-label="Your profile" className="flex size-11 items-center justify-center">
         <UserAvatar person={profile} src={avatarUrl} size={32} />

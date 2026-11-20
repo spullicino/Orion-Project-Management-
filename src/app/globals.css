@@ -11,8 +11,8 @@
   --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.42 0.17 262);          /* Orion deep blue */
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: #2d57a3;                       /* Orion blue (from the logo) */
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.95 0.01 255);
   --secondary-foreground: oklch(0.25 0.03 260);
   --muted: oklch(0.955 0.008 255);
@@ -25,8 +25,9 @@
   --warning: oklch(0.75 0.16 75);
   --border: oklch(0.9 0.01 255);
   --input: oklch(0.88 0.012 255);
-  --ring: oklch(0.55 0.17 262);
-  --brand-gold: oklch(0.78 0.14 80);
+  --ring: #0584c7;
+  --brand-cyan: #02b5ef;
+  --brand-blue: #0584c7;
 }
 
 .dark {
@@ -36,8 +37,8 @@
   --card-foreground: var(--foreground);
   --popover: oklch(0.21 0.025 262);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.7 0.14 258);
-  --primary-foreground: oklch(0.16 0.03 262);
+  --primary: #3fb8ec;
+  --primary-foreground: #0b1a2e;
   --secondary: oklch(0.27 0.025 262);
   --secondary-foreground: oklch(0.95 0.01 255);
   --muted: oklch(0.25 0.02 262);
@@ -50,7 +51,7 @@
   --warning: oklch(0.8 0.15 80);
   --border: oklch(0.3 0.025 262);
   --input: oklch(0.34 0.025 262);
-  --ring: oklch(0.7 0.14 258);
+  --ring: #3fb8ec;
 }
 
 @theme inline {
@@ -75,7 +76,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-brand-gold: var(--brand-gold);
+  --color-brand-cyan: var(--brand-cyan);
+  --color-brand-blue: var(--brand-blue);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

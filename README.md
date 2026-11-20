@@ -105,7 +105,7 @@ In Supabase, open **Authentication**:
    | Change email address | Confirm your new email for Orion Projects | `email_change.html` |
    | Magic link | Your Orion Projects sign-in link | `magic_link.html` |
 
-   The templates show the Orion logo from `/brand/orion-mark.png` on your site. To use the official logo, replace `public/brand/orion-mark.png` and `public/brand/orion-mark.svg`.
+   The templates show the Orion logo from `/brand/orion-logo.png` on your site. To change the logo anywhere in the app, replace the files in `public/brand/` (keep the same names).
 
 ---
 
