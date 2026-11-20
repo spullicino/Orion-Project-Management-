@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { SESSION_ONLY_COOKIE } from "@/lib/supabase/remember";
 import { maybeBootstrapAdmin } from "@/lib/auth/bootstrap";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { getSiteUrl } from "@/lib/site-url";
@@ -32,7 +34,13 @@ export async function signInWithPassword(_: FormState, formData: FormData): Prom
   const ip = await clientIp();
   if (!(await rateLimit("login", `${ip}:${email}`))) return { error: TOO_MANY };
 
-  const supabase = await createClient();
+  // "Keep me signed in on this device" (ticked by default).
+  const remember = formData.get("remember") === "on";
+  const cookieStore = await cookies();
+  if (remember) cookieStore.delete(SESSION_ONLY_COOKIE);
+  else cookieStore.set(SESSION_ONLY_COOKIE, "1", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+
+  const supabase = await createClient({ sessionOnly: !remember });
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.code === "email_not_confirmed") {

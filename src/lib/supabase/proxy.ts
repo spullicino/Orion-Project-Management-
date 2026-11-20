@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
+import { cookieOptionsFor, SESSION_ONLY_COOKIE } from "./remember";
 
 /** Routes that work without being signed in. */
 const PUBLIC_PATHS = [
@@ -38,7 +39,8 @@ export async function updateSession(request: NextRequest) {
       setAll(cookiesToSet, headers) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        const sessionOnly = request.cookies.get(SESSION_ONLY_COOKIE)?.value === "1";
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, cookieOptionsFor(value, options, sessionOnly)));
         Object.entries(headers ?? {}).forEach(([k, v]) => response.headers.set(k, v));
       },
     },

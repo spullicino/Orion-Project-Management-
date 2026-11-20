@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   type FormState,
   requestPasswordReset,
@@ -34,20 +34,58 @@ function FormMessages({ state }: { state: FormState }) {
   return null;
 }
 
+const REMEMBERED_EMAIL = "orion:remembered-email";
+
 export function LoginForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signInWithPassword, initial);
+  const [email, setEmail] = useState("");
+  const [remember, setRemember] = useState(true);
+
+  // Fill in the email address remembered on this device.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBERED_EMAIL);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from this device
+      if (saved) setEmail(saved);
+    } catch {
+      // storage unavailable
+    }
+  }, []);
+
   return (
     <>
-      <form action={action} className="grid gap-4" noValidate>
+      <form
+        action={action}
+        className="grid gap-4"
+        noValidate
+        onSubmit={() => {
+          try {
+            if (remember && email.trim()) localStorage.setItem(REMEMBERED_EMAIL, email.trim());
+            else localStorage.removeItem(REMEMBERED_EMAIL);
+          } catch {
+            // storage unavailable
+          }
+        }}
+      >
         <FormMessages state={state} />
         <input type="hidden" name="next" value={next ?? "/home"} />
         <FormField id="email" label="Email" error={state.fieldErrors?.email}>
-          <Input name="email" type="email" autoComplete="email" inputMode="email" required />
+          <Input name="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </FormField>
         <FormField id="password" label="Password" error={state.fieldErrors?.password}>
           <PasswordInput name="password" autoComplete="current-password" required />
         </FormField>
-        <div className="-mt-1 text-right">
+        <div className="-mt-1 flex flex-wrap items-center justify-between gap-2">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="remember"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="size-5 accent-[var(--primary)]"
+            />
+            Keep me signed in on this device
+          </label>
           <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
             Forgot password?
           </Link>

@@ -75,3 +75,19 @@ describe("validation", () => {
     expect(profileSchema.safeParse({ firstName: "A", lastName: "B", phone: "call me" }).success).toBe(false);
   });
 });
+
+import { cookieOptionsFor } from "@/lib/supabase/remember";
+
+describe("keep me signed in", () => {
+  const opts = { path: "/", maxAge: 400 * 86400, sameSite: "lax" as const };
+  it("keeps the normal long expiry when remembered", () => {
+    expect(cookieOptionsFor("token", opts, false)).toEqual(opts);
+  });
+  it("makes sign-in cookies end with the browser when not remembered", () => {
+    expect(cookieOptionsFor("token", opts, true)).toEqual({ path: "/", sameSite: "lax" });
+  });
+  it("never changes cookies that are being removed (sign-out still works)", () => {
+    const removal = { path: "/", maxAge: 0 };
+    expect(cookieOptionsFor("", removal, true)).toEqual(removal);
+  });
+});

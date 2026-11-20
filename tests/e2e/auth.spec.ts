@@ -33,3 +33,12 @@ test("password can be shown and hidden", async ({ page }) => {
   await page.getByRole("button", { name: "Show password" }).click();
   await expect(field).toHaveAttribute("type", "text");
 });
+
+test("login offers 'keep me signed in' (on by default) and remembers the email on this device", async ({ page }) => {
+  await page.goto("/login");
+  const box = page.getByLabel("Keep me signed in on this device");
+  await expect(box).toBeChecked();
+  await page.evaluate(() => localStorage.setItem("orion:remembered-email", "tina@orion.test"));
+  await page.reload();
+  await expect(page.getByLabel("Email")).toHaveValue("tina@orion.test");
+});
