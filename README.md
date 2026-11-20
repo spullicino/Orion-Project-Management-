@@ -2,7 +2,7 @@
 
 Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
 
-> **Status: Phase 3 of 7.** Sign-in and user levels (phase 1); projects, boards, Kanban, task details, My Tasks, clients and templates (phase 2); Gantt charts with milestones and dependency arrows, Calendar, PDF/PNG export and read-only client links (phase 3). Daily updates, chats and notifications come next; their screens say "Coming in phase X".
+> **Status: Phase 4 of 7.** Sign-in and user levels (phase 1); projects, boards, Kanban, tasks, My Tasks, clients and templates (phase 2); Gantt, Calendar, PDF/PNG export and client links (phase 3); daily site diary with photos, offline sending, photo gallery, team overview and PDF reports (phase 4). Chats and notifications come next; their screens say "Coming in phase X".
 
 ---
 
@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0009_share_links.sql`).
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0010_daily_diary.sql`).
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 
@@ -194,6 +194,16 @@ On a project's **Gantt** tab, managers have three buttons:
 - **Share with client**: create a read-only web link the client can open without logging in. It shows a progress summary and the timeline. Choose how long it works (30 days to “until I turn it off”) and turn it off at any time. The list shows when each link was last opened.
 
 Add a client's logo on the **Clients** page; it then appears on exports and client links.
+
+---
+
+## 9c. Daily site diary
+
+- **Daily Update** (bottom tab): choose the project, write what was done, tap the hours, add issues if any, and **Take photo** or **From gallery**. Photos are shrunk on the phone (max 1600 px) before sending.
+- **No signal?** Post anyway. The update is saved on the phone and sent automatically when the connection is back — even if the app was closed. A yellow bar shows anything still waiting.
+- Each project has a **Diary** tab (updates grouped by day) and a **Photos** tab (all site photos, filter by date, tap for full screen).
+- People can edit or delete their own update for 24 hours; managers can always.
+- **Managers:** *Daily Update → Team overview & reports* shows who has and hasn't posted for any day, and **PDF report** creates a client-ready report (text + photos) for a project and date range.
 
 ---
 

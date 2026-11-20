@@ -28,6 +28,7 @@ export function AvatarUpload({ profile, avatarUrl }: { profile: Profile; avatarU
         fileType: "image/jpeg",
         initialQuality: 0.85,
         useWebWorker: true,
+        libURL: "/vendor/browser-image-compression-2.0.2.js",
       });
       const ticket = await createAvatarUpload({ contentType: "image/jpeg", size: small.size });
       if ("error" in ticket) throw new Error(ticket.error);

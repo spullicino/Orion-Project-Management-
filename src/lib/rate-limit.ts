@@ -8,6 +8,7 @@ export const LIMITS = {
   passwordReset: { max: 5, windowSeconds: 3600 },
   invite: { max: 30, windowSeconds: 3600 },
   upload: { max: 120, windowSeconds: 600 },
+  dailyPost: { max: 40, windowSeconds: 3600 },
 } as const;
 
 export async function clientIp() {

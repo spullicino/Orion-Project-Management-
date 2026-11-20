@@ -78,3 +78,22 @@ test("@supabase a manager exports the Gantt chart as PDF and creates a client li
   await page.getByRole("button", { name: /Create link/ }).click();
   await expect(page.getByText("Active").first()).toBeVisible();
 });
+
+test("@supabase a technician posts a daily update with a photo", async ({ page }) => {
+  await signIn(page, "tech1@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/daily-update");
+  await page.getByLabel("Project").selectOption({ label: "Valletta Office Fit-out" });
+  const text = `E2E diary ${Date.now()}`;
+  await page.getByLabel("What did you do today?").fill(text);
+  await page.getByRole("button", { name: "8 h" }).click();
+  await page.locator("input[type=file][multiple]").setInputFiles("tests/e2e/fixtures/site-photo.jpg");
+  await expect(page.locator('img[src^="blob:"]')).toHaveCount(1);
+  await page.getByRole("button", { name: "Post update" }).click();
+  await expect(page.getByText("Daily update sent")).toBeVisible({ timeout: 30_000 });
+  await page.goto("/projects");
+  await page.getByText("Valletta Office Fit-out").click();
+  await page.getByRole("link", { name: "Diary" }).click();
+  await expect(page.getByText(text)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open photo 1 of 1/ }).first()).toBeVisible();
+});

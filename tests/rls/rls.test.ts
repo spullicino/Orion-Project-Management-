@@ -560,3 +560,77 @@ describe("phase 3: client share links", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("phase 4: daily diary feed, gallery and status", () => {
+  type Row = Record<string, unknown>;
+  const val = async (db: { query: (s: string) => Promise<Row[]> }, sql: string) => (await db.query(`select ${sql} as v`))[0].v;
+
+  it("the feed only contains updates from projects the user can see", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const feed = (await val(db, "public.get_daily_feed()")) as { project_id: string; author: { first_name: string } }[];
+      expect(feed.length).toBe(2);
+      expect(feed.every((u) => u.project_id === PROJECTS.valletta)).toBe(true);
+      expect(feed[0].author.first_name).toBe("Tina");
+    });
+    await asUser(USERS.manager, async (db) => {
+      expect(((await val(db, "public.get_daily_feed()")) as unknown[]).length).toBe(3);
+      expect(((await val(db, `public.get_daily_feed(p_project => '${PROJECTS.mosta}')`)) as unknown[]).length).toBe(1);
+    });
+  });
+
+  it("the feed pages without repeating or skipping updates", async () => {
+    await asUser(USERS.manager, async (db) => {
+      const page1 = (await val(db, "public.get_daily_feed(p_limit => 2)")) as { id: string; work_date: string; created_at: string }[];
+      const last = page1[page1.length - 1];
+      const page2 = (await val(db, `public.get_daily_feed(p_limit => 2, p_before_date => '${last.work_date}', p_before_created => '${last.created_at}')`)) as { id: string }[];
+      expect(page1).toHaveLength(2);
+      expect(page2).toHaveLength(1);
+      expect(new Set([...page1, ...page2].map((u) => u.id)).size).toBe(3);
+    });
+  });
+
+  it("only managers get the who-has-posted overview", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await val(db, "public.get_daily_status(current_date)")).toBeNull();
+    });
+    await asUser(USERS.manager, async (db) => {
+      const s = (await val(db, "public.get_daily_status(current_date)")) as { project: { name: string }; people: { first_name: string; posted: boolean }[] }[];
+      const valletta = s.find((p) => p.project.name === "Valletta Office Fit-out")!;
+      expect(valletta.people).toEqual([expect.objectContaining({ first_name: "Tina", posted: true })]);
+      const yesterday = (await val(db, "public.get_daily_status(current_date - 3)")) as typeof s;
+      expect(yesterday.find((p) => p.project.name === "Mosta Solar Installation")!.people[0].posted).toBe(false);
+    });
+  });
+
+  it("people can only post updates for projects they work on", async () => {
+    await asUser(USERS.tech2, async (db) => {
+      expect(((await val(db, "public.get_postable_projects()")) as { name: string }[]).map((p) => p.name)).toEqual(["Mosta Solar Installation"]);
+    });
+    await asUser(USERS.basic, async (db) => {
+      expect(await val(db, "public.get_postable_projects()")).toEqual([]);
+    });
+    await asUser(USERS.manager, async (db) => {
+      expect(((await val(db, "public.get_postable_projects()")) as unknown[]).length).toBe(2);
+    });
+  });
+
+  it("photos: gallery follows project access, and only the author (24h) or a manager can add them", async () => {
+    await withSetup(
+      `insert into public.daily_update_photos (daily_update_id, project_id, storage_path, uploaded_by)
+       select id, project_id, project_id || '/daily/' || id || '/p1.jpg', author_id from public.daily_updates
+       where author_id = '${USERS.tech1}' and work_date = current_date;
+       create temp table t_update as select id, project_id from public.daily_updates where author_id = '${USERS.tech1}' and work_date = current_date;
+       grant select on t_update to authenticated;`,
+      USERS.tech2,
+      async (db) => {
+        expect(await val(db, `public.get_project_photos('${PROJECTS.valletta}')`)).toEqual([]);
+        // tech2 cannot attach a photo to tech1's update
+        expect(
+          await db.fails(`insert into public.daily_update_photos (daily_update_id, project_id, storage_path, uploaded_by)
+            select id, project_id, 'x/y.jpg', '${USERS.tech2}' from t_update`),
+        ).toMatch(/row-level security/);
+      },
+    );
+  });
+});

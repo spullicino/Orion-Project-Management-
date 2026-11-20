@@ -149,6 +149,46 @@ export type Database = {
           created_by?: string | null;
         }
       >;
+      daily_updates: Table<
+        {
+          id: string;
+          project_id: string;
+          author_id: string;
+          work_date: string;
+          work_done: string;
+          hours: number | null;
+          issues: string | null;
+          client_ref: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        { project_id: string; work_done: string; author_id?: string; work_date?: string; hours?: number | null; issues?: string | null; client_ref?: string | null }
+      >;
+      daily_update_photos: Table<
+        {
+          id: string;
+          daily_update_id: string;
+          project_id: string;
+          storage_path: string;
+          width: number | null;
+          height: number | null;
+          size_bytes: number | null;
+          caption: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        },
+        {
+          id?: string;
+          daily_update_id: string;
+          project_id: string;
+          storage_path: string;
+          width?: number | null;
+          height?: number | null;
+          size_bytes?: number | null;
+          caption?: string | null;
+          uploaded_by?: string | null;
+        }
+      >;
       attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;
@@ -157,6 +197,24 @@ export type Database = {
       list_projects: { Args: { p_include_archived?: boolean; p_templates?: boolean }; Returns: Json };
       get_my_tasks: { Args: Record<string, never>; Returns: Json };
       get_shared_project: { Args: { p_token: string }; Returns: Json };
+      get_daily_feed: {
+        Args: {
+          p_project?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_author?: string | null;
+          p_before_date?: string | null;
+          p_before_created?: string | null;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      get_project_photos: {
+        Args: { p_project: string; p_from?: string | null; p_to?: string | null; p_before_created?: string | null; p_limit?: number };
+        Returns: Json;
+      };
+      get_daily_status: { Args: { p_date: string }; Returns: Json };
+      get_postable_projects: { Args: Record<string, never>; Returns: Json };
       get_task_detail: { Args: { p_task: string }; Returns: Json };
       duplicate_project: {
         Args: { p_source: string; p_name: string; p_as_template?: boolean; p_start_date?: string | null; p_client_id?: string | null };
