@@ -211,6 +211,8 @@ The app also shows an *Install Orion Projects* pop-up on phones from the second 
 
 **My Tasks** — everything assigned to you, grouped by due date; tick to mark done.
 
+**Help** (sidebar, the **?** at the top on phones, or Profile) — step-by-step guides for every part of the app, searchable, showing only what each person's level can do. To change the text, edit `src/lib/help.ts`.
+
 **Personal** (sidebar, Home, or Profile on phones) — your own private **to-dos** (optional due date; you get a reminder the day before and on the day) and **notes** (title, text, colour, pin to top, search; saved automatically as you type). **Only you can see them — not managers, not administrators.** The database itself enforces this.
 
 **Daily Update** — what you did, hours, issues and photos (shrunk on the phone). Managers: **Team overview & reports** shows who has/hasn't posted for any day and makes **PDF reports** for clients.

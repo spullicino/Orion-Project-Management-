@@ -1,0 +1,592 @@
+import type { AppRole } from "@/types/database";
+
+/**
+ * In-app help: step-by-step guides for every part of the app.
+ * Text in **double stars** is shown in bold (button and menu names).
+ * `minRole` hides a guide from people who can't use that feature.
+ */
+export type HelpGuide = { title: string; steps: string[]; tip?: string; minRole?: AppRole };
+export type HelpTopic = {
+  id: string;
+  title: string;
+  icon: string; // lucide icon name, see help-view.tsx
+  summary: string;
+  where?: string; // where to find it
+  minRole?: AppRole;
+  guides: HelpGuide[];
+};
+
+export const HELP_TOPICS: HelpTopic[] = [
+  {
+    id: "getting-started",
+    title: "Getting started",
+    icon: "Rocket",
+    summary: "Signing in, installing the app on your phone and finding your way around.",
+    guides: [
+      {
+        title: "Sign in",
+        steps: [
+          "Open the app address in your browser.",
+          "Type your email and password and tap **Sign in** — or tap **Continue with Google**.",
+          "Leave **Keep me signed in on this device** ticked on your own phone. Untick it on a shared computer.",
+        ],
+        tip: "Forgot your password? Tap **Forgot password?** on the sign-in page and we'll email you a link.",
+      },
+      {
+        title: "Create an account",
+        steps: [
+          "On the sign-in page tap **Create an account**.",
+          "Fill in your name, email and a password, then tap **Create account**.",
+          "Open the email we send you and tap the confirmation link.",
+          "Wait for an administrator to approve you — you'll see an “Almost there!” page until then.",
+        ],
+      },
+      {
+        title: "Install the app on your phone",
+        steps: [
+          "**iPhone:** open the app in Safari → tap **Share** (square with an arrow) → **Add to Home Screen** → **Add**.",
+          "**Android:** open the app in Chrome → tap **Install** when asked, or **⋮ → Install app**.",
+          "From now on, open Orion Projects from the new icon on your home screen.",
+        ],
+        tip: "You can always find these steps again in **Profile → Install the app**.",
+      },
+      {
+        title: "Find your way around",
+        steps: [
+          "**On a phone:** use the bar at the bottom — Home, Projects, Daily Update, Chats and Profile.",
+          "**On a computer:** use the menu on the left.",
+          "My Tasks, Personal and Help are in the left menu on a computer, or under **Profile** on a phone.",
+          "The 🔔 bell at the top shows your notifications.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "home",
+    title: "Home",
+    icon: "House",
+    summary: "Your starting page: what needs your attention today.",
+    where: "Home",
+    guides: [
+      {
+        title: "Use the Home page",
+        steps: [
+          "Open **Home**.",
+          "The **My Tasks** card shows how many of your tasks are overdue, due today and still open. Tap it to see them.",
+          "Scroll down for shortcuts to your projects, Daily Update, Chats and Personal.",
+          "Managers also see **Projects that need attention**.",
+        ],
+        tip: "If you see “Add your name”, tap it so colleagues know who you are.",
+      },
+    ],
+  },
+  {
+    id: "projects",
+    title: "Projects",
+    icon: "FolderKanban",
+    summary: "Finding, creating and organising projects.",
+    where: "Projects",
+    guides: [
+      {
+        title: "Open a project",
+        steps: [
+          "Tap **Projects**.",
+          "Use the search box or the **Active / All incl. archived** filters to find it.",
+          "Tap the project. The tabs along the top (Dashboard, Board, Kanban, Gantt, Calendar, Diary, Photos, Chat) show different views of the same project.",
+        ],
+        tip: "You only see projects you've been added to. Managers see every project.",
+      },
+      {
+        title: "Create a new project",
+        minRole: "manager",
+        steps: [
+          "Tap **Projects → New project**.",
+          "Under **Start from**, choose **A blank project**, a template, or **Copy an existing project**.",
+          "Enter the **Project name** (e.g. Sliema Apartment Refurbishment), and optionally a project code, client, start and end dates and a colour.",
+          "Tap **Create**.",
+          "Open **Settings → People on this project** to add the team.",
+        ],
+      },
+      {
+        title: "Add or remove people on a project",
+        minRole: "manager",
+        steps: [
+          "Open the project and tap the **Settings** tab.",
+          "Under **People on this project**, choose someone in **Choose a person to add…** and tap **Add**.",
+          "To remove someone, tap **Remove** next to their name.",
+        ],
+      },
+      {
+        title: "Change statuses, columns or save as a template",
+        minRole: "manager",
+        steps: [
+          "Open the project's **Settings** tab.",
+          "**Statuses:** rename them, change their colour or add new ones.",
+          "**Extra columns:** add your own column (text, number, date…), e.g. Room, Qty or PO number.",
+          "**Save as template:** reuse this project's groups, tasks and columns for future projects.",
+          "Change **Project status** to On hold, Completed or Archived when the job is finished.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "tasks",
+    title: "Tasks & the Board",
+    icon: "Table2",
+    summary: "Adding tasks, updating their status and working with the task details.",
+    where: "Projects → a project → Board",
+    guides: [
+      {
+        title: "Add a task",
+        minRole: "technician",
+        steps: [
+          "Open the project's **Board** tab.",
+          "Under the right group, tap **Add a task**, type the name and press Enter.",
+          "Tap the new task to fill in the details.",
+        ],
+      },
+      {
+        title: "Update a task",
+        minRole: "technician",
+        steps: [
+          "Tap the task to open its details.",
+          "Change the **Status** (e.g. Working on it, Stuck, Done), **Owners**, **Priority**, **Start** and **Due** dates, or **Progress**.",
+          "Changes save straight away — there's no save button.",
+        ],
+        tip: "Marking a task **Done** sets it to 100% and removes it from everyone's “due” lists.",
+      },
+      {
+        title: "Add a description, checklist, files or comments",
+        steps: [
+          "Open the task.",
+          "**Description:** measurements, instructions, anything useful.",
+          "**Checklist:** tap **Add item** for each small step and tick them off as you go.",
+          "**Files:** tap **Choose files to attach** to add photos, drawings or PDFs.",
+          "**Comments:** write in **Write a comment** and send. Type @ and a name to notify someone.",
+          "**Activity** shows the full history of who changed what.",
+        ],
+      },
+      {
+        title: "Make a task wait for another",
+        minRole: "technician",
+        steps: [
+          "Open the task.",
+          "Under **Waiting for**, tap **Add a task this one waits for** and pick the task that has to finish first.",
+          "If that task runs late, this one gets a warning automatically.",
+        ],
+      },
+      {
+        title: "Find and filter tasks",
+        steps: [
+          "On the Board tap **Filters** (on a phone) or use the filter bar.",
+          "Filter by person, status or due date, or type in **Search tasks**.",
+          "Tap **Clear filters** to see everything again.",
+        ],
+      },
+      {
+        title: "Organise groups",
+        minRole: "manager",
+        steps: [
+          "Tap **Add group** at the bottom of the Board to add a phase (e.g. Phase 2).",
+          "Use the group's **⋯** menu to **Rename** or **Delete group**.",
+        ],
+      },
+      {
+        title: "Use the Kanban view",
+        minRole: "technician",
+        steps: [
+          "Open the project's **Kanban** tab — one column per status.",
+          "Drag a card to another column to change its status. On a phone, press and hold the card first.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "my-tasks",
+    title: "My Tasks",
+    icon: "ListChecks",
+    summary: "Everything assigned to you across all projects, in one list.",
+    where: "My Tasks (left menu, or Profile on a phone)",
+    guides: [
+      {
+        title: "Work through your tasks",
+        steps: [
+          "Open **My Tasks**.",
+          "Tasks are grouped: Overdue, Due today, Next 7 days, Later, No due date and Done recently.",
+          "Tick the circle to mark a task done, or tap the task to open it.",
+          "Tap a project name to open that project.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "gantt",
+    title: "Gantt, calendar & milestones",
+    icon: "GanttChartSquare",
+    summary: "The project timeline, key dates and exporting it for clients.",
+    where: "Projects → a project → Gantt / Calendar",
+    guides: [
+      {
+        title: "Read the Gantt chart",
+        steps: [
+          "Open the project's **Gantt** tab.",
+          "Each bar is a task from its start to its due date. Diamonds are milestones. Arrows show which task waits for which.",
+          "Use **Zoom** (Days, Weeks, Months) and **Today** to move around.",
+          "Red bars are overdue or blocked; amber ones are at risk.",
+        ],
+      },
+      {
+        title: "Change dates on the Gantt",
+        minRole: "manager",
+        steps: [
+          "**Computer:** drag a bar to move it, or drag either end to change the start or due date.",
+          "**Phone:** tap a bar and pick the new dates.",
+        ],
+      },
+      {
+        title: "Add a milestone",
+        minRole: "manager",
+        steps: [
+          "On the Gantt tap **Milestone**.",
+          "Give it a **Name** (e.g. Client walkthrough) and a **Date**, then save.",
+          "It appears as a diamond on the Gantt and on the Calendar.",
+        ],
+      },
+      {
+        title: "Export the Gantt as PDF or picture",
+        minRole: "manager",
+        steps: [
+          "On the Gantt tap **Export**.",
+          "Choose PDF or PNG, the paper size, scale and how to colour the bars.",
+          "Tap the export button — the file downloads to your device, ready to email.",
+        ],
+      },
+      {
+        title: "Use the Calendar",
+        steps: [
+          "Open the project's **Calendar** tab.",
+          "Due dates and milestones are shown by month. Use the arrows or **This month** to move around.",
+          "Tap a task to open it.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "client-links",
+    title: "Sharing with clients",
+    icon: "Share2",
+    summary: "A read-only link so a client can see progress without an account.",
+    minRole: "manager",
+    where: "Projects → a project → Gantt → Share with client",
+    guides: [
+      {
+        title: "Create a client link",
+        steps: [
+          "On the project's Gantt tap **Share with client**.",
+          "Optionally write **Who is it for?** (e.g. Claire at Harbour Holdings) and choose **Link works for**.",
+          "Tap **Create**, then copy the link and send it to the client.",
+          "The client sees the timeline and progress only — no internal notes, chats or costs.",
+        ],
+      },
+      {
+        title: "Stop a link working",
+        steps: [
+          "Open **Share with client** again.",
+          "Under **Links for this project**, tap **Turn off** next to the link.",
+        ],
+      },
+      {
+        title: "Manage clients",
+        steps: [
+          "Open **Clients** (left menu, or Profile on a phone).",
+          "Tap **Add** to create a client with contact details and a logo — the logo appears on exports.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "daily-update",
+    title: "Daily Update",
+    icon: "ClipboardPenLine",
+    summary: "Recording what you did each day, with hours and site photos.",
+    where: "Daily Update",
+    guides: [
+      {
+        title: "Post your daily update",
+        minRole: "technician",
+        steps: [
+          "Tap **Daily Update**.",
+          "Choose the **Project**.",
+          "Write **What did you do today?**",
+          "Pick the hours you worked (optional).",
+          "Tap **Add issues or delays** if something held you up.",
+          "Tap **Take photo** or **From gallery** to add pictures.",
+          "Tap **Post update**.",
+        ],
+        tip: "No signal on site? Post anyway. The update is saved on your phone and sends by itself when you're back online — a yellow bar shows what's waiting.",
+      },
+      {
+        title: "Edit or delete an update",
+        minRole: "technician",
+        steps: [
+          "Find it under **Your recent updates**.",
+          "Tap **⋯ → Edit** or **Delete**. You can change your own updates for 24 hours.",
+        ],
+      },
+      {
+        title: "See the project diary and photos",
+        steps: [
+          "Open a project and tap **Diary** to read every update day by day.",
+          "Tap **Photos** to see every site photo. Tap one to see it full size.",
+        ],
+      },
+      {
+        title: "Check who has posted today",
+        minRole: "manager",
+        steps: [
+          "Open **Daily Update → Team overview & reports**.",
+          "Use **Previous day / Next day** to check any date.",
+          "You can see who has posted and who hasn't yet.",
+        ],
+      },
+      {
+        title: "Make a PDF report for a client",
+        minRole: "manager",
+        steps: [
+          "In **Team overview & reports** tap **PDF report**.",
+          "Choose the project and dates (e.g. **Last 7 days**), and the photo quality.",
+          "Tap the export button. Internal notes are never included.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "chats",
+    title: "Chats",
+    icon: "MessagesSquare",
+    summary: "Company, management and project conversations.",
+    where: "Chats",
+    guides: [
+      {
+        title: "Send a message",
+        steps: [
+          "Tap **Chats** and choose a conversation: Company, Management (managers only) or a project.",
+          "Type at the bottom and tap **Send**.",
+          "Type @ followed by a name to mention someone — they get notified.",
+          "Tap the paperclip to attach photos or files, or the link button to attach a task.",
+        ],
+      },
+      {
+        title: "Reply, react, edit or delete",
+        steps: [
+          "Press and hold a message (or hover on a computer).",
+          "Choose a reaction, reply in a thread, **Copy text**, or **Edit** / **Delete** your own messages.",
+        ],
+      },
+      {
+        title: "Mute a chat",
+        steps: [
+          "Open the chat and tap **Chat options** (⋯) at the top.",
+          "Choose **Mute** — you'll still see unread counts but won't get phone notifications. **Unmute** turns them back on.",
+        ],
+      },
+      {
+        title: "Start a new chat",
+        minRole: "manager",
+        steps: [
+          "In Chats tap **+ New**.",
+          "Give it a **Name** (e.g. Tenders, Health & Safety) and choose **Who can see it**: managers only, or everyone (announcements).",
+          "Tap **Create**.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "personal",
+    title: "Personal notes & to-dos",
+    icon: "NotebookTabs",
+    summary: "Your own private list and notes. Nobody else can see them — not even administrators.",
+    where: "Personal (left menu, Home, or Profile on a phone)",
+    guides: [
+      {
+        title: "Add a personal to-do",
+        steps: [
+          "Open **Personal** → **To-do**.",
+          "Type the to-do, choose a due date if you like, and tap **Add**.",
+          "Tap the circle to tick it off. Tap the text to change it.",
+          "Done items move to **Done** — tap **Clear done** to tidy up.",
+        ],
+        tip: "If you set a due date you'll get a reminder the day before and on the day.",
+      },
+      {
+        title: "Write a note",
+        steps: [
+          "Open **Personal** → **Notes** → **New note**.",
+          "Type a title and your note — it saves by itself as you type.",
+          "Pick a colour or tap **Pin to top** to keep it first.",
+          "Tap **Done** to close it. Use **Search notes** to find it later.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "notifications",
+    title: "Notifications",
+    icon: "Bell",
+    summary: "The bell, phone notifications and the daily email summary.",
+    where: "🔔 bell, and Profile → Notifications",
+    guides: [
+      {
+        title: "Turn on phone notifications",
+        steps: [
+          "Open **Profile**.",
+          "Under **Notifications** tap **Turn on notifications** and allow them when your phone asks.",
+          "Tap **Send a test** to check it works.",
+        ],
+        tip: "On iPhone this only works when the app is installed on your Home Screen (iOS 16.4 or newer).",
+      },
+      {
+        title: "Choose what you're told about",
+        steps: [
+          "In **Profile → Notifications**, under **Tell me when…**, switch each type on or off.",
+          "Set **Quiet hours** so your phone stays silent at night.",
+          "Switch on **Daily email summary** if you'd like one email each morning.",
+        ],
+      },
+      {
+        title: "Read your notifications",
+        steps: [
+          "Tap the 🔔 bell at the top. A number shows how many are unread.",
+          "Tap a notification to go straight to the task, message or update.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "dashboards",
+    title: "Dashboards & delay warnings",
+    icon: "LayoutDashboard",
+    summary: "Progress at a glance, and what the red and amber warnings mean.",
+    where: "Projects → a project → Dashboard",
+    guides: [
+      {
+        title: "Read a project dashboard",
+        steps: [
+          "Open a project — the **Dashboard** tab opens first.",
+          "See % complete, overdue and due-soon tasks, **Tasks by status**, **Open tasks per person** and **Upcoming milestones**.",
+          "The badge at the top says **On track**, **Needs attention** or **At risk**.",
+        ],
+      },
+      {
+        title: "What the warnings mean",
+        steps: [
+          "⛔ **Red:** the task is overdue, or it's waiting for a task that is late.",
+          "⚠ **Amber:** due within 2 days and less than half done, behind schedule, or waiting for a task that isn't finished yet.",
+          "Fix it by updating the progress or dates, or by talking to the owner.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "profile",
+    title: "Your profile",
+    icon: "UserRound",
+    summary: "Your name, photo, password, dark mode and signing out.",
+    where: "Profile",
+    guides: [
+      {
+        title: "Update your details",
+        steps: [
+          "Open **Profile**.",
+          "Change your name or phone number and tap **Save changes**.",
+          "Tap your picture to upload a new photo.",
+        ],
+      },
+      {
+        title: "Dark mode",
+        steps: ["In **Profile → Appearance**, choose Light, Dark or System."],
+      },
+      {
+        title: "Sign out",
+        steps: [
+          "Open **Profile** and tap **Sign out** at the bottom.",
+          "Saved pages are wiped from the device, so a shared phone stays private.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "offline",
+    title: "Working without signal",
+    icon: "WifiOff",
+    summary: "What works on site when there's no connection.",
+    guides: [
+      {
+        title: "What works offline",
+        steps: [
+          "Pages you've opened before still open, showing what they had last time. A dark bar tells you you're offline.",
+          "**Daily updates** (with photos) can be written offline — they send by themselves when the signal returns.",
+          "Changing tasks and sending chat messages need a connection. You'll see a clear message if it fails — just try again.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "admin",
+    title: "Administration",
+    icon: "ShieldCheck",
+    summary: "Approving people, access levels, invitations and settings.",
+    minRole: "admin",
+    where: "Admin",
+    guides: [
+      {
+        title: "Approve a new person",
+        steps: [
+          "Open **Admin**. People who signed up are under **Waiting for approval**.",
+          "Choose their **Level** (Administrator, Manager, Technician or Basic).",
+          "Tap **Approve** — or **Decline**.",
+        ],
+      },
+      {
+        title: "Invite someone",
+        steps: [
+          "In **Admin** tap **Invite someone**.",
+          "Enter their email and level, then tap **Send invite**.",
+          "They get an email with a link to set their password — no approval needed.",
+        ],
+      },
+      {
+        title: "Change someone's level or deactivate them",
+        steps: [
+          "In **Admin**, find the person (use **Search people**).",
+          "Change their **Level**, or tap **Deactivate** to block access straight away. **Reactivate** undoes it.",
+        ],
+      },
+      {
+        title: "Settings and setup",
+        steps: [
+          "**Settings:** choose whether Basic users may write in chats.",
+          "**Setup: notifications & daily job:** shows green ticks when phone notifications, emails and daily reminders are working. Tap **Generate keys for Vercel** the first time.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "levels",
+    title: "Who can do what",
+    icon: "Users",
+    summary: "The four access levels.",
+    guides: [
+      {
+        title: "Access levels",
+        steps: [
+          "**Administrator:** everything — people, settings, all projects, deleting anything.",
+          "**Manager:** create and edit all projects, assign people, Gantt, exports, client links, daily reports, management chat.",
+          "**Technician:** projects they're added to — create and update tasks, daily updates and photos, project chats.",
+          "**Basic:** read-only on the projects they're added to.",
+        ],
+        tip: "Your own level is shown in **Profile → Your access level**. Ask an administrator if you need more access.",
+      },
+    ],
+  },
+];
