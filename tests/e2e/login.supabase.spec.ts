@@ -60,3 +60,21 @@ test("@supabase a basic user can view but not edit the board", async ({ page }) 
   await expect(page.getByText("You can view this project but not change it.")).toBeVisible();
   await expect(page.getByLabel(/Add a task to/)).toHaveCount(0);
 });
+
+test("@supabase a manager exports the Gantt chart as PDF and creates a client link", async ({ page }) => {
+  await signIn(page, "manager@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/projects");
+  await page.getByText("Valletta Office Fit-out").click();
+  await page.getByRole("link", { name: "Gantt" }).click();
+  await expect(page.getByRole("img", { name: /Gantt chart/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "Export" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download" }).click();
+  expect((await download).suggestedFilename()).toMatch(/valletta-office-fit-out-gantt-.*\.pdf/);
+
+  await page.getByRole("button", { name: "Share with client" }).click();
+  await page.getByRole("button", { name: /Create link/ }).click();
+  await expect(page.getByText("Active").first()).toBeVisible();
+});

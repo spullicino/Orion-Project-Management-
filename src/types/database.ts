@@ -121,6 +121,34 @@ export type Database = {
       task_dependencies: Table<{ task_id: string; depends_on_task_id: string; created_at: string }>;
       task_checklist_items: Table<ChecklistRow, Partial<ChecklistRow> & { task_id: string; title: string }>;
       comments: Table<CommentRow, Partial<CommentRow> & { task_id: string; body: string }>;
+      milestones: Table<
+        { id: string; project_id: string; title: string; description: string | null; date: string; color: string; created_by: string | null; created_at: string },
+        { project_id: string; title: string; date: string; color?: string; description?: string | null; created_by?: string | null }
+      >;
+      share_links: Table<
+        {
+          id: string;
+          project_id: string;
+          token: string;
+          label: string | null;
+          hide_owners: boolean;
+          hide_internal_notes: boolean;
+          expires_at: string | null;
+          revoked_at: string | null;
+          last_viewed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        },
+        {
+          project_id: string;
+          label?: string | null;
+          hide_owners?: boolean;
+          hide_internal_notes?: boolean;
+          expires_at?: string | null;
+          revoked_at?: string | null;
+          created_by?: string | null;
+        }
+      >;
       attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;
@@ -128,6 +156,7 @@ export type Database = {
       get_project_board: { Args: { p_project: string }; Returns: Json };
       list_projects: { Args: { p_include_archived?: boolean; p_templates?: boolean }; Returns: Json };
       get_my_tasks: { Args: Record<string, never>; Returns: Json };
+      get_shared_project: { Args: { p_token: string }; Returns: Json };
       get_task_detail: { Args: { p_task: string }; Returns: Json };
       duplicate_project: {
         Args: { p_source: string; p_name: string; p_as_template?: boolean; p_start_date?: string | null; p_client_id?: string | null };

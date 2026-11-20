@@ -1,6 +1,6 @@
 "use client";
 
-import { Columns3, Settings, Table2 } from "lucide-react";
+import { CalendarDays, Columns3, GanttChartSquare, Settings, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ export function ProjectTabs({ projectId, canManage }: { projectId: string; canMa
   const tabs = [
     { href: `/projects/${projectId}/board`, label: "Board", icon: Table2 },
     { href: `/projects/${projectId}/kanban`, label: "Kanban", icon: Columns3 },
+    { href: `/projects/${projectId}/gantt`, label: "Gantt", icon: GanttChartSquare },
+    { href: `/projects/${projectId}/calendar`, label: "Calendar", icon: CalendarDays },
     ...(canManage ? [{ href: `/projects/${projectId}/settings`, label: "Settings", icon: Settings }] : []),
   ];
   return (

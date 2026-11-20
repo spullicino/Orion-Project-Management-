@@ -110,3 +110,20 @@ export const commentSchema = z.object({ task_id: uuid, body: z.string().trim().m
 export const checklistItemSchema = z.object({ task_id: uuid, title: z.string().trim().min(1).max(300) });
 
 export const ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024;
+
+export const milestoneSchema = z.object({
+  title: z.string().trim().min(1, "Give the milestone a name").max(160),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
+  color: hex.default("#7c3aed"),
+  description: optionalText(4000),
+});
+
+export const shareLinkSchema = z.object({
+  project_id: uuid,
+  label: optionalText(120),
+  expires_in_days: z.coerce.number().int().refine((n) => [0, 30, 90, 180, 365].includes(n), "Choose how long the link works"),
+  hide_owners: z.boolean().default(true),
+});
+
+export const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+export const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] as const;

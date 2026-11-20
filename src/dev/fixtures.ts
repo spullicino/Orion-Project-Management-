@@ -49,7 +49,8 @@ export const previewBoard: Board = {
     name: "Valletta Office Fit-out",
     code: "VAL-001",
     description: null,
-    client_id: "c1",
+    // No client id here: the preview has no database to fetch a client logo from.
+    client_id: null,
     client: { id: "c1", name: "Harbour Holdings Ltd" },
     status: "active",
     start_date: d(-21),
@@ -75,5 +76,8 @@ export const previewBoard: Board = {
     { user_id: "u3", first_name: "Tina", last_name: "Camilleri", email: "tech1@orion.test", avatar_url: null, role: "technician", avatar_src: null },
     { user_id: "u5", first_name: "Ben", last_name: "Ellul", email: "basic@orion.test", avatar_url: null, role: "basic", avatar_src: null },
   ],
-  milestones: [],
+  milestones: [
+    { id: "m1", project_id: P, title: "Client walkthrough", description: null, date: d(10), color: "#7c3aed" },
+    { id: "m2", project_id: P, title: "Handover", description: null, date: d(40), color: "#0584c7" },
+  ],
 };

@@ -2,7 +2,7 @@
 
 Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
 
-> **Status: Phase 2 of 7.** Sign-in, user levels and approval (phase 1), plus projects, boards, Kanban, task details, My Tasks, clients and project templates (phase 2). Gantt charts, daily updates, chats and notifications come next; their screens say "Coming in phase X".
+> **Status: Phase 3 of 7.** Sign-in and user levels (phase 1); projects, boards, Kanban, task details, My Tasks, clients and templates (phase 2); Gantt charts with milestones and dependency arrows, Calendar, PDF/PNG export and read-only client links (phase 3). Daily updates, chats and notifications come next; their screens say "Coming in phase X".
 
 ---
 
@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0008_boards.sql`).
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0009_share_links.sql`).
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 
@@ -182,6 +182,18 @@ Open **Admin**. It's in the sidebar on a computer, and under **Profile → Admin
 - **Change a level:** use the drop-down next to the person's name.
 - **Deactivate:** blocks sign-in immediately and hides all data from that person. **Reactivate** restores them.
 - **Settings:** choose whether *Basic* users may write in project chats.
+
+---
+
+## 9b. Sharing progress with clients
+
+On a project's **Gantt** tab, managers have three buttons:
+
+- **Milestone**: add a key date (shown as a diamond).
+- **Export**: download a **PDF** (A4 or A3, landscape) or **PNG** with the Orion logo, project and client name, today's date and a legend. Leave “Show who is working on each task” off to keep internal details out. Internal notes are never included.
+- **Share with client**: create a read-only web link the client can open without logging in. It shows a progress summary and the timeline. Choose how long it works (30 days to “until I turn it off”) and turn it off at any time. The list shows when each link was last opened.
+
+Add a client's logo on the **Clients** page; it then appears on exports and client links.
 
 ---
 

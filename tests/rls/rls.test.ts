@@ -503,3 +503,60 @@ describe("phase 2: board, My Tasks and templates functions", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("phase 3: client share links", () => {
+  const create = (extra = "") =>
+    `insert into public.share_links (project_id, token${extra ? ", " + extra.split("=")[0] : ""})
+     values ('${PROJECTS.valletta}', repeat('a', 48)${extra ? ", " + extra.split("=")[1] : ""});`;
+  type Shared = { project: { name: string }; tasks: { owners: string[]; title: string }[]; milestones: unknown[] } | null;
+  const fetchShared = async (db: { query: (s: string) => Promise<Record<string, unknown>[]> }, token = "a".repeat(48)) =>
+    (await db.query(`select public.get_shared_project('${token}') as s`))[0].s as Shared;
+
+  it("a valid link shows the project to a visitor with no login, without owners by default", async () => {
+    await withSetup(create(), USERS.admin, async (db) => {
+      await db.query("reset role");
+      await db.query("set local role anon");
+      await db.query("select set_config('request.jwt.claims', '{\"role\":\"anon\"}', true)");
+      const s = await fetchShared(db);
+      expect(s?.project.name).toBe("Valletta Office Fit-out");
+      expect(s?.tasks).toHaveLength(6);
+      expect(s?.milestones).toHaveLength(2);
+      expect(s?.tasks.every((t) => t.owners.length === 0)).toBe(true);
+      expect(JSON.stringify(s)).not.toMatch(/internal_notes|description|email/);
+      // …but cannot read the tables themselves
+      expect(await db.fails("select * from public.share_links")).toMatch(/permission denied/);
+      expect(await db.fails("select * from public.tasks")).toMatch(/permission denied/);
+    });
+  });
+
+  it("owners are included only when the link allows it", async () => {
+    await withSetup(create("hide_owners=false"), USERS.admin, async (db) => {
+      const s = await fetchShared(db);
+      expect(s?.tasks.find((t) => t.title === "Partition walls")?.owners).toEqual(["Tina Camilleri"]);
+    });
+  });
+
+  it("revoked, expired and unknown links show nothing", async () => {
+    await withSetup(create("revoked_at=now()"), USERS.admin, async (db) => {
+      expect(await fetchShared(db)).toBeNull();
+    });
+    await withSetup(create("expires_at=now() - interval '1 day'"), USERS.admin, async (db) => {
+      expect(await fetchShared(db)).toBeNull();
+    });
+    await withSetup(create(), USERS.admin, async (db) => {
+      expect(await fetchShared(db, "b".repeat(48))).toBeNull();
+      expect(await fetchShared(db, "short")).toBeNull();
+    });
+  });
+
+  it("only managers can create share links or milestones", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(`insert into public.milestones (project_id, title, date) values ('${PROJECTS.valletta}', 'X', current_date)`)).toMatch(/row-level security/);
+    });
+    await asUser(USERS.manager, async (db) => {
+      expect(await db.fails(`insert into public.milestones (project_id, title, date) values ('${PROJECTS.valletta}', 'X', current_date)`)).toBeNull();
+      expect(await db.fails(`insert into public.share_links (project_id) values ('${PROJECTS.valletta}')`)).toBeNull();
+    });
+  });
+});

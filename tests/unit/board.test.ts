@@ -83,3 +83,19 @@ describe("describeChange", () => {
     expect(describeChange("status_id", ["s1", "zzz"], lookup)).toBe("changed status from Not started to a removed status");
   });
 });
+
+import { monthGrid, shiftMonth } from "@/lib/calendar";
+
+describe("calendar helpers", () => {
+  it("builds a Monday-first grid covering the whole month", () => {
+    const g = monthGrid("2026-11"); // 1 Nov 2026 is a Sunday
+    expect(g[0]).toBe("2026-10-26");
+    expect(g).toContain("2026-11-30");
+    expect(g.length % 7).toBe(0);
+    expect(g.length).toBe(42);
+  });
+  it("moves between months across years", () => {
+    expect(shiftMonth("2026-12", 1)).toBe("2027-01");
+    expect(shiftMonth("2026-01", -1)).toBe("2025-12");
+  });
+});

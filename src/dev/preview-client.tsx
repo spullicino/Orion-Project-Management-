@@ -5,6 +5,8 @@ import { BoardProvider } from "@/components/board/board-context";
 import { BoardView } from "@/components/board/board-view";
 import { KanbanView } from "@/components/board/kanban-view";
 import { TaskDrawer } from "@/components/board/task-drawer";
+import { CalendarView } from "@/components/calendar/calendar-view";
+import { GanttView } from "@/components/gantt/gantt-view";
 import type { TaskDetail } from "@/types/board";
 import { previewBoard } from "./fixtures";
 
@@ -29,7 +31,7 @@ async function fakeDetail(id: string) {
 export function PreviewClient({ view, manager }: { view?: string; manager: boolean }) {
   return (
     <BoardProvider board={previewBoard} perms={{ canEdit: manager, canManage: manager, meId: "u3", role: manager ? "manager" : "basic" }} loadTaskDetail={fakeDetail}>
-      {view === "kanban" ? <KanbanView /> : <BoardView />}
+      {view === "kanban" ? <KanbanView /> : view === "gantt" ? <GanttView /> : view === "calendar" ? <CalendarView /> : <BoardView />}
       <TaskDrawer />
     </BoardProvider>
   );

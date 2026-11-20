@@ -26,6 +26,7 @@ export function RealtimeRefresh({ projectId }: { projectId: string }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "status_labels", filter: byProject }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "task_assignees" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "task_dependencies" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "milestones", filter: byProject }, refresh)
       .subscribe();
     // Also catch up when the phone wakes up / the tab becomes visible again.
     const onVisible = () => document.visibilityState === "visible" && refresh();
