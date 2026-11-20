@@ -34,3 +34,29 @@ test("@supabase an admin sees pending approvals", async ({ page }) => {
   await page.goto("/admin");
   await expect(page.getByText("pending@orion.test")).toBeVisible();
 });
+
+test("@supabase a technician adds a task and changes its status", async ({ page }) => {
+  await signIn(page, "tech1@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/projects");
+  await page.getByText("Valletta Office Fit-out").click();
+  await page.waitForURL(/\/board/);
+  const title = `E2E task ${Date.now()}`;
+  await page.getByLabel("Add a task to Planning").first().fill(title);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(title).first()).toBeVisible();
+  await page.getByText(title).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: /Status: .* Change status/ }).click();
+  await page.getByRole("button", { name: "Working on it" }).click();
+  await expect(page.getByRole("dialog").getByText("Working on it")).toBeVisible();
+});
+
+test("@supabase a basic user can view but not edit the board", async ({ page }) => {
+  await signIn(page, "basic@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/projects");
+  await page.getByText("Valletta Office Fit-out").click();
+  await expect(page.getByText("You can view this project but not change it.")).toBeVisible();
+  await expect(page.getByLabel(/Add a task to/)).toHaveCount(0);
+});

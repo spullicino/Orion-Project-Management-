@@ -19,7 +19,7 @@ export function UserAvatar({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 font-semibold text-primary",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary font-semibold text-primary",
         className,
       )}
       style={{ width: size, height: size, fontSize: Math.max(11, size * 0.38) }}

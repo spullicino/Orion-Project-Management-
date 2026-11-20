@@ -52,6 +52,41 @@ export type AppSettings = {
   updated_at: string;
 };
 
+import type { Client, ColumnKind, CustomColumn, Priority, StatusLabel } from "./board";
+
+export type GroupRow = { id: string; project_id: string; name: string; color: string; position: number; collapsed: boolean; created_at: string };
+export type TaskRow = {
+  id: string;
+  project_id: string;
+  group_id: string;
+  title: string;
+  description: string | null;
+  status_id: string | null;
+  priority: Priority;
+  start_date: string | null;
+  due_date: string | null;
+  progress: number;
+  position: number;
+  custom_values: Json;
+  internal_notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+};
+export type ChecklistRow = { id: string; task_id: string; title: string; is_done: boolean; position: number; created_at: string };
+export type CommentRow = { id: string; task_id: string; author_id: string; body: string; created_at: string; edited_at: string | null };
+export type AttachmentRow = {
+  id: string;
+  task_id: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
 export type ProjectRow = {
   id: string;
   name: string;
@@ -63,6 +98,7 @@ export type ProjectRow = {
   end_date: string | null;
   color: string;
   is_template: boolean;
+  hidden_columns: string[];
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -76,9 +112,27 @@ export type Database = {
       app_settings: Table<AppSettings>;
       projects: Table<ProjectRow, Partial<ProjectRow> & { name: string }>;
       project_members: Table<{ project_id: string; user_id: string; added_by: string | null; added_at: string }>;
+      clients: Table<Client & { created_by: string | null }, Partial<Client & { created_by: string | null }> & { name: string }>;
+      groups: Table<GroupRow, Partial<GroupRow> & { project_id: string; name: string }>;
+      tasks: Table<TaskRow, Partial<TaskRow> & { project_id: string; group_id: string; title: string }>;
+      status_labels: Table<StatusLabel, Partial<StatusLabel> & { project_id: string; name: string; color: string }>;
+      project_columns: Table<CustomColumn, Partial<CustomColumn> & { project_id: string; name: string; kind: ColumnKind }>;
+      task_assignees: Table<{ task_id: string; user_id: string; assigned_by: string | null; assigned_at: string }>;
+      task_dependencies: Table<{ task_id: string; depends_on_task_id: string; created_at: string }>;
+      task_checklist_items: Table<ChecklistRow, Partial<ChecklistRow> & { task_id: string; title: string }>;
+      comments: Table<CommentRow, Partial<CommentRow> & { task_id: string; body: string }>;
+      attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;
     Functions: {
+      get_project_board: { Args: { p_project: string }; Returns: Json };
+      list_projects: { Args: { p_include_archived?: boolean; p_templates?: boolean }; Returns: Json };
+      get_my_tasks: { Args: Record<string, never>; Returns: Json };
+      get_task_detail: { Args: { p_task: string }; Returns: Json };
+      duplicate_project: {
+        Args: { p_source: string; p_name: string; p_as_template?: boolean; p_start_date?: string | null; p_client_id?: string | null };
+        Returns: string;
+      };
       check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window_seconds: number };
         Returns: boolean;

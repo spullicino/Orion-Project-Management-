@@ -1,4 +1,4 @@
-import { ArrowRight, ClipboardPenLine, FolderKanban, MessagesSquare, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { can, ROLE_LABEL } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
+import { todayISO } from "@/lib/board";
+import { getMyTasks } from "@/lib/data/projects";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Home" };
@@ -18,6 +20,11 @@ function greeting() {
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
+
+  const myTasks = (await getMyTasks()).filter((t) => !t.completed_at);
+  const today = todayISO();
+  const overdue = myTasks.filter((t) => t.due_date && t.due_date < today).length;
+  const dueToday = myTasks.filter((t) => t.due_date === today).length;
 
   const { count: projectCount } = await supabase
     .from("projects")
@@ -68,6 +75,36 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </Link>
       )}
 
+      <Link href="/my-tasks" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Card className="transition-colors hover:bg-accent/40">
+          <CardContent className="grid gap-4 p-5">
+            <div className="flex items-center gap-3">
+              <ListChecks className="size-6 text-primary" aria-hidden />
+              <span className="flex-1 text-lg font-semibold">My Tasks</span>
+              <ArrowRight className="size-5 text-muted-foreground" aria-hidden />
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className={overdue ? "rounded-lg bg-destructive/10 p-3 text-destructive" : "rounded-lg bg-muted p-3"}>
+                <p className="text-2xl font-bold tabular-nums">{overdue}</p>
+                <p className="flex items-center justify-center gap-1 text-xs font-medium">
+                  <AlertTriangle className="size-3.5" aria-hidden /> Overdue
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-2xl font-bold tabular-nums">{dueToday}</p>
+                <p className="flex items-center justify-center gap-1 text-xs font-medium">
+                  <CalendarClock className="size-3.5" aria-hidden /> Due today
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-2xl font-bold tabular-nums">{myTasks.length}</p>
+                <p className="text-xs font-medium">Open</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shortcuts.map(({ href, label, detail, icon: Icon }) => (
           <Link key={href} href={href} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -85,10 +122,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </Link>
         ))}
       </div>
-
-      <p className="mt-8 text-sm text-muted-foreground">
-        Your dashboard with tasks due, overdue work and project health arrives in the next phases.
-      </p>
     </>
   );
 }

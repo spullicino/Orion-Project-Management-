@@ -2,7 +2,7 @@
 
 Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
 
-> **Status: Phase 1 of 7.** Sign-in (Google and email), user levels, admin approval, invitations, profiles and the full database with its security rules are done. Projects, Gantt charts, daily updates, chats and notifications are added in the next phases. Screens for those show "Coming in phase X" for now.
+> **Status: Phase 2 of 7.** Sign-in, user levels and approval (phase 1), plus projects, boards, Kanban, task details, My Tasks, clients and project templates (phase 2). Gantt charts, daily updates, chats and notifications come next; their screens say "Coming in phase X".
 
 ---
 
@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to `…0007_table_grants.sql`.
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0008_boards.sql`).
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 
@@ -80,7 +80,7 @@ npx supabase link --project-ref YOUR-PROJECT-REF
 npx supabase db push
 ```
 
-When new phases add database changes, repeat this step for the **new** files only.
+When new phases add database changes, repeat this step for the **new** files only (each phase tells you which).
 
 ---
 

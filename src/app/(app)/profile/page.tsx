@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, ChevronRight, ListChecks, LogOut, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
@@ -53,6 +53,23 @@ export default async function ProfilePage() {
               <ThemeToggle />
             </CardContent>
           </Card>
+
+          {[
+            { href: "/my-tasks", label: "My Tasks", icon: ListChecks, show: true },
+            { href: "/clients", label: "Clients", icon: Building2, show: can.createProjects(profile.role) },
+          ]
+            .filter((l) => l.show)
+            .map(({ href, label, icon: Icon }) => (
+              <Link key={href} href={href} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden">
+                <Card className="hover:bg-accent/50">
+                  <CardContent className="flex items-center gap-3 p-5">
+                    <Icon className="size-5 text-primary" aria-hidden />
+                    <span className="flex-1 font-medium">{label}</span>
+                    <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
 
           {can.manageUsers(profile.role) && (
             <Link href="/admin" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden">

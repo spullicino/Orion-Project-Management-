@@ -14,6 +14,8 @@ const PUBLIC_PATHS = [
 ];
 
 export function isPublicPath(pathname: string) {
+  // Development-only previews with sample data (the pages themselves 404 in production).
+  if (process.env.NODE_ENV === "development" && pathname.startsWith("/dev/")) return true;
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
