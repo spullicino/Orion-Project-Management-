@@ -8,6 +8,7 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { blockingTasks, DUE_STYLES, dueState, PRIORITIES, PRIORITY_META, shortDate } from "@/lib/board";
 import { cn, fullName } from "@/lib/utils";
+import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, Member, Priority, StatusLabel } from "@/types/board";
 import { useBoard } from "./board-context";
 
@@ -18,8 +19,8 @@ import { useBoard } from "./board-context";
 export function StatusPill({ label, className }: { label: StatusLabel | undefined | null; className?: string }) {
   return (
     <span
-      className={cn("inline-flex h-8 min-w-24 items-center justify-center truncate rounded-md px-2 text-xs font-semibold text-white", className)}
-      style={{ background: label?.color ?? "#94a3b8" }}
+      className={cn("inline-flex h-8 min-w-24 items-center justify-center truncate rounded-md px-2 text-xs font-semibold", className)}
+      style={{ background: label?.color ?? "#94a3b8", color: readableTextOn(label?.color ?? "#94a3b8") }}
     >
       {label?.name ?? "No status"}
     </span>
@@ -52,8 +53,8 @@ export function StatusPicker({ task, className, full }: { task: BoardTask; class
               setOpen(false);
               if (l.id !== task.status_id) void patchTask(task.id, { status_id: l.id });
             }}
-            className="flex h-11 items-center justify-between rounded-lg px-3 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ background: l.color }}
+            className="flex h-11 items-center justify-between rounded-lg px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ background: l.color, color: readableTextOn(l.color) }}
           >
             {l.name}
             {l.id === task.status_id && <Check className="size-4" aria-hidden />}

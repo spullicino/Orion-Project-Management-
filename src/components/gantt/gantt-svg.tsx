@@ -65,7 +65,7 @@ export function GanttLabels({
             <g key={`g-${r.group.id}`}>
               <rect x={0} y={r.y} width={width} height={r.height} fill={dark ? "#1e293b" : C.header} />
               <rect x={0} y={r.y} width={4} height={r.height} fill={r.group.color} />
-              <text x={14} y={r.y + r.height / 2 + 5} fontSize={13} fontWeight={700} fill={r.group.color}>
+              <text x={14} y={r.y + r.height / 2 + 5} fontSize={13} fontWeight={700} fill={text}>
                 {ellipsize(r.group.name, maxChars)}
               </text>
             </g>

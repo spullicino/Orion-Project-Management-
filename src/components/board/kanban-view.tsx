@@ -16,6 +16,7 @@ import {
 import { useMemo, useState } from "react";
 import { DUE_STYLES, dueState, filterTasks, shortDate } from "@/lib/board";
 import { cn } from "@/lib/utils";
+import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, StatusLabel } from "@/types/board";
 import { useBoard } from "./board-context";
 import { RiskIcon } from "@/components/health-badge";
@@ -60,7 +61,8 @@ function KanbanCard({ task }: { task: BoardTask }) {
   const { openTask, perms } = useBoard();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: !perms.canEdit });
   return (
-    <li
+    <li className="list-none">
+    <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
@@ -76,6 +78,7 @@ function KanbanCard({ task }: { task: BoardTask }) {
       className={cn("cursor-pointer touch-manipulation rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isDragging && "opacity-30")}
     >
       <CardBody task={task} />
+    </div>
     </li>
   );
 }
@@ -88,9 +91,9 @@ function Column({ id, label, tasks }: { id: string; label: StatusLabel | null; t
       aria-label={label?.name ?? "No status"}
       className="flex w-[82vw] max-w-80 shrink-0 snap-start flex-col rounded-2xl bg-muted/60 sm:w-72 lg:w-auto lg:min-w-60 lg:max-w-none lg:flex-1"
     >
-      <header className="flex items-center gap-2 rounded-t-2xl px-3 py-2.5 text-sm font-semibold text-white" style={{ background: color }}>
+      <header className="flex items-center gap-2 rounded-t-2xl px-3 py-2.5 text-sm font-semibold" style={{ background: color, color: readableTextOn(color) }}>
         <span className="flex-1 truncate">{label?.name ?? "No status"}</span>
-        <span className="rounded-full bg-white/25 px-2 text-xs">{tasks.length}</span>
+        <span className="rounded-full bg-black/10 px-2 text-xs">{tasks.length}</span>
       </header>
       <ul ref={setNodeRef} className={cn("flex min-h-32 flex-1 flex-col gap-2 p-2 transition-colors", isOver && "bg-primary/10")}>
         {tasks.map((t) => (

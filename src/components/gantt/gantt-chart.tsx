@@ -98,7 +98,7 @@ export function GanttChart({ input, options, canEdit, onOpenTask, onChangeDates,
       <svg width={labelW} height={layout.height} className="shrink-0 border-r" role="presentation">
         <GanttLabels layout={layout} width={labelW} showOwners={options.showOwners} onRowClick={onOpenTask} dark={dark} />
       </svg>
-      <div ref={scroller} className="min-w-0 flex-1 overflow-x-auto">
+      <div ref={scroller} className="min-w-0 flex-1 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" tabIndex={0} aria-label="Timeline (scroll sideways with the arrow keys)">
         <svg width={layout.width} height={layout.height} role="img" aria-label="Gantt chart of the project's tasks">
           <GanttTimeline
             layout={layout}

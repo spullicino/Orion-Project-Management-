@@ -1,333 +1,354 @@
 # Orion Projects
 
-Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
+Project management for the Orion Group team: boards, Kanban, Gantt charts, a daily site diary with photos, chats and notifications. It works in any browser and installs on Android and iPhone like a normal app — and keeps working with a poor signal.
 
-> **Status: Phase 6 of 7.** Everything up to chats, plus notifications (in the app, phone push, daily email summary), delay warnings with red/amber/green project health, and project dashboards. Phase 7 (install-as-app polish, offline app shell, final tests and deployment guide) is next.
+**Status: complete (phases 1–7).**
 
 ---
 
 ## Contents
 
-1. [What you need before you start](#1-what-you-need-before-you-start)
-2. [Create the Supabase project (database and logins)](#2-create-the-supabase-project)
-3. [Load the database tables](#3-load-the-database-tables)
-4. [Turn on email confirmation and the Orion email templates](#4-sign-in-settings-and-email-templates)
-5. [Send email from your own domain (SMTP)](#5-send-email-from-your-own-domain-smtp)
+**Setting it up (once)**
+
+1. [What you need](#1-what-you-need)
+2. [Create the Supabase project](#2-create-the-supabase-project)
+3. [Set up the database](#3-set-up-the-database)
+4. [Sign-in settings and email templates](#4-sign-in-settings-and-email-templates)
+5. [Send email from your own domain](#5-send-email-from-your-own-domain-smtp)
 6. [Turn on "Sign in with Google"](#6-turn-on-sign-in-with-google)
 7. [Put the app online with Vercel](#7-put-the-app-online-with-vercel)
-8. [Become the first Administrator](#8-become-the-first-administrator)
-9. [Everyday admin tasks](#9-everyday-admin-tasks)
-10. [Who can do what (user levels)](#10-who-can-do-what)
-11. [Troubleshooting](#11-troubleshooting)
-12. [For developers](#12-for-developers)
+8. [Use your own web address](#8-use-your-own-web-address)
+9. [Become the first Administrator](#9-become-the-first-administrator)
+10. [Turn on notifications and the daily job](#10-turn-on-notifications-and-the-daily-job)
+11. [Final checklist](#11-final-checklist)
 
-Allow about **1–2 hours** for the first setup. You don't need to write any code. You will copy and paste some values between websites.
+**Using it**
+
+12. [Install it on phones (instructions for staff)](#12-install-it-on-phones)
+13. [How everything works](#13-how-everything-works)
+14. [Who can do what](#14-who-can-do-what)
+15. [Working without signal](#15-working-without-signal)
+
+**Looking after it**
+
+16. [Updating to a new version](#16-updating-to-a-new-version)
+17. [Backups, security and costs](#17-backups-security-and-costs)
+18. [Troubleshooting](#18-troubleshooting)
+19. [For developers](#19-for-developers)
+
+Allow about **2 hours** for the first setup. No coding is needed — you copy and paste values between websites. Keep a password manager or private note open to collect them.
 
 ---
 
-## 1. What you need before you start
+## 1. What you need
 
 | Account | What it's for | Cost |
 |---|---|---|
-| **GitHub** (you already have it) | Stores the app's code | Free |
-| **Supabase**: supabase.com | Database, logins, photo storage, live chat | Free to start. **Pro (about $25/month) is recommended** once the team is uploading daily photos |
-| **Vercel**: vercel.com | Runs the website | Free "Hobby" plan to test. Use "Pro" for company use |
-| **Google Cloud**: console.cloud.google.com | "Sign in with Google" | Free |
-| **An email-sending service**, e.g. **Resend** (resend.com) | Sends confirmation and password emails from your own address | Free up to 3,000 emails a month |
-| **Access to your domain's DNS** (whoever manages `oriongroup.com.mt`) | So the app has its own address and emails aren't marked as spam | — |
-
-Keep a notepad (a password manager is ideal) open. You'll collect a few values along the way:
-
-- Supabase **Project URL**
-- Supabase **publishable key**
-- Supabase **secret key** (treat this like a password)
-- Google **Client ID** and **Client secret**
-- SMTP **host, port, username, password**
+| **GitHub** (you have it) | Stores the app's code | Free |
+| **Supabase** — supabase.com | Database, logins, photo storage, live chat | Free to try; **Pro (~$25/month) recommended** for company use (daily backups, more photo storage) |
+| **Vercel** — vercel.com | Runs the website, daily job | Free "Hobby" to try; **Pro** for company use |
+| **Google Cloud** — console.cloud.google.com | "Sign in with Google" | Free |
+| **Resend** (resend.com) or your Microsoft 365 / Google Workspace mail | Sign-up, password and summary emails from your own address | Free up to 3,000 emails/month (Resend) |
+| **Your domain's DNS** (whoever manages `oriongroup.com.mt`) | The app's address and email delivery | — |
 
 ---
 
 ## 2. Create the Supabase project
 
-1. Go to **supabase.com** and sign in (you can sign in with GitHub).
-2. Click **New project**.
-   - **Name:** `orion-projects`
-   - **Database password:** click *Generate*, then save it in your password manager.
-   - **Region:** **Central EU (Frankfurt)**. It's closest to Malta and keeps data in the EU (GDPR).
-3. Click **Create new project** and wait about 2 minutes.
-4. Open **Project Settings → API Keys**. Copy these into your notepad:
-   - **Project URL** (looks like `https://abcd1234.supabase.co`). It may be shown on the *Data API* page.
-   - **Publishable key** (starts with `sb_publishable_`). Older projects call this the `anon` key.
-   - **Secret key** (starts with `sb_secret_`). Older projects call this the `service_role` key. **Never share it.**
+1. Go to **supabase.com** → **New project**.
+   - **Name:** `orion-projects` · **Region:** **Central EU (Frankfurt)** (closest to Malta, keeps data in the EU).
+   - **Database password:** *Generate*, then save it in your password manager.
+2. When it's ready: **Project Settings → API Keys**. Copy:
+   - the **Project URL** — exactly `https://<letters>.supabase.co` (nothing after `.co`; find it under *Project Settings → General → Project ID*: it's `https://` + the ID + `.supabase.co`);
+   - the **publishable** key (`sb_publishable_…`, older projects: *anon*);
+   - the **secret** key (`sb_secret_…`, older projects: *service_role*) — **never share it**.
 
 ---
 
-## 3. Load the database tables
+## 3. Set up the database
 
-This creates all the tables and the security rules that decide who can see what.
+**New installation — one paste:**
 
-**Option A: no tools needed (SQL Editor)**
+1. In GitHub open **`supabase/setup/all-in-one.sql`**, click the **copy icon** ("Copy raw file").
+2. In Supabase: **SQL Editor → + New query**, paste, **Run**. You should see *Success*. (If Supabase asks you to confirm, choose *Run this query*.)
+3. **Table Editor** should now list tables such as `profiles`, `projects`, `tasks`, `daily_updates`, `messages`, `notifications`.
 
-1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0012_notifications_health.sql`).
-3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
-4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
+**Do not** run `supabase/seed.sql` on your real project — it creates demo accounts with a public password (for testing only).
 
-**Option B: command line (if someone technical is helping)**
-
-```bash
-npx supabase login
-npx supabase link --project-ref YOUR-PROJECT-REF
-npx supabase db push
-```
-
-When new phases add database changes, repeat this step for the **new** files only (each phase tells you which).
+*(Already installed an earlier version? See [Updating to a new version](#16-updating-to-a-new-version) instead.)*
 
 ---
 
 ## 4. Sign-in settings and email templates
 
-In Supabase, open **Authentication**:
+In Supabase, **Authentication**:
 
-1. **URL Configuration**
-   - **Site URL:** the app's final address, e.g. `https://projects.oriongroup.com.mt`
-   - **Redirect URLs:** add `https://projects.oriongroup.com.mt/**`. While testing on Vercel, also add `https://*.vercel.app/**`.
-2. **Sign In / Providers → Email**
-   - **Enable Email provider:** on
-   - **Confirm email:** **on**. New users must click the link in their email before they can sign in.
-   - **Minimum password length:** 8
-3. **Emails → Templates.** For each template below, paste the subject, then paste the whole file from `supabase/templates/` into the message body (in GitHub, open the file → **Raw** → copy all):
+1. **Sign In / Providers → Email:** *Enable Email provider* **on**, *Confirm email* **on**, minimum password length **8**. *Allow new users to sign up* **on**.
+2. **URL Configuration:** set after step 7/8 — *Site URL* = the app's address (e.g. `https://projects.oriongroup.com.mt`), *Redirect URLs* = the same followed by `/**`.
+3. **Emails → Templates** — for each, set the subject and paste the matching file from `supabase/templates/` (copy icon in GitHub):
 
    | Template | Subject | File |
    |---|---|---|
    | Confirm signup | Confirm your email for Orion Projects | `confirmation.html` |
    | Invite user | You're invited to Orion Projects | `invite.html` |
-   | Reset password | Reset your Orion Projects password | `recovery.html` |
-   | Change email address | Confirm your new email for Orion Projects | `email_change.html` |
-   | Magic link | Your Orion Projects sign-in link | `magic_link.html` |
-
-   The templates show the Orion logo from `/brand/orion-logo.png` on your site. To change the logo anywhere in the app, replace the files in `public/brand/` (keep the same names).
+   | Reset Password | Reset your Orion Projects password | `recovery.html` |
+   | Change Email Address | Confirm your new email for Orion Projects | `email_change.html` |
+   | Magic Link | Your Orion Projects sign-in link | `magic_link.html` |
 
 ---
 
 ## 5. Send email from your own domain (SMTP)
 
-Supabase's built-in email only sends a few emails per hour and is meant for testing. For real use, connect an email service. These steps use **Resend**; Postmark, Brevo or Microsoft 365 work the same way.
+Supabase's built-in email only reaches **your own Supabase login address** and a few emails per hour. Until this step is done, **other people can't complete sign-up** (they never get the confirmation email). You can still add people by hand: *Authentication → Users → Add user*, tick *Auto Confirm User*.
 
-1. Create an account at **resend.com**.
-2. **Domains → Add domain.** Use a sub-domain such as `mail.oriongroup.com.mt`.
-3. Resend shows 3–4 **DNS records**. Send them to whoever manages your DNS and ask them to add them. Wait until Resend shows **Verified** (minutes to a few hours).
-4. **API Keys → Create API key** (permission: *Sending access*). Copy it.
-5. In Supabase: **Authentication → Emails → SMTP Settings → Enable custom SMTP**:
-   - **Sender email:** `noreply@mail.oriongroup.com.mt`
-   - **Sender name:** `Orion Projects`
-   - **Host:** `smtp.resend.com`  **Port:** `465`
-   - **Username:** `resend`  **Password:** the API key from step 4
-6. **Authentication → Rate Limits:** raise *emails sent per hour* to something like 100.
-7. Test it: sign up with your own email address on the app. The email should come from your domain.
+1. Create an account at **resend.com** → **Domains → Add domain**, e.g. `mail.oriongroup.com.mt`.
+2. Send the 3–4 DNS records it shows to whoever manages your DNS; wait for **Verified**.
+3. **API Keys → Create** (Sending access). Copy it.
+4. Supabase → **Authentication → Emails → SMTP Settings → Enable custom SMTP:**
+   Sender `noreply@mail.oriongroup.com.mt`, name `Orion Projects`, host `smtp.resend.com`, port `465`, user `resend`, password = the API key.
+5. **Authentication → Rate Limits:** raise *emails per hour* to about 100.
+
+Keep these SMTP details — the daily email summary uses them too (step 10).
 
 ---
 
 ## 6. Turn on "Sign in with Google"
 
-1. Go to **console.cloud.google.com** and create a project called `Orion Projects` (top-left project picker → *New project*).
-2. **APIs & Services → OAuth consent screen** (also called *Google Auth Platform*):
-   - **User type:** choose **External** so anyone with a Google or Gmail account can use it. New accounts still need your approval in the app.
-     (Choose **Internal** instead if you only want `@oriongroup.com.mt` Google Workspace accounts.)
-   - **App name:** Orion Projects. **Support email:** yours. Upload the logo if you like.
-   - **Authorised domains:** `oriongroup.com.mt` and `supabase.co`
-   - Scopes: the defaults (`email`, `profile`, `openid`) are all that's needed.
-   - Click **Publish app** so it isn't limited to test users.
-3. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
-   - **Application type:** Web application
-   - **Authorised JavaScript origins:** `https://projects.oriongroup.com.mt`
-   - **Authorised redirect URIs:** `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`. Supabase shows this exact address on its Google provider page, so copy it from there.
-   - Click **Create**, then copy the **Client ID** and **Client secret**.
-4. In Supabase: **Authentication → Sign In / Providers → Google**: turn it on, paste the Client ID and Client secret, and click **Save**.
+1. **console.cloud.google.com** → new project *Orion Projects*.
+2. **APIs & Services → OAuth consent screen:** *External* (anyone with a Google account; they still need your approval) or *Internal* (only `@oriongroup.com.mt` Workspace accounts). App name, support email, authorised domains `oriongroup.com.mt` and `supabase.co`. **Publish app**.
+3. **Credentials → Create credentials → OAuth client ID → Web application:**
+   - *Authorised JavaScript origins:* your app address (e.g. `https://projects.oriongroup.com.mt`);
+   - *Authorised redirect URIs:* `https://<your-project>.supabase.co/auth/v1/callback` (copy it from Supabase's Google provider page).
+4. Supabase → **Authentication → Sign In / Providers → Google:** on, paste *Client ID* and *Client secret*, **Save**.
 
 ---
 
 ## 7. Put the app online with Vercel
 
-1. Go to **vercel.com** → **Add New… → Project** → import the `Orion-Project-Management-` GitHub repository.
-2. Before clicking Deploy, open **Environment Variables** and add these. The names must match exactly; the values come from your notepad:
+1. **vercel.com → Add New… → Project → Import** `Orion-Project-Management-`.
+2. **Environment Variables** (names exactly as written):
 
-   | Name | Value |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key |
-   | `SUPABASE_SECRET_KEY` | Supabase secret key |
-   | `NEXT_PUBLIC_SITE_URL` | `https://projects.oriongroup.com.mt` (no `/` at the end) |
-   | `BOOTSTRAP_ADMIN_EMAIL` | Your own email address (see step 8) |
+   | Name | Value | Needed for |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | everything |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable key | everything |
+   | `SUPABASE_SECRET_KEY` | secret key (mark as *Sensitive*) | invites, push, daily job |
+   | `BOOTSTRAP_ADMIN_EMAIL` | your email | becoming the first admin |
+   | `NEXT_PUBLIC_SITE_URL` | `https://projects.oriongroup.com.mt` (once you have it — step 8) | email links |
+   | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | from step 10 | notifications, daily job |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | from step 5 | daily email summary |
 
-3. Click **Deploy** and wait about 2 minutes.
-4. **Your own address:** go to **Project → Settings → Domains → Add**, type `projects.oriongroup.com.mt`, and give the DNS record Vercel shows (usually a `CNAME` to `cname.vercel-dns.com`) to whoever manages your DNS.
-5. If you change an environment variable later, go to **Deployments → ⋯ → Redeploy** for it to take effect.
-
----
-
-## 8. Become the first Administrator
-
-1. Make sure `BOOTSTRAP_ADMIN_EMAIL` on Vercel is **your** email.
-2. Open the app and either **Continue with Google** with that address, or **Create an account** with it and click the confirmation email.
-3. You're signed in as **Administrator**. This only happens while there is no Administrator, so it's safe to leave the variable set.
+   Vercel may warn that `NEXT_PUBLIC_…` values are visible to browsers — that's expected and safe for those two (choose *Config* if asked). Keep the names unchanged.
+3. **Deploy.** Your app is at `https://<name>.vercel.app`.
+4. Put that address in Supabase **URL Configuration** (step 4.2).
+5. After changing any variable: **Deployments → ⋯ → Redeploy**.
 
 ---
 
-## 9. Everyday admin tasks
+## 8. Use your own web address
 
-Open **Admin**. It's in the sidebar on a computer, and under **Profile → Admin** on a phone.
-
-- **Approve new people:** anyone who signs up waits on a "Waiting for approval" screen. Choose their level and tap **Approve**. Tap ✕ to decline.
-- **Invite someone:** enter their email and level, then tap **Send invite**. They get an email, choose a password, and can start straight away with no approval step. Invitations last 14 days.
-- **Change a level:** use the drop-down next to the person's name.
-- **Deactivate:** blocks sign-in immediately and hides all data from that person. **Reactivate** restores them.
-- **Settings:** choose whether *Basic* users may write in project chats.
+1. Vercel → **Settings → Domains → Add** `projects.oriongroup.com.mt`. Give the DNS record it shows (usually a `CNAME` to `cname.vercel-dns.com`) to your DNS manager.
+2. When it shows *Valid*: update **Supabase URL Configuration** (Site URL + Redirect URL), **Google** *Authorised JavaScript origins*, and Vercel's `NEXT_PUBLIC_SITE_URL`. Redeploy.
 
 ---
 
-## 9b. Sharing progress with clients
+## 9. Become the first Administrator
 
-On a project's **Gantt** tab, managers have three buttons:
-
-- **Milestone**: add a key date (shown as a diamond).
-- **Export**: download a **PDF** (A4 or A3, landscape) or **PNG** with the Orion logo, project and client name, today's date and a legend. Leave “Show who is working on each task” off to keep internal details out. Internal notes are never included.
-- **Share with client**: create a read-only web link the client can open without logging in. It shows a progress summary and the timeline. Choose how long it works (30 days to “until I turn it off”) and turn it off at any time. The list shows when each link was last opened.
-
-Add a client's logo on the **Clients** page; it then appears on exports and client links.
+1. Make sure `BOOTSTRAP_ADMIN_EMAIL` is your email (and the app has been redeployed since).
+2. Open the app, **Create an account** with that email (or *Continue with Google*), confirm via the email.
+3. You land on **Home** as **Administrator**. (This only works while there's no administrator yet.)
 
 ---
 
-## 9c. Daily site diary
+## 10. Turn on notifications and the daily job
 
-- **Daily Update** (bottom tab): choose the project, write what was done, tap the hours, add issues if any, and **Take photo** or **From gallery**. Photos are shrunk on the phone (max 1600 px) before sending.
-- **No signal?** Post anyway. The update is saved on the phone and sent automatically when the connection is back — even if the app was closed. A yellow bar shows anything still waiting.
-- Each project has a **Diary** tab (updates grouped by day) and a **Photos** tab (all site photos, filter by date, tap for full screen).
-- People can edit or delete their own update for 24 hours; managers can always.
-- **Managers:** *Daily Update → Team overview & reports* shows who has and hasn't posted for any day, and **PDF report** creates a client-ready report (text + photos) for a project and date range.
-
----
-
-## 9d. Chats
-
-- **Chats** (bottom tab) lists: *General & Announcements* (everyone reads, managers post), *Management* (administrators and managers only) and one chat per project (its members, plus managers). A red number shows unread messages.
-- Tap a message for reactions, **Reply** (a thread), copy, edit or delete. Type **@** to mention someone. Use the paperclip for photos/files (photos are shrunk first) and the ✓ button to link a task — tapping the link opens the task.
-- **Mute** a chat from its ⋮ menu so it doesn't count in the badge. Managers can create extra management or announcement chats (**+ New**) and archive them.
-- Basic users can read project chats; whether they can also write is the *Basic users can post* switch in **Admin → Settings**.
+1. In the app: **Admin → Setup: notifications & daily job → Generate keys for Vercel**.
+2. Add the values shown to Vercel (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`), plus `VAPID_SUBJECT` = `mailto:` + your email. Generate push keys **once** — new keys mean everyone has to switch notifications on again.
+3. Optional email summary: add the SMTP values from step 5 (`EMAIL_FROM` like `Orion Projects <noreply@mail.oriongroup.com.mt>`).
+4. Redeploy. The Setup card should show green ticks. The daily job runs every morning around 07:30 Malta time (`vercel.json`).
 
 ---
 
-## 9e. Notifications, delay warnings and dashboards
+## 11. Final checklist
 
-**What people get notified about:** being given a task, @mentions, comments and status changes on their tasks, tasks due today/tomorrow or overdue, and (managers) new daily updates on their projects. Everything shows in the **bell** 🔔; each person chooses in **Profile → Notifications** what also reaches their phone, sets quiet hours, and can switch on a **daily email summary**.
-
-**Set-up (once, by an administrator):**
-
-1. In the app, open **Admin → Setup: notifications & daily job** and tap **Generate keys for Vercel**.
-2. In **Vercel → Settings → Environment Variables** add the three values shown (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`) plus `VAPID_SUBJECT` = `mailto:` + your email.
-3. For the email summary, also add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `EMAIL_FROM` — the same details you used for Supabase's email (step 5).
-4. Redeploy. The Setup card should show three green ticks. The daily job runs every morning at about 07:30 Malta time (see `vercel.json`).
-5. Each person turns notifications on for their phone in **Profile → Notifications → Turn on notifications**. On iPhone this works only after **Share → Add to Home Screen** (iOS 16.4 or newer), opened from the Home Screen icon.
-
-**Delay warnings:** tasks show a red ⛔ when overdue or waiting for a late task, and an amber ⚠ when due within 2 days with under 50 % progress, behind schedule, or waiting for an unfinished task that should start soon. Projects get a badge: **On track**, **Needs attention** or **At risk** (any important task late, several late tasks, or past the planned end date). Each project has a **Dashboard** tab; managers see projects needing attention on **Home**.
+- [ ] Sign up with a second (test) email → confirmation email arrives from your domain → you can approve it in **Admin**.
+- [ ] **Continue with Google** works.
+- [ ] **Admin → Invite someone** sends an invitation email.
+- [ ] Create a project, add a task, change its status, open the **Gantt**, **Export** a PDF, create a **client link** and open it in a private window.
+- [ ] On a phone: post a **Daily Update** with a photo; try again in airplane mode — it sends when the signal is back.
+- [ ] Send a chat message between two people; try an @mention.
+- [ ] **Profile → Notifications → Turn on notifications → Send a test** on Android and on an installed iPhone app.
+- [ ] **Admin → Setup** shows all ticks.
 
 ---
 
-## 10. Who can do what
+## 12. Install it on phones
 
-These rules are enforced by the **database itself**, not only by hiding buttons, so they can't be bypassed.
+Send this to your team:
+
+> **iPhone (Safari):** open the app address → tap **Share** (square with arrow) → **Add to Home Screen** → **Add**. Open it from the new icon. To get notifications: in the app, **Profile → Notifications → Turn on notifications** (needs iOS 16.4 or newer).
+>
+> **Android (Chrome):** open the app address → tap **Install** when asked, or **⋮ → Install app**. Then **Profile → Notifications → Turn on notifications**.
+>
+> **Computer (Chrome/Edge):** click the install icon in the address bar.
+
+The app also shows an *Install Orion Projects* pop-up on phones from the second visit, and **Profile → Install the app** always has the steps.
+
+---
+
+## 13. How everything works
+
+**Projects** — Managers create projects (blank, from a template, or as a copy), choose the team, client, dates and colour. Each project has tabs:
+
+- **Dashboard** — % complete, overdue and due-soon counts, tasks by status, workload per person, *Needs attention* list, upcoming milestones and the health badge.
+- **Board** — groups of tasks with status, owners, priority, dates, progress, *Waiting for* (dependencies) and any extra columns. Phones show cards. Tap a task for details: description, checklist, files, comments, history.
+- **Kanban** — drag cards between statuses (on phones: press and hold).
+- **Gantt** — timeline with milestones and dependency arrows; managers drag bars to change dates; **Export** (PDF/PNG) and **Share with client** (read-only link, no login, expires/revokable).
+- **Calendar** — due dates and milestones by month.
+- **Diary / Photos** — daily updates and every site photo.
+- **Chat** — the project's conversation.
+- **Settings** (managers) — details, people, statuses, columns, save as template, delete (admins).
+
+**My Tasks** — everything assigned to you, grouped by due date; tick to mark done.
+
+**Daily Update** — what you did, hours, issues and photos (shrunk on the phone). Managers: **Team overview & reports** shows who has/hasn't posted for any day and makes **PDF reports** for clients.
+
+**Chats** — General & Announcements (everyone reads, managers post), Management (managers & admins), one per project. Reactions, replies, @mentions, photos/files, task links, unread badges, mute.
+
+**Notifications** — 🔔 bell plus phone push for: tasks given to you, @mentions, comments/status changes on your tasks, due/overdue tasks, and (managers) new daily updates. Each person chooses in **Profile → Notifications**, including quiet hours and a daily email summary.
+
+**Delay warnings** — red ⛔ = overdue or waiting for a late task; amber ⚠ = due within 2 days with < 50 % done, behind schedule, or waiting for an unfinished task that should start soon. Projects show **On track / Needs attention / At risk**.
+
+**Admin** — approve people and set their level, invite by email, deactivate, settings (can Basic users post in chats), notification/daily-job setup. **Clients** (managers) — client details and logos for exports.
+
+---
+
+## 14. Who can do what
+
+The database itself enforces these rules (not just the buttons), so they can't be bypassed.
 
 | Level | Can do |
 |---|---|
-| **Administrator** | Everything: settings, users and levels, all projects, management chat, delete anything |
-| **Manager** | Create and edit all projects, assign people, Gantt charts and client exports, management chat |
-| **Technician** | Work only on projects they're assigned to: update tasks, post daily updates and photos, project chat |
-| **Basic** | Read-only on assigned projects. Can read chats, and can write in them only if an admin allows it |
+| **Administrator** | Everything: users and levels, settings, all projects, management chat, delete anything |
+| **Manager** | Create/edit all projects, assign people, Gantt, exports and client links, daily reports, management chat |
+| **Technician** | Assigned projects only: create/update tasks (not delete), assign themselves, daily updates and photos, project chats |
+| **Basic** | Read-only on assigned projects; reads chats (writes only if allowed in Admin → Settings) |
 
-Other rules:
-
-- People waiting for approval, and deactivated people, can see **nothing** except their own profile.
-- Technicians can edit or delete their own daily update for 24 hours after posting it.
-- Technicians can create and update tasks but not delete them. They can add or remove only **themselves** as a task owner.
-- All files and photos are private and are only shown through short-lived links.
+People waiting for approval or deactivated see nothing. Daily updates can be edited/deleted by their author for 24 hours (managers always). All files and photos are private and shown through short-lived links.
 
 ---
 
-## 11. Troubleshooting
+## 15. Working without signal
+
+- **Pages you've opened** (and Home, Daily Update, My Tasks, Projects, Chats — saved after you sign in) open even with no signal, showing what they had last time. A dark bar says you're offline.
+- **Daily updates** are always saved on the phone first and sent automatically when the signal returns — even if the app was closed. A yellow bar shows anything waiting.
+- Photos you've seen recently stay visible.
+- Changing tasks and sending chat messages need a connection (you'll see a clear message if it fails).
+- Saved pages are wiped from the device when someone **signs out**, so shared phones stay private.
+
+---
+
+## 16. Updating to a new version
+
+1. New code is deployed automatically by Vercel when it's merged on GitHub.
+2. If the update includes **new database files** (`supabase/migrations/…`), run **only the new ones**, in number order, in Supabase **SQL Editor** — the release notes say which. If a screen says *"The database needs an update"*, a file was missed.
+3. If the update mentions new settings, add them in Vercel and redeploy.
+
+Database files applied so far: `…0001` to `…0012` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
+
+---
+
+## 17. Backups, security and costs
+
+- **Backups:** Supabase **Pro** takes daily backups (restorable from the dashboard). On the free plan there are none — upgrade before real use.
+- **Keep secret:** `SUPABASE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`, SMTP password. If one leaks, create a new one (Supabase → API Keys; Admin → Setup for the others) and update Vercel.
+- **When someone leaves:** Admin → **Deactivate** (blocks sign-in immediately). Turn off any client links they shouldn't keep.
+- **Client links** can be turned off any time (Gantt → Share with client).
+- **Photo storage:** each photo is about 0.3–0.6 MB. Supabase Pro includes 100 GB.
+- The site sends strict security headers (no framing, content security policy, HTTPS only).
+
+---
+
+## 18. Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| "That link is invalid or has expired" | Links work once and expire after 1 hour. Request a new one. Also check the **Site URL** and **Redirect URLs** in step 4. |
-| Confirmation emails don't arrive | Check spam. Check SMTP (step 5) and that the domain is *Verified*. Supabase → **Logs → Auth** shows email errors. |
-| Google sign-in says "redirect_uri_mismatch" | The redirect URI in Google (step 6.3) must exactly match the one shown on Supabase's Google provider page. |
-| Google sign-in goes back to localhost | Fix the **Site URL** in Supabase (step 4.1) and `NEXT_PUBLIC_SITE_URL` on Vercel. Then redeploy. |
-| "Missing environment variables" error page | An environment variable is missing on Vercel (step 7). Add it and redeploy. |
-| I'm stuck on "Waiting for approval" as the first user | `BOOTSTRAP_ADMIN_EMAIL` doesn't match your email, or someone else is already Administrator. As a last resort, in Supabase **SQL Editor** run: `update profiles set role='admin', status='active' where email='you@example.com';` |
-| An invited person signed in with Google and is waiting for approval | Ask them to use the link in the invitation email first. Or just approve them in Admin. |
+| "We couldn't create your account … Invalid path specified" | `NEXT_PUBLIC_SUPABASE_URL` must be exactly `https://<id>.supabase.co`. Redeploy after fixing. |
+| "We couldn't send the confirmation email" | Email sending isn't set up (step 5). Meanwhile add the person in Supabase → *Authentication → Users → Add user* with *Auto Confirm*. |
+| "That link is invalid or has expired" | Links work once, for 1 hour. Check Site URL / Redirect URLs (step 4.2) and request a new link. |
+| "Waiting for approval" for the first admin | Check `BOOTSTRAP_ADMIN_EMAIL`, redeploy, tap *Check again*. Last resort, in SQL Editor: `update profiles set role='admin', status='active' where email='you@example.com';` |
+| "The database needs an update" | Run the newest file(s) from `supabase/migrations` (section 16). |
+| "permission denied for table …" | A database file is missing — run the files in order (section 16). |
+| No phone notifications | Admin → Setup shows ticks? Person turned them on in Profile? iPhone: installed to Home Screen and opened from there? Quiet hours? Try *Send a test*. |
+| Google: "redirect_uri_mismatch" | The redirect URI in Google must exactly match Supabase's Google provider page. |
+| A page says "Sorry, this page couldn't load" | Tap *Try again*. If it persists, send the code shown, plus Vercel → *Logs* around that time, to your developer. |
+| The logo doesn't show in emails | Outlook/Gmail may block pictures: click *Show images*. |
 
 ---
 
-## 12. For developers
+## 19. For developers
 
-### Tech stack
+### Stack
 
-- **Next.js 16** (App Router, TypeScript, Server Actions). The request interceptor is `src/proxy.ts`, since Next 16 renamed middleware to "proxy".
-- **Tailwind CSS 4** with shadcn/ui-style components in `src/components/ui`, written in-repo. Icons from `lucide-react`. Light and dark mode via `next-themes`.
-- **Supabase**: Postgres with Row Level Security on every table, Auth, private Storage and Realtime. Cookie sessions via `@supabase/ssr`.
-- **Zod** validation on every server action. Postgres-backed rate limiting for sign-in, sign-up, password reset, invites and uploads.
+Next.js 16 (App Router, Server Actions, `src/proxy.ts`), TypeScript, Tailwind CSS 4 with shadcn-style components (`src/components/ui`), Supabase (Postgres + RLS, Auth, private Storage, Realtime) via `@supabase/ssr`, Zod validation, `@dnd-kit` (Kanban), custom SVG Gantt with `jspdf` + `svg2pdf.js` exports, `browser-image-compression` (worker self-hosted in `public/vendor`), `idb` offline outbox, `web-push`, `nodemailer`. Hand-written service worker in `public/sw.js` (offline shell, last-viewed pages, push). Cache Components is off on purpose (every screen is per-user).
 
-Cache Components is turned off on purpose: every screen depends on who is signed in.
-
-### Run it locally
-
-You need Node 22+ and Docker (for the local Supabase).
+### Run locally
 
 ```bash
 npm install
-cp .env.example .env.local      # then fill in values from `npx supabase status`
-npx supabase start              # local Postgres, Auth, Storage, plus email inbox at http://localhost:54324
-npx supabase db reset           # applies migrations + demo seed
-npm run dev                     # http://localhost:3000
+cp .env.example .env.local        # fill from `npx supabase status`
+npx supabase start                # needs Docker; local email inbox at http://localhost:54324
+npx supabase db reset             # migrations + demo seed
+npm run dev                       # http://localhost:3000
 ```
 
-Demo accounts (local only, password `OrionDemo!2026`): `admin@orion.test`, `manager@orion.test`, `tech1@orion.test`, `tech2@orion.test`, `basic@orion.test`, `pending@orion.test`.
+Demo logins (local only, password `OrionDemo!2026`): `admin@`, `manager@`, `tech1@`, `tech2@`, `basic@`, `pending@orion.test`.
+
+Development-only previews with sample data (no database needed): `/dev/board-preview?view=board|kanban|gantt|calendar|dashboard`, `/dev/diary-preview`, `/dev/chat-preview`, `/dev/notifications-preview`, `/dev/share-preview`. They return 404 in production.
 
 ### Tests
 
 | Command | What it checks |
 |---|---|
-| `npm run test:unit` | Utilities, validation, permission helpers |
-| `npm run test:rls` | **Row Level Security for every level.** For example: a Technician can't read an unassigned project; Basic can't write; pending users see nothing; only admins approve. Runs against the local Supabase (`supabase db reset` first), or against any **empty** Postgres 15+ with `RLS_DATABASE_URL=postgresql://…`, using a small Supabase shim in `tests/rls/supabase-shim.sql`. This is how CI runs it, with no Docker needed. |
-| `npm run test:e2e` | Playwright on a phone and a desktop viewport. Specs tagged `@supabase` also need `E2E_SUPABASE=1` and a seeded local Supabase. |
-| `npm run lint` / `npm run typecheck` | Code style and types |
+| `npm run test:unit` | Utilities, validation, permissions, delay rules, Gantt layout, chat helpers, calendar, migration bundle up to date |
+| `npm run test:rls` | **Row Level Security per role** and every database function (62 tests). Runs against the local Supabase, or any *empty* Postgres 15+ via `RLS_DATABASE_URL` using `tests/rls/supabase-shim.sql` (this is what CI does). |
+| `npm run test:e2e` | Playwright on phone + desktop: auth pages, installability (manifest/icons/splash), offline page, accessibility (axe, WCAG 2 AA) and CSP. Specs tagged `@supabase` (login, create task, daily update with photo, Gantt PDF export + client link, chat, notifications) need `E2E_SUPABASE=1` and a seeded local Supabase. |
+| `npm run lint` / `npm run typecheck` | Style and types |
+
+### Adding a database change
+
+Add a new file in `supabase/migrations/` (never edit an applied one), add RLS policies and tests in `tests/rls/rls.test.ts`, then `npm run db:bundle` to refresh `supabase/setup/all-in-one.sql` (a unit test fails if you forget).
 
 ### Folder structure
 
 ```
 supabase/
-  migrations/      SQL: tables, triggers, RLS policies, storage buckets (one file per area)
-  seed.sql         demo users and 2 demo projects (local and testing only)
-  templates/       branded auth emails
-  config.toml      local Supabase CLI settings
+  migrations/        0001 foundation … 0012 notifications & health (append-only)
+  setup/             all-in-one.sql (generated: every migration, for new installs)
+  seed.sql           demo data (local/testing only)
+  templates/         branded auth emails
 src/
-  proxy.ts         refreshes the session and sends signed-out visitors to /login
+  proxy.ts           session refresh + sign-in redirect
   app/
-    (auth)/        login, signup, check-email, forgot-password, plus server actions
-    auth/          callback (Google), confirm (email links), set-password, signout
-    pending/       waiting-for-approval / deactivated screen
-    (app)/         signed-in area: home, projects, daily-update, chats, profile, admin
-  components/      ui/ (design system), layout/ (sidebar, bottom tabs), auth/, admin/, profile/
+    (auth)/ auth/ pending/ account-problem/ offline/ share/[token]/
+    (app)/           home, projects/[id]/{dashboard,board,kanban,gantt,calendar,diary,photos,chat,settings},
+                     my-tasks, daily-update(/team), chats(/[id]), notifications, clients, profile, admin
+    api/cron/daily   daily job (CRON_SECRET)
+    manifest.ts      installable app
+  components/        ui/ layout/ board/ gantt/ calendar/ diary/ chat/ notifications/ dashboard/ pwa/ …
   lib/
-    supabase/      browser, server, proxy and admin (secret-key) clients
-    auth/          session helpers, roles, first-admin bootstrap
-    validation/    Zod schemas shared by forms and server actions
-  types/database.ts
-tests/
-  unit/  rls/  e2e/
+    supabase/ auth/ validation/ data/      server access, roles, Zod schemas, loaders
+    board.ts health.ts chat.ts calendar.ts pure, unit-tested logic
+    gantt/ (layout + export)  diary/report.ts  offline/ (outbox, sync, upload)  notify/ (push, email, queue)
+public/sw.js         service worker
+tests/unit  tests/rls  tests/e2e
 ```
 
 ### Security model
 
-- Permission helpers live in the private `app` schema (`app.is_admin()`, `app.can_view_project(id)`, `app.can_edit_project(id)`, `app.can_post_channel(id)` and others). Every policy calls them, and they all return *false* for pending or deactivated users.
-- A trigger (`app.guard_profile_update`) stops anyone except an Administrator from changing a level, status or email, including their own. Administrators can't demote themselves.
-- New sign-ups are `pending`. Emails with an open invitation are activated at the invited level by the `app.handle_new_user` trigger.
-- The secret key is only used server-side, in `src/lib/supabase/admin.ts`, after a role check. It's used for invites, banning deactivated accounts and the rate limiter.
+- Every table has RLS; policies call helpers in the private `app` schema (`app.can_view_project`, `app.can_edit_project`, `app.can_post_channel`, …) that return *false* for pending/deactivated users.
+- Read-side database functions are `SECURITY INVOKER` (RLS applies). The few `SECURITY DEFINER` ones are narrow: notification triggers, the client share-link lookup (token checked, client-safe fields only) and server-only jobs (execute granted to `service_role` only).
+- Level/status changes are blocked by a trigger unless done by an admin; admins can't demote themselves.
+- The secret key is only used server-side after role checks (invites, push, daily job, rate limiting).
+- Uploads go straight to private buckets via short-lived signed URLs; files are read via signed URLs.
+- Production sends CSP, HSTS, `X-Frame-Options: DENY`, `nosniff` and a strict referrer policy.

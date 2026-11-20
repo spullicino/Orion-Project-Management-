@@ -43,3 +43,14 @@ describe("isMissingSchema", () => {
     expect(isMissingSchema(null)).toBe(false);
   });
 });
+
+import { readableTextOn } from "@/lib/utils";
+
+describe("readableTextOn", () => {
+  it("chooses the more readable text colour", () => {
+    expect(readableTextOn("#22c55e")).toBe("#0f172a"); // light green "Done"
+    expect(readableTextOn("#f59e0b")).toBe("#0f172a"); // amber
+    expect(readableTextOn("#2d57a3")).toBe("#ffffff"); // Orion blue
+    expect(readableTextOn("#7c3aed")).toBe("#ffffff"); // violet
+  });
+});

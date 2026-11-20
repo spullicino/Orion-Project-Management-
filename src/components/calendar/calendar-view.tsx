@@ -35,7 +35,7 @@ export function CalendarView() {
 
   const chip = (it: Item, compact = false) =>
     it.kind === "milestone" ? (
-      <span key={`m-${it.milestone.id}`} className="flex items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-xs font-semibold" style={{ color: it.milestone.color }}>
+      <span key={`m-${it.milestone.id}`} className="flex items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-xs font-semibold">
         <span className="size-2.5 shrink-0 rotate-45" style={{ background: it.milestone.color }} aria-hidden />
         <span className="truncate">{it.milestone.title}</span>
       </span>
@@ -47,12 +47,12 @@ export function CalendarView() {
         className={cn(
           "flex w-full items-center gap-1.5 truncate rounded-md text-left text-xs font-medium hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           compact ? "px-1.5 py-1" : "min-h-11 px-3 py-2 text-sm",
-          it.task.completed_at && "line-through opacity-60",
+          it.task.completed_at && "text-muted-foreground line-through",
         )}
         style={{ background: `${labelsById.get(it.task.status_id ?? "")?.color ?? "#94a3b8"}26` }}
       >
         <span className="size-2 shrink-0 rounded-full" style={{ background: labelsById.get(it.task.status_id ?? "")?.color ?? "#94a3b8" }} aria-hidden />
-        <span className={cn("truncate", dueState(it.task.due_date, !!it.task.completed_at) === "overdue" && "text-destructive")}>{it.task.title}</span>
+        <span className={cn("truncate", dueState(it.task.due_date, !!it.task.completed_at) === "overdue" && "font-semibold text-red-800 dark:text-red-300")}>{it.task.title}</span>
       </button>
     );
 
@@ -97,7 +97,7 @@ export function CalendarView() {
                 <div
                   className={cn(
                     "mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold",
-                    d === today ? "bg-destructive text-white" : outside ? "text-muted-foreground/60" : "text-muted-foreground",
+                    d === today ? "bg-destructive text-white" : outside ? "text-muted-foreground" : "text-foreground",
                   )}
                 >
                   {+d.slice(8, 10)}

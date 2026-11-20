@@ -196,7 +196,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
             value={task.group_id}
             onChange={(e) => void patchTask(task.id, { group_id: e.target.value })}
             className="mb-1 h-9 max-w-full cursor-pointer rounded-md bg-transparent pr-1 text-sm font-semibold hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ color: group?.color }}
+            style={{ borderLeft: `4px solid ${group?.color ?? "transparent"}`, paddingLeft: 8 }}
           >
             {board.groups.map((g) => (
               <option key={g.id} value={g.id}>
@@ -205,7 +205,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
             ))}
           </select>
         ) : (
-          <p className="mb-2 text-sm font-medium" style={{ color: group?.color }}>
+          <p className="mb-2 text-sm font-medium" style={{ borderLeft: `4px solid ${group?.color ?? "transparent"}`, paddingLeft: 8 }}>
             {group?.name}
           </p>
         )}
@@ -357,7 +357,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
               action={
                 perms.canEdit && (
                   <>
-                    <input ref={fileInput} type="file" multiple className="sr-only" id={`files-${task.id}`} onChange={(e) => upload(e.target.files)} />
+                    <input ref={fileInput} type="file" multiple className="sr-only" tabIndex={-1} aria-label="Choose files to attach" id={`files-${task.id}`} onChange={(e) => upload(e.target.files)} />
                     <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()} disabled={!!uploading}>
                       {uploading ? <Loader2 className="animate-spin" aria-hidden /> : <Paperclip aria-hidden />}
                       {uploading ? "Uploading…" : "Add files"}

@@ -38,7 +38,8 @@ export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-tight">{name}</p>
           {showProject && (
-            <Link href={`/projects/${update.project_id}/diary`} className="block truncate text-sm font-medium hover:underline" style={{ color: update.project.color }}>
+            <Link href={`/projects/${update.project_id}/diary`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
+              <span className="size-2.5 shrink-0 rounded-full" style={{ background: update.project.color }} aria-hidden />
               {update.project.name}
             </Link>
           )}

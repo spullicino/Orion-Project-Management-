@@ -33,3 +33,22 @@ export function fieldErrors(issues: { path: PropertyKey[]; message: string }[]) 
   }
   return out;
 }
+
+function luminance(hex: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return 0.5;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+}
+
+/** Dark or white text — whichever is easier to read on this background colour (WCAG contrast). */
+export function readableTextOn(bg: string): "#0f172a" | "#ffffff" {
+  const L = luminance(bg);
+  const onWhite = 1.05 / (L + 0.05);
+  const onDark = (L + 0.05) / (luminance("#0f172a") + 0.05);
+  return onWhite >= onDark ? "#ffffff" : "#0f172a";
+}

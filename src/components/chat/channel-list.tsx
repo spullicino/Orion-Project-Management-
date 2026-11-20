@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { listTime } from "@/lib/chat";
 import { cn } from "@/lib/utils";
+import { readableTextOn } from "@/lib/utils";
 import type { ChannelSummary } from "@/types/chat";
 
 const SECTIONS: { type: ChannelSummary["type"]; label: string }[] = [
@@ -24,7 +25,11 @@ const SECTIONS: { type: ChannelSummary["type"]; label: string }[] = [
 function ChannelIcon({ c }: { c: ChannelSummary }) {
   if (c.type === "project")
     return (
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ background: c.project_color ?? "#64748b" }}>
+      <span
+        className="flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold"
+        style={{ background: c.project_color ?? "#64748b", color: readableTextOn(c.project_color ?? "#64748b") }}
+        aria-hidden
+      >
         {c.name.slice(0, 2).toUpperCase()}
       </span>
     );

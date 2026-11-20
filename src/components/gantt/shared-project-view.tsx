@@ -127,7 +127,8 @@ export function SharedProjectView({ shared, clientLogo }: { shared: Shared; clie
           {byGroup.map((g) => (
             <div key={g.id} className="grid gap-1.5 rounded-xl border bg-card p-4">
               <div className="flex justify-between text-sm">
-                <span className="font-medium" style={{ color: g.color }}>
+                <span className="flex items-center gap-2 font-medium">
+                  <span className="size-3 rounded-sm" style={{ background: g.color }} aria-hidden />
                   {g.name}
                 </span>
                 <span className="text-muted-foreground">

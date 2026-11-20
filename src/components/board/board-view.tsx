@@ -249,7 +249,8 @@ function GroupHeader({ group, count, collapsed, onToggle }: { group: Group; coun
           aria-label="Group name"
         />
       ) : (
-        <h2 className="text-lg font-semibold" style={{ color: group.color }}>
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <span className="size-3 shrink-0 rounded-sm" style={{ background: group.color }} aria-hidden />
           {group.name}
         </h2>
       )}
@@ -372,8 +373,8 @@ export function BoardView() {
                       {groupTasks.map((t) => (
                         <TaskRow key={t.id} task={t} color={g.color} />
                       ))}
-                      {perms.canEdit && <AddTaskRow group={g} />}
                     </div>
+                    {perms.canEdit && <AddTaskRow group={g} />}
                   </div>
                   {/* Phones: cards */}
                   <div className="md:hidden">

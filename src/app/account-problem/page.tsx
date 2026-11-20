@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
+import { SignOutButton } from "@/components/pwa/sign-out-button";
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,7 @@ export default async function AccountProblemPage() {
         <Button asChild size="lg">
           <a href="/home">Try again</a>
         </Button>
-        <form action="/auth/signout" method="post">
-          <Button type="submit" variant="outline" className="w-full">
-            Sign out
-          </Button>
-        </form>
+        <SignOutButton withIcon={false} />
       </div>
     </AuthCard>
   );

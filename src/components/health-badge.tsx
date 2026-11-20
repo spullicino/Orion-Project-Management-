@@ -3,9 +3,9 @@ import { HEALTH_LABEL, type HealthLevel, type RiskLevel } from "@/lib/health";
 import { cn } from "@/lib/utils";
 
 const STYLE: Record<HealthLevel, { cls: string; Icon: typeof CheckCircle2 }> = {
-  green: { cls: "bg-success/15 text-success", Icon: CheckCircle2 },
-  amber: { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400", Icon: AlertTriangle },
-  red: { cls: "bg-destructive/15 text-destructive", Icon: AlertOctagon },
+  green: { cls: "bg-green-500/15 text-green-800 dark:text-green-300", Icon: CheckCircle2 },
+  amber: { cls: "bg-amber-500/15 text-amber-800 dark:text-amber-300", Icon: AlertTriangle },
+  red: { cls: "bg-red-500/15 text-red-800 dark:text-red-300", Icon: AlertOctagon },
 };
 
 /** Project health: always icon + words + colour (never colour alone). */

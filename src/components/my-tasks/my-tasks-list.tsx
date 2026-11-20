@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { markTaskDone } from "@/app/(app)/projects/actions";
 import { bucketMyTasks, DUE_STYLES, dueState, shortDate } from "@/lib/board";
 import { cn } from "@/lib/utils";
+import { readableTextOn } from "@/lib/utils";
 import type { MyTask } from "@/types/board";
 
 function TaskItem({ task, canEdit }: { task: MyTask; canEdit: boolean }) {
@@ -47,7 +48,7 @@ function TaskItem({ task, canEdit }: { task: MyTask; canEdit: boolean }) {
             {task.project.name}
           </span>
           {task.status && (
-            <span className="rounded px-1.5 py-0.5 text-xs font-semibold text-white" style={{ background: task.status.color }}>
+            <span className="rounded px-1.5 py-0.5 text-xs font-semibold" style={{ background: task.status.color, color: readableTextOn(task.status.color) }}>
               {task.status.name}
             </span>
           )}

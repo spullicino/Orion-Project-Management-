@@ -1,4 +1,5 @@
 import { UnreadProvider } from "@/components/chat/unread-provider";
+import { InstallPrompt, OfflineBanner, OfflineWarmup } from "@/components/pwa/app-helpers";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
@@ -44,6 +45,7 @@ export default async function AppLayout({
           <Sidebar profile={profile} avatarUrl={avatarUrl} />
           <div className="flex min-w-0 flex-1 flex-col">
             <MobileHeader profile={profile} avatarUrl={avatarUrl} />
+            <OfflineBanner />
             <main
               id="main"
               className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8"
@@ -53,6 +55,8 @@ export default async function AppLayout({
             </main>
           </div>
           <BottomTabs />
+          <InstallPrompt />
+          <OfflineWarmup />
         </div>
       </NotificationsProvider>
       </UnreadProvider>

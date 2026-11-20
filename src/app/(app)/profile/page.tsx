@@ -1,13 +1,14 @@
-import { Building2, ChevronRight, ListChecks, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, ChevronRight, ListChecks, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
+import { SignOutButton } from "@/components/pwa/sign-out-button";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { NotificationSettings } from "@/components/notifications/notification-settings";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
+import { InstallCard } from "@/components/pwa/install-card";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { can, ROLE_LABEL, ROLES } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
@@ -48,6 +49,8 @@ export default async function ProfilePage() {
             </CardContent>
           </Card>
 
+          <InstallCard />
+
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
@@ -85,13 +88,7 @@ export default async function ProfilePage() {
               </Card>
             </Link>
           )}
-
-          <form action="/auth/signout" method="post">
-            <Button type="submit" variant="outline" className="w-full">
-              <LogOut aria-hidden />
-              Sign out
-            </Button>
-          </form>
+          <SignOutButton />
         </div>
       </div>
     </>

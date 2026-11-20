@@ -211,8 +211,8 @@ export function DailyUpdateForm({ projects, initialProject }: { projects: Projec
       <div className="grid gap-2">
         <span className="text-sm font-medium">Photos {photos.length > 0 && `(${photos.length})`}</span>
         <div className="grid grid-cols-2 gap-2 sm:flex">
-          <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
-          <input ref={gallery} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+          <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-label="Take a photo" onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+          <input ref={gallery} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} aria-label="Choose photos" onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
           <Button type="button" variant="outline" size="lg" onClick={() => camera.current?.click()}>
             <Camera aria-hidden /> Take photo
           </Button>

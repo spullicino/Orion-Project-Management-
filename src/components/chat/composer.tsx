@@ -184,7 +184,7 @@ export function Composer({
       )}
 
       <div className="flex items-end gap-1">
-        <input ref={fileInput} type="file" multiple className="sr-only" tabIndex={-1} onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+        <input ref={fileInput} type="file" multiple className="sr-only" tabIndex={-1} aria-label="Choose photos or files" onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
         <button type="button" onClick={() => fileInput.current?.click()} className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Attach photos or files">
           <Paperclip className="size-5" />
         </button>
