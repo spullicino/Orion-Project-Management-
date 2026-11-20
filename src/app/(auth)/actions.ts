@@ -83,7 +83,21 @@ export async function signUp(_: FormState, formData: FormData): Promise<FormStat
   if (error) {
     if (error.code === "weak_password") return { fieldErrors: { password: error.message } };
     if (error.code === "over_email_send_rate_limit") return { error: TOO_MANY };
-    return { error: "We couldn't create your account. Please try again." };
+    console.error("sign-up failed", error.code, error.status, error.message);
+    if (error.code === "signup_disabled") {
+      return { error: "New sign-ups are switched off. Ask an administrator for an invitation." };
+    }
+    if (error.code === "email_address_not_authorized" || /sending (confirmation )?email/i.test(error.message)) {
+      return {
+        error:
+          "We couldn't send the confirmation email. Email sending isn't fully set up yet — please tell your administrator. " +
+          `(Details: ${error.message})`,
+      };
+    }
+    if (/database error/i.test(error.message)) {
+      return { error: `We couldn't create your account because of a database problem. (Details: ${error.message})` };
+    }
+    return { error: `We couldn't create your account. Please try again. (Details: ${error.message || error.code || "unknown"})` };
   }
   redirect(`/check-email?email=${encodeURIComponent(email)}`);
 }
