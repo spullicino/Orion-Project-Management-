@@ -97,3 +97,23 @@ test("@supabase a technician posts a daily update with a photo", async ({ page }
   await expect(page.getByText(text)).toBeVisible();
   await expect(page.getByRole("button", { name: /Open photo 1 of 1/ }).first()).toBeVisible();
 });
+
+test("@supabase a technician sends a chat message and a basic user can read but not post", async ({ page, browser }) => {
+  await signIn(page, "tech1@orion.test");
+  await page.waitForURL(/\/home/);
+  await page.goto("/chats");
+  await page.getByRole("link", { name: /Valletta Office Fit-out/ }).first().click();
+  const text = `E2E chat ${Date.now()}`;
+  await page.getByLabel("Message Valletta Office Fit-out").fill(text);
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText(text)).toBeVisible();
+  await expect(page.getByText("Sending…")).toHaveCount(0, { timeout: 15_000 });
+
+  const basic = await (await browser.newContext()).newPage();
+  await signIn(basic, "basic@orion.test");
+  await basic.waitForURL(/\/home/);
+  await basic.goto("/chats");
+  await basic.getByRole("link", { name: /Valletta Office Fit-out/ }).first().click();
+  await expect(basic.getByText(text)).toBeVisible();
+  await expect(basic.getByText("You can read this chat but not write in it.")).toBeVisible();
+});

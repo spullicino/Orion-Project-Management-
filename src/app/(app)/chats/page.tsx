@@ -1,17 +1,14 @@
 import { MessagesSquare } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/coming-soon";
-import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Chats" };
 
-export default function ChatsPage() {
+/** On computers this fills the space beside the list; on phones the list is shown instead. */
+export default function ChatsIndex() {
   return (
-    <>
-      <PageHeader title="Chats" />
-      <ComingSoon icon={MessagesSquare} title="Project, management and company chats" phase={5}>
-        Real-time chat per project, with photos, @mentions, reactions and replies.
-      </ComingSoon>
-    </>
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
+      <MessagesSquare className="size-12" aria-hidden />
+      <p>Choose a chat on the left.</p>
+    </div>
   );
 }

@@ -46,6 +46,9 @@ update public.profiles set role = 'manager',    status = 'active' where email = 
 update public.profiles set role = 'technician', status = 'active' where email in ('tech1@orion.test', 'tech2@orion.test');
 update public.profiles set role = 'basic',      status = 'active' where email = 'basic@orion.test';
 -- pending@orion.test stays 'pending'.
+-- Demo accounts were "approved" a month ago (so the demo chat messages count as unread).
+update public.profiles set approved_at = now() - interval '30 days', created_at = now() - interval '31 days'
+where email <> 'pending@orion.test';
 
 -- ---------------------------------------------------------------------
 -- Clients

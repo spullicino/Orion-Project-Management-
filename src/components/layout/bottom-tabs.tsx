@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { UnreadBadge } from "@/components/chat/unread-provider";
 import { PRIMARY_NAV, isActive } from "./nav-items";
 
 export function BottomTabs() {
@@ -25,7 +26,10 @@ export function BottomTabs() {
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <Icon className={cn("size-6", active && "stroke-[2.4]")} aria-hidden />
+                <span className="relative">
+                  <Icon className={cn("size-6", active && "stroke-[2.4]")} aria-hidden />
+                  {href === "/chats" && <UnreadBadge className="absolute -right-3 -top-1.5" />}
+                </span>
                 <span className="text-center">{label}</span>
               </Link>
             </li>

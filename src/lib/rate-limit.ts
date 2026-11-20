@@ -9,6 +9,7 @@ export const LIMITS = {
   invite: { max: 30, windowSeconds: 3600 },
   upload: { max: 120, windowSeconds: 600 },
   dailyPost: { max: 40, windowSeconds: 3600 },
+  chatMessage: { max: 60, windowSeconds: 60 },
 } as const;
 
 export async function clientIp() {

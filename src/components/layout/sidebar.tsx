@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
+import { UnreadBadge } from "@/components/chat/unread-provider";
 import { UserAvatar } from "@/components/ui/avatar";
 import { hasRole, ROLE_LABEL } from "@/lib/auth/roles";
 import { cn, fullName } from "@/lib/utils";
@@ -22,7 +23,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       )}
     >
       <Icon className="size-5" aria-hidden />
-      {item.label}
+      <span className="flex-1">{item.label}</span>
+      {item.href === "/chats" && <UnreadBadge />}
     </Link>
   );
 }

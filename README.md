@@ -2,7 +2,7 @@
 
 Project management for the Orion Group team: boards, Gantt charts, daily site updates with photos, and chat. It works in any browser and can be installed on Android and iPhone like an app.
 
-> **Status: Phase 4 of 7.** Sign-in and user levels (phase 1); projects, boards, Kanban, tasks, My Tasks, clients and templates (phase 2); Gantt, Calendar, PDF/PNG export and client links (phase 3); daily site diary with photos, offline sending, photo gallery, team overview and PDF reports (phase 4). Chats and notifications come next; their screens say "Coming in phase X".
+> **Status: Phase 5 of 7.** Sign-in and user levels; projects, boards, Kanban, tasks and templates; Gantt, Calendar, exports and client links; daily site diary with photos (works offline); and chats — project, management and company channels with live messages, @mentions, reactions, replies, photos/files and unread badges. Notifications and dashboards come next.
 
 ---
 
@@ -68,7 +68,7 @@ This creates all the tables and the security rules that decide who can see what.
 **Option A: no tools needed (SQL Editor)**
 
 1. In Supabase, open **SQL Editor** → **New query**.
-2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0010_daily_diary.sql`).
+2. In GitHub, open the folder `supabase/migrations`. There are files numbered `…0001_foundation.sql` up to the highest number (currently `…0011_chat.sql`).
 3. For **each file, in number order**: open it in GitHub, click **Raw**, select all, copy, paste into the SQL Editor, and click **Run**. You should see *"Success. No rows returned"*.
 4. **Do not** run `supabase/seed.sql` on your real project. It creates demo users with a public password and is only for testing.
 
@@ -204,6 +204,15 @@ Add a client's logo on the **Clients** page; it then appears on exports and clie
 - Each project has a **Diary** tab (updates grouped by day) and a **Photos** tab (all site photos, filter by date, tap for full screen).
 - People can edit or delete their own update for 24 hours; managers can always.
 - **Managers:** *Daily Update → Team overview & reports* shows who has and hasn't posted for any day, and **PDF report** creates a client-ready report (text + photos) for a project and date range.
+
+---
+
+## 9d. Chats
+
+- **Chats** (bottom tab) lists: *General & Announcements* (everyone reads, managers post), *Management* (administrators and managers only) and one chat per project (its members, plus managers). A red number shows unread messages.
+- Tap a message for reactions, **Reply** (a thread), copy, edit or delete. Type **@** to mention someone. Use the paperclip for photos/files (photos are shrunk first) and the ✓ button to link a task — tapping the link opens the task.
+- **Mute** a chat from its ⋮ menu so it doesn't count in the badge. Managers can create extra management or announcement chats (**+ New**) and archive them.
+- Basic users can read project chats; whether they can also write is the *Basic users can post* switch in **Admin → Settings**.
 
 ---
 

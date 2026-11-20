@@ -189,6 +189,28 @@ export type Database = {
           uploaded_by?: string | null;
         }
       >;
+      channels: Table<
+        { id: string; type: "project" | "management" | "general"; project_id: string | null; name: string; description: string | null; archived: boolean; created_by: string | null; created_at: string },
+        { type: "management" | "general"; name: string; description?: string | null; created_by?: string | null; archived?: boolean }
+      >;
+      channel_members: Table<{ channel_id: string; user_id: string; last_read_at: string; muted: boolean }, { channel_id: string; user_id?: string; last_read_at?: string; muted?: boolean }>;
+      messages: Table<
+        {
+          id: string;
+          channel_id: string;
+          author_id: string;
+          parent_id: string | null;
+          task_id: string | null;
+          body: string;
+          mentions: string[];
+          edited_at: string | null;
+          deleted_at: string | null;
+          created_at: string;
+        },
+        { channel_id: string; body: string; author_id?: string; parent_id?: string | null; task_id?: string | null; mentions?: string[] }
+      >;
+      message_attachments: Table<{ id: string; message_id: string; storage_path: string; file_name: string; mime_type: string | null; size_bytes: number | null; width: number | null; height: number | null; created_at: string }>;
+      message_reactions: Table<{ message_id: string; user_id: string; emoji: string; created_at: string }, { message_id: string; emoji: string; user_id?: string }>;
       attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;
@@ -215,6 +237,26 @@ export type Database = {
       };
       get_daily_status: { Args: { p_date: string }; Returns: Json };
       get_postable_projects: { Args: Record<string, never>; Returns: Json };
+      list_my_channels: { Args: Record<string, never>; Returns: Json };
+      get_unread_total: { Args: Record<string, never>; Returns: number };
+      get_channel_messages: { Args: { p_channel: string; p_before?: string | null; p_limit?: number }; Returns: Json };
+      get_channel_messages_since: { Args: { p_channel: string; p_since: string }; Returns: Json };
+      get_message: { Args: { p_message: string }; Returns: Json };
+      get_thread: { Args: { p_parent: string }; Returns: Json };
+      get_channel_people: { Args: { p_channel: string }; Returns: Json };
+      mark_channel_read: { Args: { p_channel: string }; Returns: undefined };
+      send_chat_message: {
+        Args: {
+          p_id: string;
+          p_channel: string;
+          p_body: string;
+          p_parent?: string | null;
+          p_task?: string | null;
+          p_mentions?: string[];
+          p_attachments?: Json;
+        };
+        Returns: Json;
+      };
       get_task_detail: { Args: { p_task: string }; Returns: Json };
       duplicate_project: {
         Args: { p_source: string; p_name: string; p_as_template?: boolean; p_start_date?: string | null; p_client_id?: string | null };

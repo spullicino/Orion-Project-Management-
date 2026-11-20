@@ -9,12 +9,12 @@ export class NetworkError extends Error {}
  * Uploads a Blob to a Supabase signed upload URL with progress reporting
  * (fetch() can't report upload progress, XMLHttpRequest can).
  */
-export function uploadWithProgress(signedUrl: string, blob: Blob, onProgress?: (loaded: number) => void): Promise<void> {
+export function uploadWithProgress(signedUrl: string, blob: Blob, onProgress?: (loaded: number) => void, contentType = "image/jpeg"): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", signedUrl);
     xhr.setRequestHeader("apikey", env.supabasePublishableKey);
-    xhr.setRequestHeader("content-type", "image/jpeg");
+    xhr.setRequestHeader("content-type", contentType || "application/octet-stream");
     xhr.setRequestHeader("x-upsert", "true");
     xhr.setRequestHeader("cache-control", "max-age=31536000");
     xhr.timeout = 120_000;

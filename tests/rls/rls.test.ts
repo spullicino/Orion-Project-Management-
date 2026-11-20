@@ -634,3 +634,102 @@ describe("phase 4: daily diary feed, gallery and status", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("phase 5: chat", () => {
+  type Row = Record<string, unknown>;
+  const val = async (db: { query: (s: string) => Promise<Row[]> }, sql: string) => (await db.query(`select ${sql} as v`))[0].v;
+  type Channel = { id: string; type: string; name: string; unread: number; can_post: boolean };
+  const channels = async (db: { query: (s: string) => Promise<Row[]> }) => (await val(db, "public.list_my_channels()")) as Channel[];
+
+  it("everyone sees the channels they're allowed to, with the right 'can post' flag", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const c = await channels(db);
+      expect(c.map((x) => x.type).sort()).toEqual(["general", "project"]);
+      expect(c.find((x) => x.type === "general")!.can_post).toBe(false);
+      expect(c.find((x) => x.type === "project")!.can_post).toBe(true);
+    });
+    await asUser(USERS.basic, async (db) => {
+      const c = await channels(db);
+      expect(c.find((x) => x.type === "project")!.can_post).toBe(false);
+    });
+    await asUser(USERS.manager, async (db) => {
+      expect((await channels(db)).map((x) => x.type).sort()).toEqual(["general", "management", "project", "project"]);
+    });
+  });
+
+  it("counts unread messages from others and clears them when read", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const project = (await channels(db)).find((x) => x.type === "project")!;
+      expect(Number(project.unread)).toBe(1); // the manager's welcome message
+      expect(Number(await val(db, "public.get_unread_total()"))).toBe(2); // + General announcement
+      await db.query(`select public.mark_channel_read('${project.id}')`);
+      expect(Number((await channels(db)).find((x) => x.id === project.id)!.unread)).toBe(0);
+      expect(Number(await val(db, "public.get_unread_total()"))).toBe(1);
+    });
+  });
+
+  it("messages come with author, reactions, reply count and only visible task links", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const ch = (await channels(db)).find((x) => x.type === "project")!.id;
+      const [{ id }] = await db.query<{ id: string }>(
+        `insert into public.messages (channel_id, author_id, body, task_id) values ('${ch}', '${USERS.tech1}', 'See task', '${TASKS.vallettaPartitions}') returning id`,
+      );
+      await db.query(`insert into public.messages (channel_id, author_id, body, parent_id) values ('${ch}', '${USERS.tech1}', 'reply', '${id}')`);
+      await db.query(`insert into public.message_reactions (message_id, user_id, emoji) values ('${id}', '${USERS.tech1}', '👍')`);
+      const msgs = (await val(db, `public.get_channel_messages('${ch}')`)) as {
+        id: string; body: string; reply_count: number; author: { first_name: string }; reactions: { emoji: string; count: number; mine: boolean }[]; task: { title: string } | null;
+      }[];
+      const m = msgs.find((x) => x.id === id)!;
+      expect(msgs.some((x) => x.body === "reply")).toBe(false); // replies stay in the thread
+      expect(m).toMatchObject({ reply_count: 1, author: { first_name: "Tina" }, task: { title: "Partition walls" } });
+      expect(m.reactions).toEqual([expect.objectContaining({ emoji: "👍", count: 1, mine: true })]);
+      const thread = (await val(db, `public.get_thread('${id}')`)) as { replies: unknown[] };
+      expect(thread.replies).toHaveLength(1);
+    });
+  });
+
+  it("technicians can't read other projects' or the management chat, and @mention lists respect access", async () => {
+    await asUser(USERS.manager, async (db) => {
+      const mgmt = (await channels(db)).find((x) => x.type === "management")!.id;
+      const people = (await val(db, `public.get_channel_people('${mgmt}')`)) as { first_name: string }[];
+      expect(people.map((p) => p.first_name).sort()).toEqual(["Ada", "Mark"]);
+      await asUser(USERS.tech1, async (tdb) => {
+        expect(await val(tdb, `public.get_channel_messages('${mgmt}')`)).toEqual([]);
+        expect(await val(tdb, `public.get_channel_people('${mgmt}')`)).toBeNull();
+      });
+    });
+    await asUser(USERS.tech2, async (db) => {
+      const valletta = `(select id from public.channels where project_id = '${PROJECTS.valletta}')`;
+      expect(await val(db, `public.get_channel_messages(${valletta})`)).toEqual([]);
+    });
+  });
+
+  it("send_chat_message saves the message and attachments together, and checks permissions", async () => {
+    const id = "70000000-0000-4000-8000-000000000001";
+    const send = (ch: string, path: string) =>
+      `select public.send_chat_message('${id}', ${ch}, 'Photo of the wall', null, null, '{}',
+        '[{"id":"71000000-0000-4000-8000-000000000001","storage_path":"${path}","file_name":"wall.jpg","mime_type":"image/jpeg","size_bytes":1000,"width":10,"height":10}]'::jsonb) as v`;
+    const valletta = `(select id from public.channels where project_id = '${PROJECTS.valletta}')`;
+    await asUser(USERS.tech1, async (db) => {
+      const [{ id: ch }] = await db.query<{ id: string }>(`select id from public.channels where project_id = '${PROJECTS.valletta}'`);
+      const [{ v }] = await db.query<{ v: { attachments: unknown[]; body: string } }>(send(valletta, `${ch}/${id}/a.jpg`));
+      expect(v.body).toBe("Photo of the wall");
+      expect(v.attachments).toHaveLength(1);
+    });
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(send(valletta, `someone-else/${id}/a.jpg`))).toMatch(/Invalid attachment/);
+    });
+    await asUser(USERS.basic, async (db) => {
+      const [{ id: ch }] = await db.query<{ id: string }>(`select id from public.channels where project_id = '${PROJECTS.valletta}'`);
+      expect(await db.fails(send(valletta, `${ch}/${id}/a.jpg`))).toMatch(/row-level security/);
+    });
+  });
+
+  it("a technician can only edit their own messages", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const n = await db.query(`update public.messages set body = 'hacked' where author_id <> '${USERS.tech1}' returning id`);
+      expect(n).toHaveLength(0);
+    });
+  });
+});
