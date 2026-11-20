@@ -421,3 +421,85 @@ describe("storage", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("phase 2: board, My Tasks and templates functions", () => {
+  type Row = Record<string, unknown>;
+  const one = async (db: { query: (s: string) => Promise<Row[]> }, sql: string) => (await db.query(sql))[0];
+
+  it("get_project_board returns the board only to people who can see the project", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const r = await one(db, `select public.get_project_board('${PROJECTS.valletta}') as b`);
+      const b = r.b as { tasks: { assignees: string[]; blocked_by: string[] }[]; groups: unknown[]; labels: unknown[]; members: unknown[] };
+      expect(b.groups).toHaveLength(3);
+      expect(b.labels).toHaveLength(4);
+      expect(b.tasks).toHaveLength(6);
+      expect(b.members.length).toBeGreaterThanOrEqual(3);
+      expect(b.tasks.some((t) => t.blocked_by.length > 0)).toBe(true);
+      expect((await one(db, `select public.get_project_board('${PROJECTS.mosta}') as b`)).b).toBeNull();
+    });
+  });
+
+  it("get_task_detail hides tasks from other projects", async () => {
+    await asUser(USERS.tech2, async (db) => {
+      expect((await one(db, `select public.get_task_detail('${TASKS.vallettaPartitions}') as d`)).d).toBeNull();
+      const d = (await one(db, `select public.get_task_detail('${TASKS.mostaRails}') as d`)).d as { task: { title: string } };
+      expect(d.task.title).toBe("Mounting rails");
+    });
+  });
+
+  it("get_my_tasks returns only my own assignments", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const tasks = (await one(db, "select public.get_my_tasks() as t")).t as { project_id: string }[];
+      expect(tasks).toHaveLength(3);
+      expect(tasks.every((t) => t.project_id === PROJECTS.valletta)).toBe(true);
+    });
+    await asUser(USERS.basic, async (db) => {
+      expect((await one(db, "select public.get_my_tasks() as t")).t).toEqual([]);
+    });
+  });
+
+  it("list_projects follows project visibility", async () => {
+    await asUser(USERS.manager, async (db) => {
+      expect(((await one(db, "select public.list_projects() as p")).p as unknown[]).length).toBe(2);
+    });
+    await asUser(USERS.basic, async (db) => {
+      const p = (await one(db, "select public.list_projects() as p")).p as { id: string; task_count: number }[];
+      expect(p.map((x) => x.id)).toEqual([PROJECTS.valletta]);
+      expect(p[0].task_count).toBe(6);
+    });
+  });
+
+  it("only managers can duplicate a project; the copy keeps structure, not people or progress", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(`select public.duplicate_project('${PROJECTS.valletta}', 'Copy')`)).toMatch(/Only managers/);
+    });
+    await asUser(USERS.manager, async (db) => {
+      const { id } = (await one(db, `select public.duplicate_project('${PROJECTS.valletta}', 'Template', true, current_date + 7) as id`)) as { id: string };
+      const b = (await one(db, `select public.get_project_board('${id}') as b`)).b as {
+        project: { is_template: boolean; start_date: string };
+        groups: unknown[];
+        labels: unknown[];
+        tasks: { progress: number; blocked_by: string[]; assignees: string[]; checklist_total: number }[];
+      };
+      expect(b.project.is_template).toBe(true);
+      expect(b.groups).toHaveLength(3);
+      expect(b.labels).toHaveLength(4);
+      expect(b.tasks).toHaveLength(6);
+      expect(b.tasks.every((t) => t.progress === 0 && t.assignees.length === 0)).toBe(true);
+      expect(b.tasks.filter((t) => t.blocked_by.length > 0)).toHaveLength(2);
+      expect(b.tasks.reduce((n, t) => n + Number(t.checklist_total), 0)).toBe(3);
+      // Templates get no chat channel and don't show up in the normal project list.
+      expect(await count(db, `select 1 from public.channels where project_id = '${id}'`)).toBe(0);
+      expect(((await one(db, "select public.list_projects() as p")).p as unknown[]).length).toBe(2);
+      expect(((await one(db, "select public.list_projects(false, true) as p")).p as unknown[]).length).toBe(1);
+    });
+  });
+
+  it("anonymous visitors cannot call the board functions", async () => {
+    await asUser(null, async (db) => {
+      expect(await db.fails(`select public.get_project_board('${PROJECTS.valletta}')`)).toMatch(/permission denied/);
+      expect(await db.fails("select public.get_my_tasks()")).toMatch(/permission denied/);
+    });
+  });
+});
