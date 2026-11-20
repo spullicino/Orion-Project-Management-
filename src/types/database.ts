@@ -236,6 +236,14 @@ export type Database = {
         { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: string; last_used_at: string | null },
         { endpoint: string; p256dh: string; auth: string; user_id?: string; user_agent?: string | null }
       >;
+      personal_todos: Table<
+        { id: string; user_id: string; title: string; due_date: string | null; done_at: string | null; position: number; created_at: string; updated_at: string },
+        { title: string; user_id?: string; due_date?: string | null; done_at?: string | null; position?: number }
+      >;
+      personal_notes: Table<
+        { id: string; user_id: string; title: string; body: string; color: string; pinned: boolean; created_at: string; updated_at: string },
+        { user_id?: string; title?: string; body?: string; color?: string; pinned?: boolean }
+      >;
       attachments: Table<AttachmentRow, Partial<AttachmentRow> & { task_id: string; storage_path: string; file_name: string }>;
     };
     Views: Record<string, never>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, Bell, CalendarClock, CheckCheck, ClipboardPenLine, Loader2, MessageSquare, RefreshCw, UserPlus, AlertTriangle } from "lucide-react";
+import { AtSign, Bell, NotebookTabs, CalendarClock, CheckCheck, ClipboardPenLine, Loader2, MessageSquare, RefreshCw, UserPlus, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ const ICONS: Record<string, typeof Bell> = {
   "task.overdue": AlertTriangle,
   mention: AtSign,
   "daily.new": ClipboardPenLine,
+  "personal.due": NotebookTabs,
 };
 
 export function NotificationsList({ initial }: { initial: Notification[] }) {

@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, UserPen, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, NotebookTabs, UserPen, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
@@ -54,6 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       ? [{ href: "/daily-update", label: "Post a daily update", detail: "What did you do today?", icon: ClipboardPenLine }]
       : []),
     { href: "/chats", label: "Chats", detail: "Project and team conversations", icon: MessagesSquare },
+    { href: "/personal", label: "Personal", detail: "Your private to-dos and notes", icon: NotebookTabs },
   ];
 
   return (

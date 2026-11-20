@@ -842,3 +842,42 @@ describe("phase 6: notifications and delay warnings", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("personal notes and to-dos are private", () => {
+  const add = (u: string) =>
+    `insert into public.personal_notes (user_id, title, body) values ('${u}', 'Private', 'Secret');
+     insert into public.personal_todos (user_id, title, due_date) values ('${u}', 'Call the bank', public.malta_today());`;
+
+  it("only the owner can see them — not managers, not administrators", async () => {
+    await withSetup(add(USERS.tech1), USERS.tech1, async (db) => {
+      expect(await count(db, "select 1 from public.personal_notes")).toBe(1);
+      expect(await count(db, "select 1 from public.personal_todos")).toBe(1);
+    });
+    for (const u of [USERS.admin, USERS.manager, USERS.tech2]) {
+      await withSetup(add(USERS.tech1), u, async (db) => {
+        expect(await count(db, "select 1 from public.personal_notes")).toBe(0);
+        expect(await count(db, "select 1 from public.personal_todos")).toBe(0);
+        expect(await db.query("update public.personal_notes set body = 'x' returning id")).toHaveLength(0);
+        expect(await db.query("delete from public.personal_todos returning id")).toHaveLength(0);
+      });
+    }
+  });
+
+  it("nobody can create items for someone else; pending users can't use it", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(`insert into public.personal_notes (user_id, title) values ('${USERS.tech2}', 'x')`)).toMatch(/row-level security/);
+      expect(await db.fails(`insert into public.personal_todos (title) values ('Mine')`)).toBeNull();
+    });
+    await asUser(USERS.pending, async (db) => {
+      expect(await db.fails(`insert into public.personal_todos (title) values ('x')`)).toMatch(/row-level security/);
+    });
+  });
+
+  it("the daily job reminds the owner about their own to-dos due today", async () => {
+    await withSetup(`${add(USERS.tech1)} select public.create_due_notifications();`, USERS.tech1, async (db) => {
+      const n = await db.query<{ type: string; title: string }>("select type, title from public.notifications where type = 'personal.due'");
+      expect(n).toEqual([{ type: "personal.due", title: "Due today: Call the bank" }]);
+    });
+  });
+});
