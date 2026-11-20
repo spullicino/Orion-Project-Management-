@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { getSessionState } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Waiting for approval" };
 
 export default async function PendingPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
+  const { userId, profile } = await getSessionState();
+  if (!userId) redirect("/login");
+  if (!profile) redirect("/account-problem");
   if (profile.status === "active") redirect("/home");
 
   const deactivated = profile.status === "deactivated";

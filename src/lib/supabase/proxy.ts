@@ -54,12 +54,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (signedIn && (pathname === "/login" || pathname === "/signup")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/home";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   return response;
 }
