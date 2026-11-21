@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-21-project-access",
+    date: "2026-11-21",
+    title: "You only see your own projects",
+    body: "Projects (and their tasks, chats, photos and updates) are now only visible to the people added to them. Managers see the projects they're on or created; administrators still see everything. Missing a project? Ask to be added in its Settings → People.",
+    help: "/help#levels",
+  },
+  {
     id: "2026-11-21-whats-new",
     date: "2026-11-21",
     title: "What's new",

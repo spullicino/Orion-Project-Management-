@@ -1052,3 +1052,71 @@ describe("internal tasks", () => {
     });
   });
 });
+
+describe("people only see projects they're on (managers included; admins see all)", () => {
+  const other = "20000000-0000-4000-8000-0000000000aa";
+  // A project the manager is NOT on (created by the admin), with a task, a chat message and a daily update.
+  const setup = `
+    insert into public.projects (id, name, created_by) values ('${other}', 'Sliema Tower', '${USERS.admin}');
+    insert into public.groups (id, project_id, name) values ('30000000-0000-4000-8000-0000000000aa', '${other}', 'Main');
+    insert into public.tasks (project_id, group_id, title) values ('${other}', '30000000-0000-4000-8000-0000000000aa', 'Secret task');
+    insert into public.messages (channel_id, author_id, body) values ((select id from public.channels where project_id = '${other}'), '${USERS.admin}', 'Hello Sliema');
+    insert into public.share_links (project_id, token) values ('${other}', repeat('c', 48));`;
+
+  it("a manager who isn't on a project can't see it or anything in it", async () => {
+    await withSetup(setup, USERS.manager, async (db) => {
+      expect(await count(db, `select 1 from public.projects where id = '${other}'`)).toBe(0);
+      expect(await count(db, `select 1 from public.tasks where project_id = '${other}'`)).toBe(0);
+      expect(await count(db, `select 1 from public.groups where project_id = '${other}'`)).toBe(0);
+      expect(await count(db, `select 1 from public.status_labels where project_id = '${other}'`)).toBe(0);
+      expect(await count(db, `select 1 from public.share_links where project_id = '${other}'`)).toBe(0);
+      expect(await count(db, `select 1 from public.channels where project_id = '${other}'`)).toBe(0);
+      expect(await count(db, "select 1 from public.messages where body = 'Hello Sliema'")).toBe(0);
+      const list = (await db.query<{ v: { id: string }[] }>("select public.list_projects() as v"))[0].v;
+      expect(list.map((p) => p.id)).not.toContain(other);
+      const status = (await db.query<{ v: { project: { id: string } }[] }>("select public.get_daily_status(public.malta_today()) as v"))[0].v;
+      expect(status.map((s) => s.project.id)).not.toContain(other);
+    });
+  });
+
+  it("…and can't change it, add people, or delete from it", async () => {
+    await withSetup(setup, USERS.manager, async (db) => {
+      expect(await db.query(`update public.projects set name = 'x' where id = '${other}' returning id`)).toHaveLength(0);
+      expect(await db.fails(`insert into public.project_members (project_id, user_id) values ('${other}', '${USERS.manager}')`)).toMatch(/row-level security/);
+      expect(await db.query(`delete from public.tasks where project_id = '${other}' returning id`)).toHaveLength(0);
+      expect(await db.fails(`insert into public.groups (project_id, name) values ('${other}', 'Sneaky')`)).toMatch(/row-level security/);
+    });
+  });
+
+  it("once added to the project, the manager sees and manages it", async () => {
+    await withSetup(`${setup} insert into public.project_members (project_id, user_id) values ('${other}', '${USERS.manager}');`, USERS.manager, async (db) => {
+      expect(await count(db, `select 1 from public.tasks where project_id = '${other}'`)).toBe(1);
+      expect(await db.query(`update public.projects set name = 'Sliema Tower B' where id = '${other}' returning id`)).toHaveLength(1);
+    });
+  });
+
+  it("administrators see every project", async () => {
+    await withSetup(setup.replace(`'${USERS.admin}');\n`, `'${USERS.manager}');\n`).replace("created_by) values ('" + other + "', 'Sliema Tower', '" + USERS.admin + "')", "created_by) values ('" + other + "', 'Sliema Tower', '" + USERS.manager + "')"), USERS.admin, async (db) => {
+      expect(await count(db, `select 1 from public.projects where id = '${other}'`)).toBe(1);
+    });
+  });
+
+  it("whoever creates a project is added to it automatically (and copies too)", async () => {
+    await asUser(USERS.manager, async (db) => {
+      const [{ id }] = await db.query<{ id: string }>("insert into public.projects (name) values ('New job') returning id");
+      expect(await count(db, `select 1 from public.project_members where project_id = '${id}' and user_id = '${USERS.manager}'`)).toBe(1);
+      const [{ v: copy }] = await db.query<{ v: string }>(`select public.duplicate_project('${PROJECTS.valletta}', 'Copy') as v`);
+      expect(await count(db, `select 1 from public.project_members where project_id = '${copy}' and user_id = '${USERS.manager}'`)).toBe(1);
+      expect(await count(db, `select 1 from public.tasks where project_id = '${copy}'`)).toBeGreaterThan(0);
+    });
+  });
+
+  it("@mention lists and chat notifications leave out managers who aren't on the project", async () => {
+    await withSetup(setup, USERS.admin, async (db) => {
+      const people = (await db.query<{ v: { first_name: string }[] }>(
+        `select public.get_channel_people((select id from public.channels where project_id = '${other}')) as v`,
+      ))[0].v;
+      expect(people.map((p) => p.first_name)).toEqual(["Ada"]);
+    });
+  });
+});

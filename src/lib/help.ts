@@ -95,7 +95,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Use the search box or the **Active / All incl. archived** filters to find it.",
           "Tap the project. The tabs along the top (Dashboard, Board, Kanban, Gantt, Calendar, Diary, Photos, Chat) show different views of the same project.",
         ],
-        tip: "You only see projects you've been added to. Managers see every project.",
+        tip: "You only see projects you've been added to (and ones you created). Administrators see every project. Can't find one? Ask a manager or administrator to add you.",
       },
       {
         title: "Create a new project",
@@ -615,7 +615,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Access levels",
         steps: [
           "**Administrator:** everything — people, settings, all projects, deleting anything.",
-          "**Manager:** create and edit all projects, assign people, Gantt, exports, client links, daily reports, management chat.",
+          "**Manager:** create projects and run the ones they're on — people, Gantt, exports, client links, daily reports — plus the management chat.",
           "**Technician:** projects they're added to — create and update tasks, daily updates and photos, project chats.",
           "**Basic:** read-only on the projects they're added to.",
         ],

@@ -6,7 +6,7 @@ import type { AppRole } from "@/types/database";
  */
 export const ROLES: { value: AppRole; label: string; description: string }[] = [
   { value: "admin", label: "Administrator", description: "Everything: settings, users, all projects, management chat." },
-  { value: "manager", label: "Manager", description: "Create and edit all projects, assign people, Gantt charts and client exports." },
+  { value: "manager", label: "Manager", description: "Create projects and run the projects they're on: people, Gantt charts and client exports." },
   { value: "technician", label: "Technician", description: "Work on assigned projects: update tasks, daily updates, photos, chat." },
   { value: "basic", label: "Basic", description: "Read-only access to assigned projects." },
 ];
@@ -27,6 +27,7 @@ export const can = {
   manageUsers: (r?: AppRole | null) => hasRole(r, "admin"),
   manageSettings: (r?: AppRole | null) => hasRole(r, "admin"),
   createProjects: (r?: AppRole | null) => hasRole(r, "manager"),
+  /** Managers+ get project-wide views (e.g. "needs attention") — for the projects they can see. */
   seeAllProjects: (r?: AppRole | null) => hasRole(r, "manager"),
   managementChat: (r?: AppRole | null) => hasRole(r, "manager"),
   editAssignedWork: (r?: AppRole | null) => hasRole(r, "technician"),
