@@ -214,6 +214,8 @@ The app also shows an *Install Orion Projects* pop-up on phones from the second 
 
 **My Tasks** — everything assigned to you, grouped by due date; tick to mark done.
 
+**What's new** (button next to the greeting on Home) — a dated list of new features; a red dot shows when there's something the person hasn't seen. Developers: add an entry at the top of `src/lib/whats-new.ts` with every new feature.
+
 **Help** (sidebar, the **?** at the top on phones, or Profile) — step-by-step guides for every part of the app, searchable, showing only what each person's level can do. To change the text, edit `src/lib/help.ts`.
 
 **Personal** (sidebar, Home, or Profile on phones) — your own private **to-dos** (optional due date; you get a reminder the day before and on the day) and **notes** (title, text with bullet lists, colour, pin to top, search; saved automatically as you type). **Only you can see them — not managers, not administrators.** The database itself enforces this.

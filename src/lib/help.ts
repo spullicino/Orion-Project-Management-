@@ -75,6 +75,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "The **My Tasks** card shows how many of your tasks are overdue, due today and still open. Tap it to see them.",
           "Scroll down for shortcuts to your projects, Daily Update, Chats and Personal.",
           "Managers also see **Projects that need attention**.",
+          "Tap **What's new** (next to the greeting) to see recent improvements. A red dot means there's something you haven't seen yet.",
         ],
         tip: "If you see “Add your name”, tap it so colleagues know who you are.",
       },

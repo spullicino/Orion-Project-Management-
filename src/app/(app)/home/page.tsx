@@ -6,7 +6,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { can, ROLE_LABEL } from "@/lib/auth/roles";
-import { requireActiveProfile } from "@/lib/auth/session";
+import { getSessionState, requireActiveProfile } from "@/lib/auth/session";
+import { WhatsNewButton } from "@/components/whats-new";
+import { hasRole } from "@/lib/auth/roles";
+import { whatsNewFor } from "@/lib/whats-new";
 import { todayISO } from "@/lib/board";
 import { getMyTasks, listProjects } from "@/lib/data/projects";
 import { HealthBadge } from "@/components/health-badge";
@@ -61,6 +64,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             You are signed in as <Badge>{ROLE_LABEL[profile.role]}</Badge>
           </span>
         }
+        actions={<WhatsNewButton entries={whatsNewFor(profile.role, hasRole)} seen={(await getSessionState()).whatsNewSeen ?? null} />}
       />
 
       {!profile.first_name.trim() && (

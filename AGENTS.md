@@ -15,3 +15,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Server actions validate with Zod (`src/lib/validation`) and call `requireActiveProfile()` / `requireRole()` first.
 - `src/lib/supabase/admin.ts` bypasses RLS — only use after an explicit role check.
 - Mobile-first: touch targets ≥ 44px (`h-11`), 16px inputs on phones, bottom tab bar below `md`.
+- Every user-facing feature gets an entry at the top of `src/lib/whats-new.ts` (and a guide in `src/lib/help.ts`).

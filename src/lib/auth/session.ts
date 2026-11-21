@@ -13,6 +13,8 @@ export type SessionState = {
   profile: Profile | null;
   /** Why a signed-in user has no profile (shown on /account-problem). */
   problem: string | null;
+  /** Newest "What's new" entry this person has seen (kept on their account). */
+  whatsNewSeen?: string | null;
 };
 
 /**
@@ -54,11 +56,13 @@ export const getSessionState = cache(async (): Promise<SessionState> => {
   const { data: claims } = await supabase.auth.getClaims();
   const userId = claims?.claims?.sub ?? null;
   const email = (claims?.claims?.email as string | undefined) ?? null;
+  const meta = (claims?.claims?.user_metadata ?? {}) as Record<string, unknown>;
+  const whatsNewSeen = typeof meta.whats_new_seen === "string" ? meta.whats_new_seen : null;
   if (!userId) return { userId: null, email: null, profile: null, problem: null };
 
   const load = () => supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   let { data, error } = await load();
-  if (data) return { userId, email, profile: data, problem: null };
+  if (data) return { userId, email, profile: data, problem: null, whatsNewSeen };
 
   const problem = error ? `Could not load your profile: ${error.message}` : await repairMissingProfile(userId);
   if (!problem) {
