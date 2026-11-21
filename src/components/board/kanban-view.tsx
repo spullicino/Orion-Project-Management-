@@ -20,7 +20,7 @@ import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, StatusLabel } from "@/types/board";
 import { useBoard } from "./board-context";
 import { RiskIcon } from "@/components/health-badge";
-import { AvatarStack, RepeatMark } from "./cells";
+import { AvatarStack, InternalMark, InternalToggle, RepeatMark } from "./cells";
 import { FilterBar } from "./filter-bar";
 
 const NO_STATUS = "__none__";
@@ -44,6 +44,7 @@ function CardBody({ task, dragging }: { task: BoardTask; dragging?: boolean }) {
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           {risk && <RiskIcon level={risk.level} reason={risk.reason} />}
+          <InternalMark task={task} />
           <RepeatMark task={task} />
           <span className={cn("text-sm", DUE_STYLES[state])}>{task.due_date ? shortDate(task.due_date) : ""}</span>
         </span>
@@ -107,9 +108,12 @@ function Column({ id, label, tasks }: { id: string; label: StatusLabel | null; t
 }
 
 export function KanbanView() {
-  const { board, tasks, filters, perms, patchTask, byId } = useBoard();
+  const { board, tasks, filters, perms, patchTask, byId, showInternal } = useBoard();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const visible = useMemo(() => filterTasks(tasks, filters, perms.meId), [tasks, filters, perms.meId]);
+  const visible = useMemo(
+    () => filterTasks(tasks, filters, perms.meId).filter((t) => showInternal || !t.is_internal),
+    [tasks, filters, perms.meId, showInternal],
+  );
 
   // Mouse: drag after moving 6px. Touch: press and hold briefly, so swiping still scrolls the columns.
   const sensors = useSensors(
@@ -138,6 +142,9 @@ export function KanbanView() {
   return (
     <>
       <FilterBar hideStatus />
+      <div className="mb-3">
+        <InternalToggle />
+      </div>
       <p className="mb-3 text-sm text-muted-foreground md:hidden">
         Swipe to see more columns.{perms.canEdit ? " Press and hold a card to move it." : ""}
       </p>

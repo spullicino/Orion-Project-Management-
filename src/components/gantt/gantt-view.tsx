@@ -1,5 +1,7 @@
 "use client";
 
+import { InternalToggle } from "@/components/board/cells";
+
 import { CalendarCheck, Diamond, FileDown, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -34,7 +36,7 @@ function Segmented<T extends string>({ value, onChange, options, label }: { valu
 }
 
 export function GanttView() {
-  const { board, tasks, filters, perms, patchTask, openTask, membersById } = useBoard();
+  const { board, tasks, filters, perms, patchTask, openTask, membersById, showInternal } = useBoard();
   const [zoom, setZoom] = useState<Zoom>("week");
   const [colorBy, setColorBy] = useState<ColorBy>("status");
   const [todayKey, setTodayKey] = useState(0);
@@ -42,11 +44,16 @@ export function GanttView() {
   const [exportOpen, setExportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const visible = useMemo(() => filterTasks(tasks, filters, perms.meId), [tasks, filters, perms.meId]);
+  // The programme of works: internal (team-only) tasks are hidden unless switched on.
+  const visible = useMemo(
+    () => filterTasks(tasks, filters, perms.meId).filter((t) => showInternal || !t.is_internal),
+    [tasks, filters, perms.meId, showInternal],
+  );
   const input: GanttInput = useMemo(
     () => ({
       tasks: visible.map((t) => ({
         ...t,
+        title: t.is_internal ? `🔒 ${t.title}` : t.title,
         owners: t.assignees.map((id) => fullName(membersById.get(id) ?? {})),
       })),
       groups: board.groups,
@@ -56,6 +63,13 @@ export function GanttView() {
       projectEnd: board.project.end_date,
     }),
     [visible, board, membersById],
+  );
+  const exportInput: GanttInput = useMemo(
+    () => {
+      const internal = new Set(tasks.filter((t) => t.is_internal).map((t) => t.id));
+      return { ...input, tasks: input.tasks.filter((t) => !internal.has(t.id)).map((t) => ({ ...t, blocked_by: t.blocked_by.filter((id) => !internal.has(id)) })) };
+    },
+    [input, tasks],
   );
   const options = useMemo(() => ({ zoom, colorBy, today: todayISO(), showOwners: false }), [zoom, colorBy]);
   const undated = visible.filter((t) => !t.start_date && !t.due_date).length;
@@ -69,6 +83,7 @@ export function GanttView() {
         <Button variant="outline" onClick={() => setTodayKey((k) => k + 1)}>
           <CalendarCheck aria-hidden /> Today
         </Button>
+        <InternalToggle />
         {perms.canManage && (
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             <Button variant="outline" onClick={() => setMilestone({ open: true, value: null })}>
@@ -110,7 +125,8 @@ export function GanttView() {
       />
 
       <MilestoneDialog key={milestone.value?.id ?? "new"} projectId={board.project.id} milestone={milestone.value} open={milestone.open} onClose={() => setMilestone({ open: false, value: null })} />
-      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} project={board.project} input={input} defaultColorBy={colorBy} />
+      {/* Exports go to clients: never include internal tasks. */}
+      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} project={board.project} input={exportInput} defaultColorBy={colorBy} />
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} projectId={board.project.id} />
     </>
   );

@@ -1012,3 +1012,43 @@ describe("repeating tasks in copied projects", () => {
     });
   });
 });
+
+describe("internal tasks", () => {
+  const invoice = `insert into public.tasks (id, project_id, group_id, title, is_internal, due_date)
+    values ('41000000-0000-4000-8000-000000000001', '${PROJECTS.valletta}', '${GROUPS.vallettaInProgress}', 'Issue monthly invoice', true, public.malta_today() - 3);
+    insert into public.task_dependencies (task_id, depends_on_task_id) values ('${TASKS.vallettaPartitions}', '41000000-0000-4000-8000-000000000001');
+    insert into public.share_links (project_id, token) values ('${PROJECTS.valletta}', repeat('b', 48));`;
+
+  it("never appear on the client's share link (nor as a 'waiting for' arrow)", async () => {
+    await withSetup(invoice, USERS.tech1, async (db) => {
+      await db.query("reset role");
+      await db.query("set local role anon");
+      const [{ s }] = await db.query<{ s: { tasks: { title: string; id: string; blocked_by: string[] }[] } }>(`select public.get_shared_project(repeat('b', 48)) as s`);
+      expect(s.tasks.map((t) => t.title)).not.toContain("Issue monthly invoice");
+      expect(s.tasks.find((t) => t.id === TASKS.vallettaPartitions)!.blocked_by).toEqual([]);
+    });
+  });
+
+  it("the team still sees them, but they don't count towards progress or health", async () => {
+    await withSetup(invoice, USERS.manager, async (db) => {
+      expect(await count(db, "select 1 from public.tasks where title = 'Issue monthly invoice'")).toBe(1);
+      const [{ before }] = await db.query<{ before: { task_count: number; overdue_count: number; health: unknown } }>(
+        `select x as before from jsonb_array_elements(public.list_projects()) x where x->>'id' = '${PROJECTS.valletta}'`,
+      );
+      await db.query("update public.tasks set is_internal = false where title = 'Issue monthly invoice'");
+      const [{ after }] = await db.query<{ after: { task_count: number; overdue_count: number; health: unknown } }>(
+        `select x as after from jsonb_array_elements(public.list_projects()) x where x->>'id' = '${PROJECTS.valletta}'`,
+      );
+      expect(Number(after.task_count)).toBe(Number(before.task_count) + 1);
+      expect(Number(after.overdue_count)).toBe(Number(before.overdue_count) + 1);
+      expect(after.health).not.toEqual(before.health);
+    });
+  });
+
+  it("basic users can see them but not change them", async () => {
+    await withSetup(invoice, USERS.basic, async (db) => {
+      expect(await count(db, "select 1 from public.tasks where is_internal")).toBe(1);
+      expect(await db.query("update public.tasks set is_internal = false where is_internal returning id")).toHaveLength(0);
+    });
+  });
+});

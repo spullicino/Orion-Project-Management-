@@ -30,6 +30,9 @@ type Ctx = {
   perms: BoardPerms;
   filters: BoardFilters;
   setFilters: (f: BoardFilters) => void;
+  /** Gantt & Kanban: also show internal (team-only) tasks. Remembered on this device. */
+  showInternal: boolean;
+  setShowInternal: (v: boolean) => void;
   /** Optimistically changes a task on screen, then saves it. Reverts and shows an error if saving fails. */
   patchTask: (id: string, patch: Partial<BoardTask>) => Promise<boolean>;
   openTaskId: string | null;
@@ -46,7 +49,7 @@ export function useBoard() {
 }
 
 /** Fields the server accepts in a task update (BoardTask also has computed fields). */
-const SAVABLE = ["title", "status_id", "priority", "start_date", "due_date", "progress", "group_id", "custom_values", "repeat_rule", "repeat_until"] as const;
+const SAVABLE = ["title", "status_id", "priority", "start_date", "due_date", "progress", "group_id", "custom_values", "repeat_rule", "repeat_until", "is_internal"] as const;
 
 export function BoardProvider({
   board,
@@ -62,6 +65,23 @@ export function BoardProvider({
 }) {
   const [tasks, setTasks] = useState(board.tasks);
   const [filters, setFilters] = useState<BoardFilters>(EMPTY_FILTERS);
+  const [showInternal, setShowInternalState] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- per-device preference
+      setShowInternalState(localStorage.getItem("orion:show-internal") === "1");
+    } catch {
+      /* storage unavailable: default (hidden) */
+    }
+  }, []);
+  const setShowInternal = useCallback((v: boolean) => {
+    setShowInternalState(v);
+    try {
+      localStorage.setItem("orion:show-internal", v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -117,8 +137,8 @@ export function BoardProvider({
   );
 
   const value = useMemo(
-    () => ({ board, tasks, byId, labelsById, membersById, risks, perms, filters, setFilters, patchTask, openTaskId, openTask, loadTaskDetail }),
-    [board, tasks, byId, labelsById, membersById, risks, perms, filters, patchTask, openTaskId, openTask, loadTaskDetail],
+    () => ({ board, tasks, byId, labelsById, membersById, risks, perms, filters, setFilters, showInternal, setShowInternal, patchTask, openTaskId, openTask, loadTaskDetail }),
+    [board, tasks, byId, labelsById, membersById, risks, perms, filters, showInternal, setShowInternal, patchTask, openTaskId, openTask, loadTaskDetail],
   );
   return <BoardContext value={value}>{children}</BoardContext>;
 }

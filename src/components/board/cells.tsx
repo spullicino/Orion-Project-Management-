@@ -8,6 +8,7 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { blockingTasks, DUE_STYLES, dueState, PRIORITIES, PRIORITY_META, REPEAT_OPTIONS, repeatLabel, shortDate } from "@/lib/board";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import { cn, fullName } from "@/lib/utils";
 import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, Member, Priority, StatusLabel } from "@/types/board";
@@ -375,5 +376,53 @@ export function RepeatPicker({ task }: { task: BoardTask }) {
         </label>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Internal (team-only) tasks
+// ---------------------------------------------------------------------------
+
+/** 🔒 marker for internal tasks (hidden from clients and the programme of works). */
+export function InternalMark({ task, className }: { task: Pick<BoardTask, "is_internal">; className?: string }) {
+  if (!task.is_internal) return null;
+  return (
+    <span className={cn("inline-flex shrink-0 text-muted-foreground", className)} title="Internal: not shown to clients or on the programme of works">
+      <Lock className="size-3.5" aria-hidden />
+      <span className="sr-only">Internal task</span>
+    </span>
+  );
+}
+
+/** "Internal" switch in the task panel. */
+export function InternalSwitch({ task }: { task: BoardTask }) {
+  const { patchTask, perms } = useBoard();
+  if (task.is_internal === undefined) return <span className="text-sm text-muted-foreground">Available after the next database update</span>;
+  return (
+    <label className="flex min-h-11 w-full items-center gap-3">
+      <Switch
+        checked={task.is_internal}
+        disabled={!perms.canEdit}
+        onCheckedChange={(v) => void patchTask(task.id, { is_internal: v })}
+        aria-describedby={`internal-hint-${task.id}`}
+      />
+      <span id={`internal-hint-${task.id}`} className="text-sm text-muted-foreground">
+        {task.is_internal ? "Team only: hidden from the client and the programme of works" : "Part of the programme of works"}
+      </span>
+    </label>
+  );
+}
+
+/** Gantt & Kanban: show or hide internal tasks (only appears when the project has some). */
+export function InternalToggle() {
+  const { tasks, showInternal, setShowInternal } = useBoard();
+  const n = tasks.filter((t) => t.is_internal).length;
+  if (!n) return null;
+  return (
+    <label className="inline-flex h-11 items-center gap-2 rounded-lg border bg-card px-3 text-sm">
+      <Switch checked={showInternal} onCheckedChange={setShowInternal} />
+      <Lock className="size-3.5 text-muted-foreground" aria-hidden />
+      Show internal tasks ({n})
+    </label>
   );
 }

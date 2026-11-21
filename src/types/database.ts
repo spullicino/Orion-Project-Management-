@@ -77,6 +77,7 @@ export type TaskRow = {
   repeat_rule: RepeatRule | null;
   repeat_until: string | null;
   repeated_from: string | null;
+  is_internal: boolean;
 };
 export type ChecklistRow = { id: string; task_id: string; title: string; is_done: boolean; position: number; created_at: string };
 export type CommentRow = { id: string; task_id: string; author_id: string; body: string; created_at: string; edited_at: string | null };

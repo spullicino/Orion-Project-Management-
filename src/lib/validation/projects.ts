@@ -74,6 +74,7 @@ export const taskPatchSchema = z
     custom_values: z.record(z.string(), z.union([z.string().max(2000), z.number(), z.null()])),
     repeat_rule: z.enum(["daily", "weekdays", "weekly", "fortnightly", "monthly", "quarterly", "yearly"]).nullable(),
     repeat_until: optionalDate,
+    is_internal: z.boolean(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");

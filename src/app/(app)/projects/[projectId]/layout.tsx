@@ -56,7 +56,7 @@ export default async function ProjectLayout({ children, params }: { children: Re
             {p.is_template && <Badge variant="secondary">Template</Badge>}
             {STATUS_LABEL[p.status] && <Badge variant="secondary">{STATUS_LABEL[p.status]}</Badge>}
             {!p.is_template && p.status === "active" && (() => {
-              const h = projectHealth(board.tasks, p.end_date);
+              const h = projectHealth(board.tasks.filter((t) => !t.is_internal), p.end_date);
               return (
                 <Link href={`/projects/${p.id}/dashboard`} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <HealthBadge level={h.level} title={healthSummary(h)} />

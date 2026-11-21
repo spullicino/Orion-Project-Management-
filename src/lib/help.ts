@@ -178,6 +178,17 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Repeating tasks show a 🔁 symbol on the board. Finished late? The next one is still set in the future, not already overdue.",
       },
       {
+        title: "Keep a task internal (team only)",
+        minRole: "technician",
+        steps: [
+          "Open the task, e.g. “Issue monthly invoice to client”.",
+          "Switch on **Internal**. The task gets a 🔒 on the board.",
+          "Internal tasks never appear on client links or Gantt exports, and don't count towards % complete or the project's health.",
+          "The team still sees them on the Board, My Tasks and the Calendar, and gets the usual reminders.",
+          "On the **Gantt** and **Kanban** they're hidden; switch on **Show internal tasks** to see them there.",
+        ],
+      },
+      {
         title: "Make a task wait for another",
         minRole: "technician",
         steps: [

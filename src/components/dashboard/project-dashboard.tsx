@@ -28,18 +28,21 @@ function Tile({ icon: Icon, label, value, sub, tone }: { icon: typeof ListTodo; 
 export function ProjectDashboard({ diary }: { diary: { count: number; people: number; last: string | null } }) {
   const { board, tasks, risks, labelsById, openTask, membersById } = useBoard();
   const today = todayISO();
-  const health = useMemo(() => projectHealth(tasks, board.project.end_date, today), [tasks, board.project.end_date, today]);
+  // Progress and health count the programme of works only, not internal (team-only) tasks.
+  const works = useMemo(() => tasks.filter((t) => !t.is_internal), [tasks]);
+  const internalCount = tasks.length - works.length;
+  const health = useMemo(() => projectHealth(works, board.project.end_date, today), [works, board.project.end_date, today]);
 
-  const done = tasks.filter((t) => t.completed_at).length;
-  const open = tasks.length - done;
-  const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-  const overdue = tasks.filter((t) => !t.completed_at && t.due_date && t.due_date < today).length;
-  const dueWeek = tasks.filter((t) => !t.completed_at && t.due_date && t.due_date >= today && t.due_date <= addDays(today, 7)).length;
+  const done = works.filter((t) => t.completed_at).length;
+  const open = works.length - done;
+  const pct = works.length ? Math.round((done / works.length) * 100) : 0;
+  const overdue = works.filter((t) => !t.completed_at && t.due_date && t.due_date < today).length;
+  const dueWeek = works.filter((t) => !t.completed_at && t.due_date && t.due_date >= today && t.due_date <= addDays(today, 7)).length;
 
   // Tasks by status, in the project's status order.
   const byStatus = [
-    ...board.labels.map((l) => ({ id: l.id, name: l.name, color: l.color, count: tasks.filter((t) => t.status_id === l.id).length })),
-    { id: "none", name: "No status", color: "#94a3b8", count: tasks.filter((t) => !t.status_id || !labelsById.has(t.status_id)).length },
+    ...board.labels.map((l) => ({ id: l.id, name: l.name, color: l.color, count: works.filter((t) => t.status_id === l.id).length })),
+    { id: "none", name: "No status", color: "#94a3b8", count: works.filter((t) => !t.status_id || !labelsById.has(t.status_id)).length },
   ].filter((s) => s.count > 0);
 
   // Workload: open and late tasks per person.
@@ -66,11 +69,16 @@ export function ProjectDashboard({ diary }: { diary: { count: number; people: nu
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
           <HealthBadge level={health.level} className="text-sm" />
           <span className="text-sm text-muted-foreground">{healthSummary(health)}</span>
+          {internalCount > 0 && (
+            <span className="w-full text-xs text-muted-foreground">
+              Counts the programme of works only — {internalCount} internal {internalCount === 1 ? "task isn't" : "tasks aren't"} included.
+            </span>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Tile icon={CheckCircle2} label="Complete" value={`${pct}%`} sub={`${done} of ${tasks.length} tasks`} />
+        <Tile icon={CheckCircle2} label="Complete" value={`${pct}%`} sub={`${done} of ${works.length} tasks`} />
         <Tile icon={ListTodo} label="Open tasks" value={open} sub={unassigned ? `${unassigned} without an owner` : undefined} />
         <Tile icon={TimerOff} label="Overdue" value={overdue} tone={overdue ? "bad" : undefined} />
         <Tile icon={CalendarClock} label="Due in 7 days" value={dueWeek} />

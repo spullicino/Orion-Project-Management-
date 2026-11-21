@@ -30,6 +30,8 @@ export type BoardTask = {
   /** Repeats when it's marked Done (database update 0015; missing before that). */
   repeat_rule?: RepeatRule | null;
   repeat_until?: string | null;
+  /** Internal (team-only) task: hidden from clients, Gantt exports and progress (database update 0016). */
+  is_internal?: boolean;
   has_description: boolean;
   assignees: string[];
   blocked_by: string[];
