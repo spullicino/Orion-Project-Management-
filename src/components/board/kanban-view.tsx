@@ -20,7 +20,7 @@ import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, StatusLabel } from "@/types/board";
 import { useBoard } from "./board-context";
 import { RiskIcon } from "@/components/health-badge";
-import { AvatarStack } from "./cells";
+import { AvatarStack, RepeatMark } from "./cells";
 import { FilterBar } from "./filter-bar";
 
 const NO_STATUS = "__none__";
@@ -44,6 +44,7 @@ function CardBody({ task, dragging }: { task: BoardTask; dragging?: boolean }) {
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           {risk && <RiskIcon level={risk.level} reason={risk.reason} />}
+          <RepeatMark task={task} />
           <span className={cn("text-sm", DUE_STYLES[state])}>{task.due_date ? shortDate(task.due_date) : ""}</span>
         </span>
         {task.assignees.length > 0 && <AvatarStack ids={task.assignees} members={membersById} size={26} />}

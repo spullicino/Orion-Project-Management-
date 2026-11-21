@@ -934,3 +934,81 @@ describe("phone notifications for chat messages", () => {
     });
   });
 });
+
+describe("repeating tasks", () => {
+  const task = "40000000-0000-4000-8000-000000000004"; // Electrical first fix: tech1 owner, 3 checklist items, start -5, due +2
+  const done = `(select id from public.status_labels where project_id = '${PROJECTS.valletta}' and is_done limit 1)`;
+  const notDone = `(select id from public.status_labels where project_id = '${PROJECTS.valletta}' and not is_done order by position limit 1)`;
+  type Next = { id: string; start_date: string; due_date: string; done: boolean; title: string; days: number; owners: number; checks: number; ticked: number };
+  const nextOf = async (db: { query: <T>(s: string) => Promise<T[]> }) =>
+    db.query<Next>(`select n.id, n.title, (n.completed_at is not null) as done, (n.due_date - o.due_date) as days, (n.due_date - n.start_date) as span_days,
+        (select count(*)::int from public.task_assignees a where a.task_id = n.id) as owners,
+        (select count(*)::int from public.task_checklist_items c where c.task_id = n.id) as checks,
+        (select count(*)::int from public.task_checklist_items c where c.task_id = n.id and c.is_done) as ticked
+      from public.tasks n join public.tasks o on o.id = n.repeated_from where n.repeated_from = '${task}'`);
+
+  it("finishing a weekly task creates next week's, with owners and an unticked checklist", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      await db.query(`update public.tasks set repeat_rule = 'weekly' where id = '${task}'`);
+      await db.query(`update public.tasks set status_id = ${done} where id = '${task}'`);
+      const next = await nextOf(db);
+      expect(next).toHaveLength(1);
+      expect(next[0]).toMatchObject({ title: "Electrical first fix", done: false, days: 7, span_days: 7, owners: 1, checks: 3, ticked: 0 });
+      const n = await db.query<{ title: string }>(`select title from public.notifications where user_id = '${USERS.tech1}' and task_id = '${next[0].id}'`);
+      expect(n[0].title).toBe("🔁 Repeating task: Electrical first fix");
+
+      // Un-done and done again: still only one next task.
+      await db.query(`update public.tasks set status_id = ${notDone} where id = '${task}'`);
+      await db.query(`update public.tasks set status_id = ${done} where id = '${task}'`);
+      expect(await nextOf(db)).toHaveLength(1);
+    });
+  });
+
+  it("stops after the 'until' date, and skips ahead when finished late", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      await db.query(`update public.tasks set repeat_rule = 'monthly', repeat_until = due_date + 5 where id = '${task}'`);
+      await db.query(`update public.tasks set status_id = ${done} where id = '${task}'`);
+      expect(await nextOf(db)).toHaveLength(0);
+    });
+    await asUser(USERS.tech1, async (db) => {
+      await db.query(`update public.tasks set repeat_rule = 'daily', start_date = null, due_date = public.malta_today() - 10 where id = '${task}'`);
+      await db.query(`update public.tasks set status_id = ${done} where id = '${task}'`);
+      const [n] = await db.query<{ due: string; today: string }>(
+        `select due_date::text as due, public.malta_today()::text as today from public.tasks where repeated_from = '${task}'`,
+      );
+      expect(n.due).toBe(n.today);
+    });
+  });
+
+  it("next dates: weekdays skip the weekend, months keep the end of the month", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const [r] = await db.query<Record<string, string>>(`select
+        app.next_repeat_date('2026-11-27', 'weekdays')::text as fri, app.next_repeat_date('2026-11-28', 'weekdays')::text as sat,
+        app.next_repeat_date('2026-01-31', 'monthly')::text as jan31, app.next_repeat_date('2026-11-20', 'fortnightly')::text as fort,
+        app.next_repeat_date('2026-11-20', 'quarterly')::text as q, app.next_repeat_date('2028-02-29', 'yearly')::text as leap`);
+      expect(r).toEqual({ fri: "2026-11-30", sat: "2026-11-30", jan31: "2026-02-28", fort: "2026-12-04", q: "2027-02-20", leap: "2029-02-28" });
+    });
+  });
+
+  it("only known repeat options are accepted, and other projects' tasks can't be changed", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(`update public.tasks set repeat_rule = 'hourly' where id = '${task}'`)).toMatch(/check constraint/);
+    });
+    await asUser(USERS.tech2, async (db) => {
+      expect(await db.query(`update public.tasks set repeat_rule = 'daily' where id = '${task}' returning id`)).toHaveLength(0);
+    });
+  });
+});
+
+describe("repeating tasks in copied projects", () => {
+  it("a copy keeps the repeat setting and only the latest task of each series", async () => {
+    const task = "40000000-0000-4000-8000-000000000004";
+    await asUser(USERS.manager, async (db) => {
+      await db.query(`update public.tasks set repeat_rule = 'weekly' where id = '${task}'`);
+      await db.query(`update public.tasks set status_id = (select id from public.status_labels where project_id = '${PROJECTS.valletta}' and is_done limit 1) where id = '${task}'`);
+      const [{ v: copy }] = await db.query<{ v: string }>(`select public.duplicate_project('${PROJECTS.valletta}', 'Copy') as v`);
+      const rows = await db.query<{ repeat_rule: string }>(`select repeat_rule from public.tasks where project_id = '${copy}' and title = 'Electrical first fix'`);
+      expect(rows).toEqual([{ repeat_rule: "weekly" }]);
+    });
+  });
+});

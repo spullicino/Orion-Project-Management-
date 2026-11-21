@@ -46,7 +46,7 @@ export function useBoard() {
 }
 
 /** Fields the server accepts in a task update (BoardTask also has computed fields). */
-const SAVABLE = ["title", "status_id", "priority", "start_date", "due_date", "progress", "group_id", "custom_values"] as const;
+const SAVABLE = ["title", "status_id", "priority", "start_date", "due_date", "progress", "group_id", "custom_values", "repeat_rule", "repeat_until"] as const;
 
 export function BoardProvider({
   board,
@@ -94,6 +94,10 @@ export function BoardProvider({
         setTasks((ts) => ts.map((t) => (t.id === id ? before : t)));
         toast.error(res.error);
         return false;
+      }
+      if (optimistic.completed_at && !before.completed_at && before.repeat_rule) {
+        const ended = before.repeat_until && (before.due_date ?? before.start_date ?? "") >= before.repeat_until;
+        toast.success(ended ? "Done — that was the last one in this repeating series." : "🔁 Done — the next one has been added to the board.");
       }
       // The server action revalidates the page, so fresh data arrives automatically.
       return true;

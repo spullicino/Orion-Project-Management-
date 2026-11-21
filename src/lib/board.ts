@@ -1,3 +1,4 @@
+import type { RepeatRule } from "@/types/database";
 import type { BoardTask, MyTask, Priority } from "@/types/board";
 
 /** Today's date in Malta as YYYY-MM-DD. */
@@ -39,6 +40,18 @@ export function shortDate(iso: string | null, today = todayISO()) {
   const sameYear = iso.slice(0, 4) === today.slice(0, 4);
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }), timeZone: "UTC" }).format(d);
 }
+
+/** Repeat options for tasks (the database creates the next one when a task is marked Done). */
+export const REPEAT_OPTIONS: { value: RepeatRule; label: string }[] = [
+  { value: "daily", label: "Every day" },
+  { value: "weekdays", label: "Every weekday (Mon–Fri)" },
+  { value: "weekly", label: "Every week" },
+  { value: "fortnightly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+  { value: "quarterly", label: "Every 3 months" },
+  { value: "yearly", label: "Every year" },
+];
+export const repeatLabel = (rule: RepeatRule | null | undefined) => REPEAT_OPTIONS.find((o) => o.value === rule)?.label ?? null;
 
 export const PRIORITIES: { value: Priority; label: string; color: string }[] = [
   { value: "critical", label: "Critical", color: "#dc2626" },

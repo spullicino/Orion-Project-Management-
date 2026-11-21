@@ -30,7 +30,7 @@ import { cn, fullName } from "@/lib/utils";
 import { ATTACHMENT_MAX_BYTES } from "@/lib/validation/projects";
 import type { BoardTask, TaskDetail } from "@/types/board";
 import { useBoard } from "./board-context";
-import { DateCell, OwnerPicker, PriorityPicker, ProgressCell, StatusPicker } from "./cells";
+import { DateCell, OwnerPicker, PriorityPicker, ProgressCell, RepeatPicker, StatusPicker } from "./cells";
 
 function timeAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -245,6 +245,9 @@ function DrawerBody({ task }: { task: BoardTask }) {
             <div className="w-48">
               <ProgressCell task={task} />
             </div>
+          </Field>
+          <Field label="Repeat">
+            <RepeatPicker task={task} />
           </Field>
         </div>
 

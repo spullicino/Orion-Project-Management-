@@ -55,6 +55,7 @@ export type AppSettings = {
 import type { Client, ColumnKind, CustomColumn, Priority, StatusLabel } from "./board";
 
 export type GroupRow = { id: string; project_id: string; name: string; color: string; position: number; collapsed: boolean; created_at: string };
+export type RepeatRule = "daily" | "weekdays" | "weekly" | "fortnightly" | "monthly" | "quarterly" | "yearly";
 export type TaskRow = {
   id: string;
   project_id: string;
@@ -73,6 +74,9 @@ export type TaskRow = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  repeat_rule: RepeatRule | null;
+  repeat_until: string | null;
+  repeated_from: string | null;
 };
 export type ChecklistRow = { id: string; task_id: string; title: string; is_done: boolean; position: number; created_at: string };
 export type CommentRow = { id: string; task_id: string; author_id: string; body: string; created_at: string; edited_at: string | null };

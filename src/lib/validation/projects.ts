@@ -72,6 +72,8 @@ export const taskPatchSchema = z
     progress: z.coerce.number().int().min(0).max(100),
     group_id: uuid,
     custom_values: z.record(z.string(), z.union([z.string().max(2000), z.number(), z.null()])),
+    repeat_rule: z.enum(["daily", "weekdays", "weekly", "fortnightly", "monthly", "quarterly", "yearly"]).nullable(),
+    repeat_until: optionalDate,
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");

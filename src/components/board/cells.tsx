@@ -1,15 +1,17 @@
 "use client";
 
-import { Check, Link2, Lock, UserPlus } from "lucide-react";
+import { Check, Link2, Lock, Repeat, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { setTaskAssignee } from "@/app/(app)/projects/actions";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { blockingTasks, DUE_STYLES, dueState, PRIORITIES, PRIORITY_META, shortDate } from "@/lib/board";
+import { blockingTasks, DUE_STYLES, dueState, PRIORITIES, PRIORITY_META, REPEAT_OPTIONS, repeatLabel, shortDate } from "@/lib/board";
+import { NativeSelect } from "@/components/ui/native-select";
 import { cn, fullName } from "@/lib/utils";
 import { readableTextOn } from "@/lib/utils";
 import type { BoardTask, Member, Priority, StatusLabel } from "@/types/board";
+import type { RepeatRule } from "@/types/database";
 import { useBoard } from "./board-context";
 
 // ---------------------------------------------------------------------------
@@ -305,5 +307,73 @@ export function DependencyCell({ task }: { task: BoardTask }) {
       {open.length ? <Lock className="size-4" aria-hidden /> : <Link2 className="size-4" aria-hidden />}
       {open.length ? `Waiting (${open.length})` : `${task.blocked_by.length} done`}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Repeat
+// ---------------------------------------------------------------------------
+
+/** Small 🔁 marker next to the name of a repeating task. */
+export function RepeatMark({ task, className }: { task: BoardTask; className?: string }) {
+  const label = repeatLabel(task.repeat_rule);
+  if (!label) return null;
+  return (
+    <span className={cn("inline-flex shrink-0 text-muted-foreground", className)} title={`Repeats: ${label.toLowerCase()}`}>
+      <Repeat className="size-3.5" aria-hidden />
+      <span className="sr-only">Repeats {label.toLowerCase()}</span>
+    </span>
+  );
+}
+
+/** "Repeat" in the task panel: how often, and optionally until when. */
+export function RepeatPicker({ task }: { task: BoardTask }) {
+  const { patchTask, perms } = useBoard();
+  const label = repeatLabel(task.repeat_rule);
+  const untilText = task.repeat_until ? `Until ${shortDate(task.repeat_until)}` : "No end date";
+  if (task.repeat_rule === undefined) {
+    return <span className="text-sm text-muted-foreground">Available after the next database update</span>;
+  }
+  if (!perms.canEdit) {
+    return (
+      <span className="text-sm">
+        {label ?? "Doesn't repeat"}
+        {label && task.repeat_until ? ` · until ${shortDate(task.repeat_until)}` : ""}
+      </span>
+    );
+  }
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2">
+      <div className="min-w-44 flex-1">
+        <NativeSelect
+          aria-label="Repeat"
+          value={task.repeat_rule ?? ""}
+          onChange={(e) => {
+            const rule = (e.target.value || null) as RepeatRule | null;
+            void patchTask(task.id, rule ? { repeat_rule: rule } : { repeat_rule: null, repeat_until: null });
+            if (rule && !task.due_date && !task.start_date) toast("Tip: give it a due date so each repeat gets the right date.");
+          }}
+        >
+          <option value="">Doesn&apos;t repeat</option>
+          {REPEAT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </div>
+      {task.repeat_rule && (
+        <label className="relative flex h-11 cursor-pointer items-center gap-1 rounded-lg px-2 text-sm hover:bg-accent focus-within:ring-2 focus-within:ring-ring">
+          <span className={task.repeat_until ? "" : "text-muted-foreground"}>{untilText}</span>
+          <input
+            type="date"
+            aria-label={`${untilText} (repeat end date, optional)`}
+            value={task.repeat_until ?? ""}
+            onChange={(e) => void patchTask(task.id, { repeat_until: e.target.value || null })}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
+      )}
+    </div>
   );
 }

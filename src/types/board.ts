@@ -1,4 +1,4 @@
-import type { AppRole } from "./database";
+import type { AppRole, RepeatRule } from "./database";
 
 export type Priority = "low" | "medium" | "high" | "critical";
 export type ProjectStatus = "active" | "on_hold" | "completed" | "archived";
@@ -27,6 +27,9 @@ export type BoardTask = {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Repeats when it's marked Done (database update 0015; missing before that). */
+  repeat_rule?: RepeatRule | null;
+  repeat_until?: string | null;
   has_description: boolean;
   assignees: string[];
   blocked_by: string[];

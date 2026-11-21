@@ -39,6 +39,8 @@ const t = (id: string, group_id: string, title: string, status_id: string, extra
   progress: 0,
   position: 1,
   completed_at: status_id === "l4" ? d(-2) : null,
+  repeat_rule: null,
+  repeat_until: null,
   assignees: [],
   ...extra,
 });
@@ -70,6 +72,7 @@ export const previewBoard: Board = {
     t("t4", "g2", "Electrical first fix", "l3", { start_date: d(-5), due_date: d(-1), progress: 20, assignees: ["u3", "u2"], priority: "critical", comment_count: 2, attachment_count: 1 }),
     t("t5", "g2", "Data cabling", "l1", { start_date: d(3), due_date: d(14), assignees: ["u3"], blocked_by: ["t4"] }),
     t("t6", "g3", "Painting & finishes", "l1", { start_date: d(15), due_date: d(35), priority: "low", blocked_by: ["t3"] }),
+    t("t7", "g2", "Weekly site safety check", "l1", { due_date: d(2), assignees: ["u3"], repeat_rule: "weekly", checklist_total: 5 }),
   ],
   members: [
     { user_id: "u2", first_name: "Mark", last_name: "Borg", email: "manager@orion.test", avatar_url: null, role: "manager", avatar_src: null },

@@ -167,6 +167,17 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Make a task repeat",
+        minRole: "technician",
+        steps: [
+          "Open the task and give it a **Due** date.",
+          "Under **Repeat**, choose how often: every day, every weekday, every week, every 2 weeks, every month, every 3 months or every year.",
+          "Optionally tap **No end date** to choose when the repeats should stop.",
+          "When the task is marked **Done**, the next one appears automatically with the next date, the same owners and an unticked checklist. Owners get a notification.",
+        ],
+        tip: "Repeating tasks show a 🔁 symbol on the board. Finished late? The next one is still set in the future, not already overdue.",
+      },
+      {
         title: "Make a task wait for another",
         minRole: "technician",
         steps: [

@@ -13,7 +13,7 @@ import { DUE_STYLES, dueState, filterTasks, filtersActive, shortDate } from "@/l
 import { cn } from "@/lib/utils";
 import type { BoardTask, BuiltinColumn, CustomColumn, Group } from "@/types/board";
 import { useBoard } from "./board-context";
-import { AvatarStack, DateCell, DependencyCell, OwnerPicker, PriorityPicker, ProgressCell, StatusPicker } from "./cells";
+import { AvatarStack, DateCell, DependencyCell, OwnerPicker, PriorityPicker, ProgressCell, StatusPicker, RepeatMark } from "./cells";
 import { FilterBar } from "./filter-bar";
 
 // ---------------------------------------------------------------------------
@@ -81,6 +81,7 @@ function CustomValueCell({ task, column }: { task: BoardTask; column: CustomColu
 function TaskBadges({ task }: { task: BoardTask }) {
   return (
     <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+      <RepeatMark task={task} />
       {task.checklist_total > 0 && (
         <span className="inline-flex items-center gap-0.5" title="Checklist">
           <CheckSquare className="size-3.5" aria-hidden />

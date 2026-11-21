@@ -203,6 +203,7 @@ The app also shows an *Install Orion Projects* pop-up on phones from the second 
 
 - **Dashboard** — % complete, overdue and due-soon counts, tasks by status, workload per person, *Needs attention* list, upcoming milestones and the health badge.
 - **Board** — groups of tasks with status, owners, priority, dates, progress, *Waiting for* (dependencies) and any extra columns. Phones show cards. Tap a task for details: description, checklist, files, comments, history.
+- **Repeating tasks** — in a task, set **Repeat** (daily, weekdays, weekly, every 2 weeks, monthly, every 3 months, yearly; optional end date). Marking it Done creates the next one with the same owners and checklist.
 - **Kanban** — drag cards between statuses (on phones: press and hold).
 - **Gantt** — timeline with milestones and dependency arrows; managers drag bars to change dates; **Export** (PDF/PNG) and **Share with client** (read-only link, no login, expires/revokable).
 - **Calendar** — due dates and milestones by month.
@@ -259,7 +260,7 @@ People waiting for approval or deactivated see nothing. Daily updates can be edi
 2. If the update includes **new database files** (`supabase/migrations/…`), run **only the new ones**, in number order, in Supabase **SQL Editor** — the release notes say which. If a screen says *"The database needs an update"*, a file was missed.
 3. If the update mentions new settings, add them in Vercel and redeploy.
 
-Database files applied so far: `…0001` to `…0014` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
+Database files applied so far: `…0001` to `…0015` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
 
 ---
 
@@ -329,7 +330,7 @@ Add a new file in `supabase/migrations/` (never edit an applied one), add RLS po
 
 ```
 supabase/
-  migrations/        0001 foundation … 0014 chat message notifications (append-only)
+  migrations/        0001 foundation … 0015 repeating tasks (append-only)
   setup/             all-in-one.sql (generated: every migration, for new installs)
   seed.sql           demo data (local/testing only)
   templates/         branded auth emails
