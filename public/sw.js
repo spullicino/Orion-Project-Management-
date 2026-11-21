@@ -7,7 +7,7 @@
  * - Photo thumbnails & avatars from Supabase Storage: kept for offline viewing.
  * - Saved pages/photos are wiped on sign-out (the app sends CLEAR_USER_DATA) and
  *   whenever a page turns out to need signing in.
- * - Push notifications.
+ * - Push notifications; chat messages are grouped per chat, like a messaging app.
  * Daily updates written offline are queued by the app itself (IndexedDB), not here.
  */
 const VERSION = "v1";
@@ -158,6 +158,43 @@ self.addEventListener("message", (event) => {
 });
 
 // ---------------------------------------------------------------- push
+// Safari (iPhone/iPad/Mac) cancels push for sites that receive a push without showing a notification.
+const STRICT_BROWSER = /AppleWebKit/.test(self.navigator.userAgent) && !/Chrome|Chromium|Android|Edg/.test(self.navigator.userAgent);
+
+/** Number on the app icon: chat messages + other notifications still on the phone. */
+async function updateIconBadge() {
+  if (!self.navigator.setAppBadge) return;
+  const shown = await self.registration.getNotifications();
+  const n = shown.reduce((sum, x) => sum + ((x.data && x.data.count) || 1), 0);
+  await (n ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge()).catch(() => {});
+}
+
+/** Chat messages: one notification per chat, listing the latest messages (like WhatsApp). */
+async function showChatMessage(data) {
+  const url = new URL(data.url || "/chats", self.location.origin).href;
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const viewing = windows.some((w) => w.focused && w.visibilityState === "visible" && w.url.split(/[?#]/)[0] === url);
+  if (viewing && !STRICT_BROWSER) return; // already reading this chat: no buzz
+
+  const tag = data.tag || url;
+  const existing = (await self.registration.getNotifications({ tag }))[0];
+  const before = (existing && existing.data) || {};
+  const line = data.sender ? `${data.sender}: ${data.body}` : data.body;
+  const lines = [...(before.lines || []), line].slice(-6);
+  const count = (before.count || 0) + 1;
+  await self.registration.showNotification(count > 1 ? `${data.title} (${count} messages)` : data.title, {
+    body: lines.join("\n"),
+    tag,
+    renotify: true, // buzz again for every new message, even though it replaces the previous one
+    icon: "/icons/icon-192.png",
+    badge: "/icons/badge-96.png",
+    timestamp: Date.now(),
+    data: { url: data.url || "/chats", kind: "chat", lines, count },
+  });
+  await updateIconBadge();
+}
+
+let pushQueue = Promise.resolve();
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -165,15 +202,21 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "Orion Projects", body: event.data ? event.data.text() : "" };
   }
-  event.waitUntil(
-    self.registration.showNotification(data.title || "Orion Projects", {
-      body: data.body || "",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-96.png",
-      tag: data.tag,
-      data: { url: data.url || "/notifications" },
-    }),
-  );
+  const show = () =>
+    data.kind === "chat"
+      ? showChatMessage(data)
+      : self.registration
+          .showNotification(data.title || "Orion Projects", {
+            body: data.body || "",
+            icon: "/icons/icon-192.png",
+            badge: "/icons/badge-96.png",
+            tag: data.tag,
+            data: { url: data.url || "/notifications" },
+          })
+          .then(updateIconBadge);
+  // One at a time, in order: messages arriving together must not overwrite each other.
+  pushQueue = pushQueue.then(show, show).catch(() => {});
+  event.waitUntil(pushQueue);
 });
 
 self.addEventListener("notificationclick", (event) => {

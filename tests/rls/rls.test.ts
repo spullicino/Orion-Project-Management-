@@ -30,7 +30,7 @@ describe("table privileges", () => {
       await asUser(USERS.admin, async (db) => {
         names = (
           await db.query<{ tablename: string }>(
-            "select tablename from pg_tables where schemaname = 'public' and tablename <> 'rate_limits' order by 1",
+            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox') order by 1",
           )
         ).map((r) => r.tablename);
       });
@@ -878,6 +878,59 @@ describe("personal notes and to-dos are private", () => {
     await withSetup(`${add(USERS.tech1)} select public.create_due_notifications();`, USERS.tech1, async (db) => {
       const n = await db.query<{ type: string; title: string }>("select type, title from public.notifications where type = 'personal.due'");
       expect(n).toEqual([{ type: "personal.due", title: "Due today: Call the bank" }]);
+    });
+  });
+});
+
+describe("phone notifications for chat messages", () => {
+  const subs = Object.values(USERS)
+    .map((u, i) => `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('${u}', 'https://push.example/${i}', 'k', 'a');`)
+    .join("\n");
+  const valletta = `(select id from public.channels where project_id = '${PROJECTS.valletta}')`;
+  // Deferred trigger: fire it now (tests never commit), then read the queue as the server would.
+  const queued = async (db: { query: <T>(s: string) => Promise<T[]> }) => {
+    await db.query("set constraints all immediate");
+    await db.query("reset role");
+    return db.query<{ user_id: string; title: string; body: string; sender: string; tag: string; link: string }>(
+      "select user_id, title, body, sender, tag, link from public.push_outbox order by user_id",
+    );
+  };
+
+  it("everyone who can read the chat is notified, except the writer; nobody can read the queue from the app", async () => {
+    await withSetup(subs, USERS.tech1, async (db) => {
+      await db.query(`insert into public.messages (channel_id, author_id, body) values (${valletta}, '${USERS.tech1}', 'Tiles arrived on site')`);
+      expect(await db.fails("select 1 from public.push_outbox")).toMatch(/permission denied/); // never readable from the app
+      const rows = await queued(db);
+      expect(rows.map((r) => r.user_id)).toEqual([USERS.admin, USERS.manager, USERS.basic].sort());
+      expect(rows[0]).toMatchObject({ body: "Tiles arrived on site", sender: "Tina Camilleri", link: expect.stringMatching(/^\/chats\//), tag: expect.stringMatching(/^chat-/) });
+    });
+  });
+
+  it("not sent to people who muted the chat, switched chat notifications off, or were @mentioned", async () => {
+    const setup = `${subs}
+      insert into public.channel_members (channel_id, user_id, muted) values (${valletta}, '${USERS.manager}', true);
+      insert into public.notification_preferences (user_id, types) values ('${USERS.admin}', '{"chat.message": false}');`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      await db.query(`insert into public.messages (channel_id, author_id, body, mentions) values (${valletta}, '${USERS.tech1}', 'Hi', '{${USERS.basic}}')`);
+      expect(await queued(db)).toEqual([]);
+    });
+  });
+
+  it("management chat only reaches managers and admins; photo-only messages say 📷 Photo", async () => {
+    await withSetup(subs, USERS.manager, async (db) => {
+      const [{ id: ch }] = await db.query<{ id: string }>("select id from public.channels where type = 'management'");
+      const id = "72000000-0000-4000-8000-000000000001";
+      await db.query(`select public.send_chat_message('${id}', '${ch}', '', null, null, '{}',
+        '[{"id":"72100000-0000-4000-8000-000000000001","storage_path":"${ch}/${id}/p.jpg","file_name":"p.jpg","mime_type":"image/jpeg","size_bytes":10,"width":1,"height":1}]'::jsonb)`);
+      const rows = await queued(db);
+      expect(rows.map((r) => r.user_id)).toEqual([USERS.admin]);
+      expect(rows[0].body).toBe("📷 Photo");
+    });
+  });
+
+  it("only the server can take notifications from the queue", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.claim_chat_push_batch(10)")).toMatch(/permission denied/);
     });
   });
 });

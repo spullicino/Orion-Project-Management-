@@ -384,6 +384,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Get a notification for every message (like WhatsApp)",
+        steps: [
+          "Open **Chats** and tap **Turn on notifications** at the top (or **Profile → Notifications → Turn on notifications**). Allow notifications when your phone asks.",
+          "**iPhone:** this only works in the installed app — add it to your Home Screen first (Share → Add to Home Screen) and open it from the icon.",
+          "Every new message now shows on your phone, grouped per chat. The app icon shows how many are unread.",
+          "Opening a chat clears its notifications.",
+        ],
+        tip: "Too many? **Mute** a busy chat, or switch off **New chat messages** in Profile → Notifications. Quiet hours keep your phone silent at night.",
+      },
+      {
         title: "Mute a chat",
         steps: [
           "Open the chat and tap **Chat options** (⋯) at the top.",

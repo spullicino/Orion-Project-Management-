@@ -178,6 +178,20 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
       refreshUnread();
     }, 700);
   }, [channel.id, refreshUnread]);
+  // Opening the chat clears its notifications from the phone (like a messaging app).
+  useEffect(() => {
+    const clear = () =>
+      navigator.serviceWorker
+        ?.getRegistration("/")
+        .then((r) => r?.getNotifications({ tag: `chat-${channel.id}` }))
+        .then((list) => list?.forEach((n) => n.close()))
+        .catch(() => {});
+    clear();
+    const onVisible = () => document.visibilityState === "visible" && clear();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [channel.id]);
+
   useEffect(() => {
     markAsRead();
     const onVisible = () => document.visibilityState === "visible" && markAsRead();

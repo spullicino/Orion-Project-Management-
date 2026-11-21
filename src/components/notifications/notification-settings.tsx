@@ -1,16 +1,18 @@
 "use client";
 
 import { BellRing, Loader2, Send, Smartphone } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { removePushSubscription, savePrefs, savePushSubscription, sendTestNotification, type NotificationPrefs } from "@/app/(app)/notifications/actions";
+import { savePrefs, sendTestNotification, type NotificationPrefs } from "@/app/(app)/notifications/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { usePushDevice } from "./use-push-device";
 
 const TYPES: { key: string; label: string }[] = [
   { key: "task.assigned", label: "Someone gives me a task" },
+  { key: "chat.message", label: "New chat messages (chats you can read; mute a chat to silence it)" },
   { key: "mention", label: "Someone @mentions me in a chat" },
   { key: "task.comment", label: "Comments on my tasks" },
   { key: "task.status", label: "Status changes on my tasks" },
@@ -20,38 +22,9 @@ const TYPES: { key: string; label: string }[] = [
   { key: "personal.due", label: "My personal to-dos are due" },
 ];
 
-function urlBase64ToUint8Array(base64: string) {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
-}
-
-type PushState = "unsupported" | "ios-install" | "denied" | "off" | "on" | "checking";
-
-async function getRegistration() {
-  return (await navigator.serviceWorker.getRegistration("/")) ?? (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
-}
-
 export function NotificationSettings({ initial, pushAvailable }: { initial: NotificationPrefs; pushAvailable: boolean }) {
   const [prefs, setPrefs] = useState(initial);
-  const [push, setPush] = useState<PushState>("checking");
-  const [busy, setBusy] = useState(false);
   const [pending, start] = useTransition();
-
-  useEffect(() => {
-    (async () => {
-      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        return setPush(ios && !standalone ? "ios-install" : "unsupported");
-      }
-      if (Notification.permission === "denied") return setPush("denied");
-      const reg = await navigator.serviceWorker.getRegistration("/");
-      const sub = await reg?.pushManager.getSubscription();
-      setPush(sub ? "on" : "off");
-    })().catch(() => setPush("unsupported"));
-  }, []);
-
   const save = (next: NotificationPrefs) => {
     setPrefs(next);
     start(async () => {
@@ -60,44 +33,9 @@ export function NotificationSettings({ initial, pushAvailable }: { initial: Noti
     });
   };
 
-  async function enablePush() {
-    setBusy(true);
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setPush(permission === "denied" ? "denied" : "off");
-        return void toast.error("Notifications were not allowed.");
-      }
-      const reg = await getRegistration();
-      await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!) });
-      const res = await savePushSubscription(sub.toJSON(), navigator.userAgent);
-      if (!res.ok) throw new Error(res.error);
-      setPush("on");
-      if (!prefs.push_enabled) save({ ...prefs, push_enabled: true });
-      toast.success("Notifications are on for this device");
-    } catch (e) {
-      toast.error((e as Error).message || "Couldn't turn on notifications.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function disablePush() {
-    setBusy(true);
-    try {
-      const reg = await navigator.serviceWorker.getRegistration("/");
-      const sub = await reg?.pushManager.getSubscription();
-      if (sub) {
-        await removePushSubscription(sub.endpoint);
-        await sub.unsubscribe();
-      }
-      setPush("off");
-      toast.success("Notifications are off for this device");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { push, busy, enable: enablePush, disable: disablePush } = usePushDevice({
+    onEnabled: () => !prefs.push_enabled && save({ ...prefs, push_enabled: true }),
+  });
 
   return (
     <Card id="notifications" className="scroll-mt-20">

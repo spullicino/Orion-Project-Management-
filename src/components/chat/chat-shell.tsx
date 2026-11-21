@@ -6,6 +6,7 @@ import { loadChannels } from "@/app/(app)/chats/actions";
 import { cn } from "@/lib/utils";
 import type { ChannelSummary } from "@/types/chat";
 import { ChannelList } from "./channel-list";
+import { ChatNotifyBanner } from "./chat-notify-banner";
 import { useUnread } from "./unread-provider";
 
 /** Chat list beside the conversation on computers; list or conversation on phones. */
@@ -32,6 +33,7 @@ export function ChatShell({ channels: initial, canCreate, children }: { channels
     <div className="md:grid md:h-[calc(100dvh-4.5rem)] md:grid-cols-[320px_minmax(0,1fr)] md:overflow-hidden md:rounded-xl md:border md:bg-card">
       <aside className={cn("min-w-0 md:overflow-y-auto md:border-r md:p-2", activeId && "hidden md:block")}>
         <h1 className="mb-4 px-2 text-2xl font-bold md:hidden">Chats</h1>
+        <ChatNotifyBanner />
         <ChannelList channels={channels} activeId={activeId} canCreate={canCreate} />
       </aside>
       <section className={cn("min-h-0 md:flex md:flex-col", !activeId && "hidden md:flex")}>{children}</section>

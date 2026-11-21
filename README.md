@@ -220,7 +220,7 @@ The app also shows an *Install Orion Projects* pop-up on phones from the second 
 
 **Chats** — General & Announcements (everyone reads, managers post), Management (managers & admins), one per project. Reactions, replies, @mentions, photos/files, task links, unread badges, mute.
 
-**Notifications** — 🔔 bell plus phone push for: tasks given to you, @mentions, comments/status changes on your tasks, due/overdue tasks, and (managers) new daily updates. Each person chooses in **Profile → Notifications**, including quiet hours and a daily email summary.
+**Notifications** — every **chat message** pops up on phones like WhatsApp (grouped per chat, red count on the app icon; not sent for muted chats). 🔔 bell plus phone push for: tasks given to you, @mentions, comments/status changes on your tasks, due/overdue tasks, and (managers) new daily updates. Each person chooses in **Profile → Notifications**, including quiet hours and a daily email summary.
 
 **Delay warnings** — red ⛔ = overdue or waiting for a late task; amber ⚠ = due within 2 days with < 50 % done, behind schedule, or waiting for an unfinished task that should start soon. Projects show **On track / Needs attention / At risk**.
 
@@ -259,7 +259,7 @@ People waiting for approval or deactivated see nothing. Daily updates can be edi
 2. If the update includes **new database files** (`supabase/migrations/…`), run **only the new ones**, in number order, in Supabase **SQL Editor** — the release notes say which. If a screen says *"The database needs an update"*, a file was missed.
 3. If the update mentions new settings, add them in Vercel and redeploy.
 
-Database files applied so far: `…0001` to `…0013` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
+Database files applied so far: `…0001` to `…0014` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
 
 ---
 
@@ -329,7 +329,7 @@ Add a new file in `supabase/migrations/` (never edit an applied one), add RLS po
 
 ```
 supabase/
-  migrations/        0001 foundation … 0013 personal notes & to-dos (append-only)
+  migrations/        0001 foundation … 0014 chat message notifications (append-only)
   setup/             all-in-one.sql (generated: every migration, for new installs)
   seed.sql           demo data (local/testing only)
   templates/         branded auth emails

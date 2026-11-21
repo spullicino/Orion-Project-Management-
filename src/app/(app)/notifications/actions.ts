@@ -87,7 +87,7 @@ export async function loadPrefs(): Promise<Result<NotificationPrefs & { pushAvai
 const prefsSchema = z.object({
   push_enabled: z.boolean(),
   email_digest: z.boolean(),
-  types: z.record(z.enum(["task.assigned", "task.status", "task.comment", "task.due_soon", "task.overdue", "mention", "daily.new", "personal.due"]), z.boolean()),
+  types: z.record(z.enum(["task.assigned", "task.status", "task.comment", "task.due_soon", "task.overdue", "mention", "daily.new", "personal.due", "chat.message"]), z.boolean()),
   quiet_hours_from: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
   quiet_hours_to: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
 });

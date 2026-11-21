@@ -212,7 +212,7 @@ export async function sendMessage(input: unknown): Promise<Result<ChatMessage>> 
     return fail(friendly(error.message));
   }
   const [msg] = await decorateMessages(supabase, [data as unknown as ChatMessage]);
-  if (mentions.length) queuePush();
+  queuePush(); // phone notifications for everyone in the chat (and @mentions)
   return { ok: true, data: msg };
 }
 
