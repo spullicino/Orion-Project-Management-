@@ -14,6 +14,7 @@ export const C = {
   today: "#dc2626",
   dep: "#64748b",
   depLate: "#dc2626",
+  done: "#15803d",
 };
 
 export type BarOverride = { taskId: string; x: number; width: number } | null;
@@ -44,13 +45,33 @@ export function GanttLabels({
   dark?: boolean;
   fontFamily?: string;
 }) {
-  const maxChars = Math.floor((width - 28) / 7.2);
+  // Room on the right for the % complete column.
+  const PCT_W = 46;
+  const maxChars = Math.floor((width - 28 - PCT_W) / 7.2);
   const text = dark ? "#e2e8f0" : C.text;
+  const pctX = width - 12;
+  const pctOf = (t: { progress: number; completed_at: string | null }) => (t.completed_at ? 100 : Math.round(t.progress));
+  // A group's % = the average of its tasks (as in a programme of works).
+  const groupPct = new Map<string, number>();
+  {
+    const sums = new Map<string, { n: number; total: number }>();
+    for (const r of rows) {
+      if (r.kind !== "task") continue;
+      const s = sums.get(r.task.group_id) ?? { n: 0, total: 0 };
+      s.n += 1;
+      s.total += pctOf(r.task);
+      sums.set(r.task.group_id, s);
+    }
+    for (const [g, s] of sums) groupPct.set(g, Math.round(s.total / s.n));
+  }
   return (
     <g fontFamily={fontFamily}>
       <rect x={0} y={0} width={width} height={HEADER_HEIGHT} fill={dark ? "#1e293b" : C.header} />
       <text x={14} y={HEADER_HEIGHT - 16} fontSize={11} fontWeight={700} fill={C.muted} letterSpacing={0.6}>
         TASK
+      </text>
+      <text x={pctX} y={HEADER_HEIGHT - 16} fontSize={11} fontWeight={700} fill={C.muted} textAnchor="end">
+        %
       </text>
       <line x1={0} x2={width} y1={HEADER_HEIGHT} y2={HEADER_HEIGHT} stroke={C.grid} />
       {rows.map((r) => {
@@ -68,6 +89,11 @@ export function GanttLabels({
               <text x={14} y={r.y + r.height / 2 + 5} fontSize={13} fontWeight={700} fill={text}>
                 {ellipsize(r.group.name, maxChars)}
               </text>
+              {groupPct.has(r.group.id) && (
+                <text x={pctX} y={r.y + r.height / 2 + 5} fontSize={12} fontWeight={700} fill={text} textAnchor="end">
+                  {groupPct.get(r.group.id)}%
+                </text>
+              )}
             </g>
           );
         const owners = showOwners && r.task.owners?.length ? r.task.owners.join(", ") : "";
@@ -86,6 +112,16 @@ export function GanttLabels({
               textDecoration={r.task.completed_at ? "line-through" : undefined}
             >
               {ellipsize(r.task.title, maxChars)}
+            </text>
+            <text
+              x={pctX}
+              y={r.y + r.height / 2 + 5}
+              fontSize={12}
+              fontWeight={pctOf(r.task) === 100 ? 700 : undefined}
+              fill={pctOf(r.task) === 100 ? C.done : pctOf(r.task) > 0 ? text : C.muted}
+              textAnchor="end"
+            >
+              {pctOf(r.task)}%
             </text>
             {owners && (
               <text x={14} y={r.y + 32} fontSize={10.5} fill={C.muted}>
