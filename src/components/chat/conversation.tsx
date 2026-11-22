@@ -1,6 +1,7 @@
 "use client";
 
 import { ChatMedia } from "./chat-media";
+import { Lightbox, type LightboxPhoto } from "@/components/diary/lightbox";
 
 import { ArrowDown, ArrowLeft, Bell, BellOff, FolderOpen, Loader2, MoreVertical, Archive, Users, Images } from "lucide-react";
 import Link from "next/link";
@@ -151,6 +152,7 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
   const [newBelow, setNewBelow] = useState(0);
   const [thread, setThread] = useState<{ parent: ChatMessage; replies: ChatMessage[] } | null>(null);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [viewer, setViewer] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null);
   const threadRef = useRef<string | null>(null);
   const drafts = useRef(new Map<string, { draft: Draft; parentId: string | null }>());
   const scroller = useRef<HTMLDivElement>(null);
@@ -313,6 +315,7 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
       if (!res.ok) toast.error(res.error);
       else void replaceMessage(m.id);
     },
+    onOpenPhotos: (photos, index) => setViewer({ photos, index }),
     onReply: (m) => {
       threadRef.current = m.id;
       setThread({ parent: m, replies: [] });
@@ -531,6 +534,7 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
         )}
       </Sheet>
       {dialog}
+      <Lightbox photos={viewer?.photos ?? []} index={viewer ? viewer.index : null} onClose={() => setViewer(null)} />
       <ChatMedia channelId={channel.id} open={mediaOpen} onClose={() => setMediaOpen(false)} onGoToMessage={(a) => void goToMessage(a.message_id, a.parent_id)} />
     </div>
   );

@@ -4,7 +4,7 @@ import { AlertCircle, CheckSquare, Copy, FileText, Loader2, MessageSquareReply, 
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Lightbox } from "@/components/diary/lightbox";
+import { Lightbox, type LightboxPhoto } from "@/components/diary/lightbox";
 import { UserAvatar } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,8 @@ export type MessageActions = {
   onEdit: (m: ChatMessage, body: string) => Promise<boolean>;
   onDelete: (m: ChatMessage) => void;
   onRetry?: (m: ChatMessage) => void;
+  /** Opens the chat's photo viewer (kept outside the message so live updates can't disturb it). */
+  onOpenPhotos?: (photos: LightboxPhoto[], index: number) => void;
 };
 
 function Body({ m, people, meId }: { m: ChatMessage; people: ChatPerson[]; meId: string }) {
@@ -46,11 +48,12 @@ function Body({ m, people, meId }: { m: ChatMessage; people: ChatPerson[]; meId:
   );
 }
 
-function Attachments({ m }: { m: ChatMessage }) {
+function Attachments({ m, onOpenPhotos }: { m: ChatMessage; onOpenPhotos?: MessageActions["onOpenPhotos"] }) {
   const [open, setOpen] = useState<number | null>(null);
   const images = m.attachments.filter(isImageAttachment);
   const files = m.attachments.filter((a) => !isImageAttachment(a));
   if (!m.attachments.length) return null;
+  const photos = images.map((a) => ({ id: a.id, full_url: a.url, thumb_url: a.thumb_url, meta: `${personName(m.author ?? { first_name: null, last_name: null })} · ${chatTime(m.created_at)}` }));
   return (
     <div className="mt-1.5 grid gap-1.5">
       {images.length > 0 && (
@@ -61,7 +64,8 @@ function Attachments({ m }: { m: ChatMessage }) {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpen(i);
+                  if (onOpenPhotos) onOpenPhotos(photos, i);
+                  else setOpen(i);
                 }}
                 className={cn("block w-full overflow-hidden rounded-lg bg-muted", images.length === 1 ? "max-h-72" : "aspect-square")}
                 aria-label={`Open photo ${i + 1} of ${images.length}`}
@@ -93,7 +97,7 @@ function Attachments({ m }: { m: ChatMessage }) {
           {a.size_bytes ? <span className="text-xs text-muted-foreground">{Math.max(1, Math.round(a.size_bytes / 1024))} KB</span> : null}
         </a>
       ))}
-      <Lightbox photos={images.map((a) => ({ id: a.id, full_url: a.url, thumb_url: a.thumb_url, meta: `${personName(m.author ?? { first_name: null, last_name: null })} · ${chatTime(m.created_at)}` }))} index={open} onClose={() => setOpen(null)} />
+      {!onOpenPhotos && <Lightbox photos={photos} index={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }
@@ -185,7 +189,7 @@ export function MessageItem({
                 <span className={cn("truncate", m.task.completed && "line-through text-muted-foreground")}>{m.task.title}</span>
               </Link>
             )}
-            <Attachments m={m} />
+            <Attachments m={m} onOpenPhotos={actions.onOpenPhotos} />
             {m.edited_at && <span className="text-xs text-muted-foreground"> (edited)</span>}
           </>
         )}

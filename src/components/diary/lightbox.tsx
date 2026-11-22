@@ -21,6 +21,7 @@ export function Lightbox({
 }) {
   const [i, setI] = useState(index ?? 0);
   const touchX = useRef<number | null>(null);
+  const touchY = useRef<number | null>(null);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- jump to the photo that was tapped
   useEffect(() => setI(index ?? 0), [index]);
   const open = index !== null && photos.length > 0;
@@ -40,35 +41,48 @@ export function Lightbox({
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 bg-black" />
+        <D.Overlay className="fixed inset-0 z-[60] bg-black" />
         <D.Content
-          className="fixed inset-0 z-50 flex flex-col bg-black outline-none"
-          onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
-          onTouchEnd={(e) => {
-            if (touchX.current === null) return;
-            const dx = e.changedTouches[0].clientX - touchX.current;
-            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
-            touchX.current = null;
+          className="fixed inset-0 z-[60] flex flex-col bg-black outline-none"
+          onTouchStart={(e) => {
+            touchX.current = e.touches[0].clientX;
+            touchY.current = e.touches[0].clientY;
           }}
+          onTouchEnd={(e) => {
+            if (touchX.current === null || touchY.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchX.current;
+            const dy = e.changedTouches[0].clientY - touchY.current;
+            touchX.current = touchY.current = null;
+            if (dy > 90 && Math.abs(dy) > Math.abs(dx)) return onClose(); // swipe down to close
+            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+          }}
+          // Taps here must never reach the page (or chat message) underneath.
+          onClick={(e) => e.stopPropagation()}
         >
           <D.Title className="sr-only">Photo {i + 1} of {photos.length}</D.Title>
           <D.Description className="sr-only">{p?.caption || p?.meta || "Site photo"}</D.Description>
-          <div className="flex items-center justify-between p-2 pt-safe text-white">
+          <div className="relative z-10 flex items-center justify-between p-2 pt-[max(env(safe-area-inset-top),0.5rem)] text-white">
             <span className="px-3 text-sm">
               {i + 1} / {photos.length}
             </span>
             <div className="flex">
               {p?.full_url && (
-                <a href={p.full_url} target="_blank" rel="noopener" download className="flex size-11 items-center justify-center rounded-lg hover:bg-white/10" aria-label="Open the full-size photo">
+                <button
+                  type="button"
+                  onClick={() => window.open(p.full_url!, "_blank", "noopener")}
+                  className="flex size-12 items-center justify-center rounded-lg hover:bg-white/10"
+                  aria-label="Open the full-size photo"
+                >
                   <Download className="size-5" />
-                </a>
+                </button>
               )}
-              <D.Close className="flex size-11 items-center justify-center rounded-lg hover:bg-white/10" aria-label="Close">
+              <button type="button" onClick={onClose} className="flex size-12 items-center justify-center rounded-lg hover:bg-white/10" aria-label="Close">
                 <X className="size-6" />
-              </D.Close>
+              </button>
             </div>
           </div>
-          <div className="relative flex min-h-0 flex-1 items-center justify-center">
+          {/* Tapping the dark area around the photo also closes it. */}
+          <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
             {p && (
               // eslint-disable-next-line @next/next/no-img-element -- signed URLs
               <img
