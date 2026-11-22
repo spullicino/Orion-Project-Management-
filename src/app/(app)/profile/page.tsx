@@ -91,6 +91,9 @@ export default async function ProfilePage() {
             </Link>
           )}
           <SignOutButton />
+          <p className="text-center text-xs text-muted-foreground">
+            App version {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "dev").slice(0, 7)}
+          </p>
         </div>
       </div>
     </>

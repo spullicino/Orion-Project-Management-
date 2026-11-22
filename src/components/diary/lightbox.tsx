@@ -26,6 +26,10 @@ export function Lightbox({
   useEffect(() => setI(index ?? 0), [index]);
   const open = index !== null && photos.length > 0;
   const go = (d: number) => setI((x) => (x + d + photos.length) % photos.length);
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +41,21 @@ export function Lightbox({
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // Android back button / gesture closes the photo instead of leaving the page.
+  useEffect(() => {
+    if (!open) return;
+    window.history.pushState({ ...(window.history.state ?? {}), orionPhoto: true }, "");
+    const onBack = () => closeRef.current();
+    window.addEventListener("popstate", onBack);
+    return () => {
+      window.removeEventListener("popstate", onBack);
+      if (window.history.state?.orionPhoto) window.history.back(); // closed with a button: undo our history entry
+    };
+  }, [open]);
+
   const p = open ? photos[Math.min(i, photos.length - 1)] : null;
+  const save = () => p?.full_url && window.open(p.full_url, "_blank", "noopener");
+  const pill = "flex h-11 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-medium text-white hover:bg-white/25";
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
@@ -61,18 +79,13 @@ export function Lightbox({
         >
           <D.Title className="sr-only">Photo {i + 1} of {photos.length}</D.Title>
           <D.Description className="sr-only">{p?.caption || p?.meta || "Site photo"}</D.Description>
-          <div className="relative z-10 flex items-center justify-between p-2 pt-[max(env(safe-area-inset-top),0.5rem)] text-white">
+          <div className="relative z-10 flex shrink-0 items-center justify-between p-2 pt-[max(env(safe-area-inset-top),0.5rem)] text-white">
             <span className="px-3 text-sm">
               {i + 1} / {photos.length}
             </span>
             <div className="flex">
               {p?.full_url && (
-                <button
-                  type="button"
-                  onClick={() => window.open(p.full_url!, "_blank", "noopener")}
-                  className="flex size-12 items-center justify-center rounded-lg hover:bg-white/10"
-                  aria-label="Open the full-size photo"
-                >
+                <button type="button" onClick={save} className="flex size-12 items-center justify-center rounded-lg hover:bg-white/10" aria-label="Open the full-size photo">
                   <Download className="size-5" />
                 </button>
               )}
@@ -81,39 +94,47 @@ export function Lightbox({
               </button>
             </div>
           </div>
-          {/* Tapping the dark area around the photo also closes it. */}
-          <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
+          {/* The photo is positioned inside this box, so it can never cover the buttons. Tapping the dark area closes. */}
+          <div className="relative min-h-0 flex-1 overflow-hidden" onClick={(e) => e.target === e.currentTarget && onClose()}>
             {p && (
               // eslint-disable-next-line @next/next/no-img-element -- signed URLs
               <img
                 key={p.id}
                 src={p.full_url ?? p.thumb_url ?? ""}
                 alt={p.caption || p.meta || "Site photo"}
-                className="max-h-full max-w-full object-contain"
+                className="pointer-events-none absolute inset-0 m-auto max-h-full max-w-full select-none object-contain"
                 style={{ backgroundImage: p.thumb_url ? `url(${p.thumb_url})` : undefined, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" }}
               />
             )}
             {photos.length > 1 && (
               <>
-                <button type="button" onClick={() => go(-1)} aria-label="Previous photo" className="absolute left-2 hidden size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 md:flex">
+                <button type="button" onClick={() => go(-1)} aria-label="Previous photo" className="absolute left-2 top-1/2 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 md:flex">
                   <ChevronLeft className="size-6" />
                 </button>
-                <button type="button" onClick={() => go(1)} aria-label="Next photo" className="absolute right-2 hidden size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 md:flex">
+                <button type="button" onClick={() => go(1)} aria-label="Next photo" className="absolute right-2 top-1/2 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 md:flex">
                   <ChevronRight className="size-6" />
                 </button>
               </>
             )}
           </div>
-          {(p?.caption || p?.meta || action) && (
-            <div className="grid justify-items-center gap-2 p-4 pb-safe">
-              {(p?.caption || p?.meta) && <p className="text-center text-sm text-white/80">{[p?.caption, p?.meta].filter(Boolean).join(" · ")}</p>}
+          <div className="relative z-10 grid shrink-0 justify-items-center gap-3 p-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            {(p?.caption || p?.meta) && <p className="text-center text-sm text-white/80">{[p?.caption, p?.meta].filter(Boolean).join(" · ")}</p>}
+            <div className="flex flex-wrap justify-center gap-2">
               {action && (
-                <button type="button" onClick={() => action.onClick(i)} className="h-11 rounded-lg bg-white/15 px-4 text-sm font-medium text-white hover:bg-white/25">
+                <button type="button" onClick={() => action.onClick(i)} className={pill}>
                   {action.label}
                 </button>
               )}
+              {p?.full_url && (
+                <button type="button" onClick={save} className={pill}>
+                  <Download className="size-4" aria-hidden /> Save photo
+                </button>
+              )}
+              <button type="button" onClick={onClose} className={pill}>
+                <X className="size-4" aria-hidden /> Close
+              </button>
             </div>
-          )}
+          </div>
         </D.Content>
       </D.Portal>
     </D.Root>
