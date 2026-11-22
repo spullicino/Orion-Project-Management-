@@ -47,6 +47,9 @@ function CardBody({ task, dragging }: { task: BoardTask; dragging?: boolean }) {
           <InternalMark task={task} />
           <RepeatMark task={task} />
           <span className={cn("text-sm", DUE_STYLES[state])}>{task.due_date ? shortDate(task.due_date) : ""}</span>
+          <span className={cn("text-sm font-semibold tabular-nums", task.completed_at ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+            {task.completed_at ? 100 : task.progress}%
+          </span>
         </span>
         {task.assignees.length > 0 && <AvatarStack ids={task.assignees} members={membersById} size={26} />}
       </div>

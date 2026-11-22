@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-22-board-percent",
+    date: "2026-11-22",
+    title: "% complete on the Board and Kanban",
+    body: "Each group on the Board shows how complete it is (e.g. “6 tasks · 85% complete”), and task cards on phones and on Kanban show their %.",
+    help: "/help#tasks",
+  },
+  {
     id: "2026-11-22-gantt-percent",
     date: "2026-11-22",
     title: "% complete on the Gantt",

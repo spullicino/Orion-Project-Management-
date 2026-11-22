@@ -153,6 +153,7 @@ function TaskCard({ task, color }: { task: BoardTask; color: string }) {
         <span className={cn("block font-medium", task.completed_at && "text-muted-foreground line-through")}>{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           {task.due_date && <span className={DUE_STYLES[state]}>{state === "overdue" ? "Overdue · " : "Due "}{shortDate(task.due_date)}</span>}
+          <span className={cn("font-semibold tabular-nums", task.completed_at ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>{task.completed_at ? 100 : task.progress}%</span>
           <TaskBadges task={task} />
         </span>
         {risk && risk.reason !== "Overdue" && (
@@ -214,7 +215,7 @@ function AddTaskRow({ group }: { group: Group }) {
   );
 }
 
-function GroupHeader({ group, count, collapsed, onToggle }: { group: Group; count: number; collapsed: boolean; onToggle: () => void }) {
+function GroupHeader({ group, count, pct, collapsed, onToggle }: { group: Group; count: number; pct: number | null; collapsed: boolean; onToggle: () => void }) {
   const { perms } = useBoard();
   const { confirm, dialog } = useConfirm();
   const [renaming, setRenaming] = useState(false);
@@ -256,7 +257,15 @@ function GroupHeader({ group, count, collapsed, onToggle }: { group: Group; coun
           {group.name}
         </h2>
       )}
-      <span className="ml-1 text-sm text-muted-foreground">{count} {count === 1 ? "task" : "tasks"}</span>
+      <span className="ml-1 text-sm text-muted-foreground">
+        {count} {count === 1 ? "task" : "tasks"}
+        {pct !== null && (
+          <>
+            {" · "}
+            <span className={cn("font-semibold tabular-nums", pct === 100 ? "text-emerald-700 dark:text-emerald-400" : "text-foreground")}>{pct}%</span> complete
+          </>
+        )}
+      </span>
       {perms.canManage && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -351,7 +360,11 @@ export function BoardView() {
           const isCollapsed = collapsed[g.id] ?? false;
           return (
             <section key={g.id} aria-label={g.name} className="min-w-0">
-              <GroupHeader group={g} count={groupTasks.length} collapsed={isCollapsed} onToggle={() => setCollapsed((c) => ({ ...c, [g.id]: !isCollapsed }))} />
+              <GroupHeader
+                group={g}
+                count={groupTasks.length}
+                pct={groupTasks.length ? Math.round(groupTasks.reduce((n, t) => n + (t.completed_at ? 100 : t.progress), 0) / groupTasks.length) : null}
+                collapsed={isCollapsed} onToggle={() => setCollapsed((c) => ({ ...c, [g.id]: !isCollapsed }))} />
               {!isCollapsed && (
                 <>
                   {/* Desktop / tablet: table */}
