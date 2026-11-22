@@ -244,8 +244,10 @@ export function GanttTimeline({
         const w = o ? o.width : r.bar.width;
         const y = r.y + (r.height - BAR_HEIGHT) / 2;
         const done = !!r.task.completed_at;
-        // The name goes inside the bar if it fits, otherwise in full just to the right of it.
-        const inside = r.task.title.length * LABEL_CHAR_W + 16 <= w;
+        // "Name · 90%" goes inside the bar if it fits, otherwise in full just to the right of it.
+        const pct = done ? 100 : Math.round(r.task.progress);
+        const barLabel = `${r.task.title} · ${pct}%`;
+        const inside = barLabel.length * LABEL_CHAR_W + 16 <= w;
         const draggable = !!handlers.onBarPointerDown;
         return (
           <g key={`bar-${r.task.id}`} opacity={o ? 0.85 : 1}>
@@ -265,12 +267,12 @@ export function GanttTimeline({
             <rect x={x + 1} y={y} width={Math.max((Math.max(w - 2, 4) * r.task.progress) / 100, 0)} height={BAR_HEIGHT} rx={6} fill={r.color} pointerEvents="none" />
             {inside ? (
               <text x={x + 8} y={y + 15} fontSize={11} fontWeight={700} fill={textColor} pointerEvents="none">
-                {r.task.title}
+                {barLabel}
               </text>
             ) : (
               // Regular weight on purpose: PDFs only have regular and bold Helvetica (anything else turns into Times).
               <text x={x + w + 14} y={y + 15} fontSize={11} fill={textColor} pointerEvents="none">
-                {ellipsize(r.task.title, 48)}
+                {ellipsize(r.task.title, 48)} · {pct}%
               </text>
             )}
             {draggable && (

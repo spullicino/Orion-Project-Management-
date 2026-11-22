@@ -20,7 +20,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
     id: "2026-11-22-gantt-percent",
     date: "2026-11-22",
     title: "% complete on the Gantt",
-    body: "The Gantt chart (and its PDF export) now shows each task's % complete next to its name, and an average for each group — like a programme of works. PDF exports also print every page properly now.",
+    body: "The Gantt chart (and its PDF export) now shows each task's % complete next to its name and beside its bar, and an average for each group — like a programme of works. PDF exports also print every page properly now.",
     help: "/help#gantt",
   },
   {
