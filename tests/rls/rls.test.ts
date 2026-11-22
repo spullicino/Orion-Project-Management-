@@ -1195,3 +1195,98 @@ describe("photos & files of a chat", () => {
     });
   });
 });
+
+describe("material requests", () => {
+  const req = "74000000-0000-4000-8000-000000000001";
+  const create = (id = req, project: string = PROJECTS.valletta) =>
+    `select public.create_material_request('${id}', '${project}', public.malta_today() + 3, false, 'Leave at gate 2',
+      '[{"name":"Plasterboard 12.5mm","quantity":40,"unit":"sheets"},{"name":"Drywall screws","quantity":2,"unit":"boxes"}]'::jsonb) as v`;
+  const finish = async (db: { query: <T>(s: string) => Promise<T[]> }) => {
+    await db.query("set constraints all immediate"); // fire the end-of-transaction notification trigger
+  };
+
+  it("a technician on the project requests materials; it gets #1 and the project's managers are notified", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      const [{ v }] = await db.query<{ v: { number: number } }>(create());
+      expect(v.number).toBe(1);
+      // Asking again with the same id (offline retry) doesn't create a second request.
+      await db.query(create());
+      expect(await count(db, "select 1 from public.material_requests")).toBe(1);
+      await finish(db);
+      await db.query("reset role");
+      const n = await db.query<{ user_id: string; title: string; body: string }>("select user_id, title, body from public.notifications where type = 'material.new'");
+      expect(n.map((x) => x.user_id)).toEqual([USERS.manager]); // the manager on Valletta
+      expect(n[0].title).toBe("Material request #1 from Tina Camilleri · Valletta Office Fit-out");
+      expect(n[0].body).toMatch(/^Plasterboard 12.5mm ×40 sheets, Drywall screws ×2 boxes · needed by/);
+    });
+  });
+
+  it("people not on the project can't see or create requests; basic users can't create", async () => {
+    await withSetup(`set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true); ${create()}; reset role;`, USERS.tech2, async (db) => {
+      expect(await count(db, "select 1 from public.material_requests")).toBe(0);
+      expect(await count(db, "select 1 from public.material_request_items")).toBe(0);
+      expect(await db.fails(create("74000000-0000-4000-8000-000000000009", PROJECTS.valletta))).toMatch(/row-level security/);
+    });
+    await asUser(USERS.basic, async (db) => {
+      expect(await db.fails(create())).toMatch(/row-level security/);
+    });
+  });
+
+  it("the requester can't mark it ordered or record deliveries; a manager can, and the requester is told", async () => {
+    const setup = `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true); ${create()}; reset role;`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      expect(await db.fails(`update public.material_requests set status = 'ordered' where id = '${req}'`)).toMatch(/Only managers/);
+      await db.query(`update public.material_request_items set delivered_qty = 40 where request_id = '${req}'`);
+      expect(await count(db, `select 1 from public.material_request_items where request_id = '${req}' and delivered_qty > 0`)).toBe(0);
+      // …but can still fix their own request while it's waiting, or cancel it.
+      await db.query(`update public.material_request_items set quantity = 45 where request_id = '${req}' and name like 'Plaster%'`);
+      expect(await count(db, `select 1 from public.material_request_items where quantity = 45`)).toBe(1);
+    });
+    await withSetup(setup, USERS.manager, async (db) => {
+      await db.query(`update public.material_requests set status = 'ordered', supplier = 'Build Supplies Ltd', po_number = 'PO-881', expected_date = '2027-01-15' where id = '${req}'`);
+      await db.query(`update public.material_request_items set delivered_qty = 40 where request_id = '${req}' and name like 'Plaster%'`);
+      await db.query(`update public.material_requests set status = 'partly_delivered' where id = '${req}'`);
+      await db.query("reset role");
+      const n = await db.query<{ title: string; body: string }>(`select title, body from public.notifications where type = 'material.status' and user_id = '${USERS.tech1}' order by created_at, title`);
+      expect(n.map((x) => x.title)).toEqual(["Your material request #1 was ordered", "Your material request #1 was partly delivered"]);
+      expect(n[0].body).toBe("Build Supplies Ltd · expected 15 Jan · PO PO-881");
+      const [{ v }] = await db.query<{ v: { name: string; delivered: number }[] }>(`select public.get_project_materials('${PROJECTS.valletta}') as v`);
+      expect(v).toEqual([expect.objectContaining({ name: "Plasterboard 12.5mm", delivered: 40 })]);
+    });
+  });
+
+  it("once it's being handled, the requester can't change it any more", async () => {
+    const setup = `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true); ${create()};
+      select set_config('request.jwt.claims', '{"sub":"${USERS.manager}","role":"authenticated"}', true);
+      update public.material_requests set status = 'ordered' where id = '${req}'; reset role;`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      expect(await db.fails(`update public.material_requests set status = 'cancelled' where id = '${req}'`)).toMatch(/already being handled/);
+      expect(await db.query(`update public.material_request_items set quantity = 1 where request_id = '${req}' returning id`)).toHaveLength(0);
+    });
+  });
+
+  it("a manager who isn't on the project can't see or handle its requests", async () => {
+    const other = "20000000-0000-4000-8000-0000000000bb";
+    const setup = `insert into public.projects (id, name, created_by) values ('${other}', 'Gozo Villa', '${USERS.admin}');
+      insert into public.material_requests (id, project_id, requested_by, number) values ('${req}', '${other}', '${USERS.admin}', 1);`;
+    await withSetup(setup, USERS.manager, async (db) => {
+      expect(await count(db, "select 1 from public.material_requests")).toBe(0);
+      expect(await db.query(`update public.material_requests set status = 'ordered' where id = '${req}' returning id`)).toHaveLength(0);
+    });
+  });
+
+  it("comments notify the requester and managers; the morning job flags materials needed tomorrow that aren't ordered", async () => {
+    const setup = `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true); ${create()};
+      update public.material_requests set needed_by = public.malta_today() + 1 where id = '${req}'; reset role;`;
+    await withSetup(setup, USERS.manager, async (db) => {
+      await db.query(`insert into public.material_request_comments (request_id, body) values ('${req}', 'Is 15mm OK instead?')`);
+      await db.query("reset role");
+      await db.query("select public.create_due_notifications()");
+      const rows = await db.query<{ user_id: string; title: string }>("select user_id, title from public.notifications where type in ('material.comment', 'material.status') order by title");
+      expect(rows).toEqual([
+        { user_id: USERS.tech1, title: "Mark Borg commented on material request #1" },
+        { user_id: USERS.manager, title: "Material needed tomorrow, not ordered yet: #1 · Valletta Office Fit-out" },
+      ]);
+    });
+  });
+});

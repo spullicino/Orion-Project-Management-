@@ -1,11 +1,12 @@
 "use client";
 
 import { createDailyUpdate, createPhotoUploads, registerPhotos } from "@/app/(app)/daily-update/actions";
-import { outbox, type OutboxItem } from "./outbox";
+import { createMaterialPhotoUploads, createMaterialRequest, registerMaterialPhotos } from "@/app/(app)/materials/actions";
+import { materialOutbox, outbox, type MaterialOutboxItem, type OutboxItem } from "./outbox";
 import { NetworkError, uploadWithProgress } from "./upload";
 
 export type SyncProgress = { ref: string; done: number; total: number; photosDone: number; photosTotal: number };
-export type SyncResult = { sent: string[]; failed: { ref: string; error: string }[]; offline: boolean; signedOut: boolean };
+export type SyncResult = { sent: string[]; sentMaterials: string[]; failed: { ref: string; error: string }[]; offline: boolean; signedOut: boolean };
 
 const PHOTO_BATCH = 5;
 
@@ -79,12 +80,62 @@ async function sendItem(item: OutboxItem, onProgress: (p: SyncProgress) => void)
   }
 }
 
+/** Sends a material request, then its photos. */
+async function sendMaterial(item: MaterialOutboxItem, onProgress: (p: SyncProgress) => void) {
+  const pending = item.photos.filter((p) => !p.uploaded);
+  const total = 1 + item.photos.reduce((n, p) => n + p.full.size + p.thumb.size, 0);
+  let doneBytes = item.photos.filter((p) => p.uploaded).reduce((n, p) => n + p.full.size + p.thumb.size, 0);
+  let photosDone = item.photos.length - pending.length;
+  const report = (extra = 0) =>
+    onProgress({ ref: item.client_ref, done: doneBytes + extra, total, photosDone, photosTotal: item.photos.length });
+  report();
+
+  if (!item.created) {
+    const res = await call(() =>
+      createMaterialRequest({
+        id: item.client_ref,
+        project_id: item.project_id,
+        needed_by: item.needed_by,
+        urgent: item.urgent,
+        delivery_note: item.delivery_note,
+        items: item.items,
+        copied_from: item.copied_from,
+      }),
+    );
+    item.number = check(res).number;
+    item.created = true;
+    await materialOutbox.put(item);
+  }
+  doneBytes += 1;
+  report();
+
+  for (let i = 0; i < pending.length; i += PHOTO_BATCH) {
+    const batch = pending.slice(i, i + PHOTO_BATCH);
+    const urls = check(
+      await call(() =>
+        createMaterialPhotoUploads({ request_id: item.client_ref, photos: batch.map((p) => ({ id: p.id, size: p.full.size, thumb_size: p.thumb.size })) }),
+      ),
+    );
+    for (const photo of batch) {
+      const t = urls.find((x) => x.id === photo.id)!;
+      await uploadWithProgress(t.thumbUrl, photo.thumb, (n) => report(n));
+      await uploadWithProgress(t.fullUrl, photo.full, (n) => report(photo.thumb.size + n));
+      check(await call(() => registerMaterialPhotos({ request_id: item.client_ref, photos: [{ id: photo.id, width: photo.width, height: photo.height, size: photo.full.size }] })));
+      photo.uploaded = true;
+      doneBytes += photo.full.size + photo.thumb.size;
+      photosDone += 1;
+      await materialOutbox.put(item);
+      report();
+    }
+  }
+}
+
 let running: Promise<SyncResult> | null = null;
 
 /** Sends everything waiting in the outbox. Only one sync runs at a time. */
 export function syncOutbox(userId: string, onProgress: (p: SyncProgress) => void = () => {}): Promise<SyncResult> {
   running ??= (async () => {
-    const result: SyncResult = { sent: [], failed: [], offline: false, signedOut: false };
+    const result: SyncResult = { sent: [], sentMaterials: [], failed: [], offline: false, signedOut: false };
     try {
       for (const item of await outbox.list(userId)) {
         if (item.status === "failed") continue;
@@ -111,6 +162,34 @@ export function syncOutbox(userId: string, onProgress: (p: SyncProgress) => void
           result.failed.push({ ref: item.client_ref, error: fresh.last_error });
         }
       }
+      // Material requests, the same way (skipped if we already found we're offline / signed out).
+      if (!result.offline && !result.signedOut) {
+        for (const item of await materialOutbox.list(userId)) {
+          if (item.status === "failed") continue;
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            result.offline = true;
+            break;
+          }
+          try {
+            await sendMaterial(item, onProgress);
+            await materialOutbox.remove(item.client_ref);
+            result.sentMaterials.push(item.client_ref);
+          } catch (e) {
+            const fresh = (await materialOutbox.get(item.client_ref)) ?? item;
+            fresh.attempts += 1;
+            fresh.last_error = (e as Error).message;
+            if (e instanceof NetworkError) {
+              await materialOutbox.put(fresh);
+              if (e instanceof SignedOutError) result.signedOut = true;
+              else result.offline = true;
+              break;
+            }
+            fresh.status = "failed";
+            await materialOutbox.put(fresh);
+            result.failed.push({ ref: item.client_ref, error: fresh.last_error });
+          }
+        }
+      }
     } finally {
       running = null;
     }
@@ -122,8 +201,15 @@ export function syncOutbox(userId: string, onProgress: (p: SyncProgress) => void
 /** Puts a failed item back in the queue (after the user taps "Try again"). */
 export async function retryItem(ref: string) {
   const item = await outbox.get(ref);
-  if (!item) return;
-  item.status = "pending";
-  item.last_error = undefined;
-  await outbox.put(item);
+  if (item) {
+    item.status = "pending";
+    item.last_error = undefined;
+    await outbox.put(item);
+    return;
+  }
+  const m = await materialOutbox.get(ref);
+  if (!m) return;
+  m.status = "pending";
+  m.last_error = undefined;
+  await materialOutbox.put(m);
 }

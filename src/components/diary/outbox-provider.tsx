@@ -20,12 +20,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
 import { ProgressBar } from "@/components/ui/progress";
-import { onOutboxChange, outbox, type OutboxItem } from "@/lib/offline/outbox";
+import { materialOutbox, onOutboxChange, outbox, type MaterialOutboxItem, type OutboxItem } from "@/lib/offline/outbox";
 import { retryItem, syncOutbox, type SyncProgress } from "@/lib/offline/sync";
 import { formatDate } from "@/lib/utils";
 
+/** Everything waiting on this phone: daily updates and material requests. */
+export type QueueEntry = (OutboxItem & { kind: "daily" }) | (MaterialOutboxItem & { kind: "material" });
+
 type Ctx = {
-  items: OutboxItem[];
+  items: QueueEntry[];
   progress: Record<string, SyncProgress>;
   syncing: boolean;
   online: boolean;
@@ -33,6 +36,8 @@ type Ctx = {
   enqueue: (
     item: Omit<OutboxItem, "user_id" | "created_at" | "attempts" | "status">,
   ) => Promise<void>;
+  /** Saves a material request on this phone and starts sending it. */
+  enqueueMaterial: (item: Omit<MaterialOutboxItem, "user_id" | "created_at" | "attempts" | "status">) => Promise<void>;
   syncNow: () => Promise<void>;
 };
 
@@ -50,7 +55,7 @@ export function OutboxProvider({
   userId: string;
   children: React.ReactNode;
 }) {
-  const [items, setItems] = useState<OutboxItem[]>([]);
+  const [items, setItems] = useState<QueueEntry[]>([]);
   const [progress, setProgress] = useState<Record<string, SyncProgress>>({});
   const [syncing, setSyncing] = useState(false);
   const [online, setOnline] = useState(true);
@@ -59,7 +64,11 @@ export function OutboxProvider({
 
   const reload = useCallback(async () => {
     try {
-      setItems(await outbox.list(userRef.current));
+      const [daily, materials] = await Promise.all([outbox.list(userRef.current), materialOutbox.list(userRef.current)]);
+      setItems([
+        ...daily.map((d) => ({ ...d, kind: "daily" as const })),
+        ...materials.map((m) => ({ ...m, kind: "material" as const })),
+      ].sort((a, b) => a.created_at - b.created_at));
     } catch {
       // IndexedDB unavailable (e.g. some private browsing modes): nothing queued.
     }
@@ -77,8 +86,11 @@ export function OutboxProvider({
             ? "Daily update sent"
             : `${res.sent.length} daily updates sent`,
         );
-        router.refresh();
       }
+      if (res.sentMaterials.length) {
+        toast.success(res.sentMaterials.length === 1 ? "Material request sent" : `${res.sentMaterials.length} material requests sent`);
+      }
+      if (res.sent.length || res.sentMaterials.length) router.refresh();
       for (const f of res.failed)
         toast.error(`An update couldn't be sent: ${f.error}`);
     } catch {
@@ -111,6 +123,19 @@ export function OutboxProvider({
     [reload, syncNow],
   );
 
+  const enqueueMaterial: Ctx["enqueueMaterial"] = useCallback(
+    async (item) => {
+      await materialOutbox.put({ ...item, user_id: userRef.current, created_at: Date.now(), attempts: 0, status: "pending" });
+      await reload();
+      if (!navigator.onLine) {
+        toast.info("You're offline. The request is saved on this phone and will be sent automatically.");
+        return;
+      }
+      void syncNow();
+    },
+    [reload, syncNow],
+  );
+
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial online state comes from the browser
@@ -132,10 +157,8 @@ export function OutboxProvider({
     void syncNow();
     const timer = setInterval(() => {
       if (navigator.onLine)
-        void outbox
-          .list(userRef.current)
-          .then((l) => {
-          if (l.some((i) => i.status === "pending")) void syncNow();
+        void Promise.all([outbox.list(userRef.current), materialOutbox.list(userRef.current)]).then(([a, b]) => {
+          if ([...a, ...b].some((i) => i.status === "pending")) void syncNow();
         });
     }, 60_000);
     return () => {
@@ -149,7 +172,7 @@ export function OutboxProvider({
 
   return (
     <OutboxContext
-      value={{ items, progress, syncing, online, enqueue, syncNow }}
+      value={{ items, progress, syncing, online, enqueue, enqueueMaterial, syncNow }}
     >
       {children}
     </OutboxContext>
@@ -183,7 +206,7 @@ export function OutboxPanel({ compact = false }: { compact?: boolean }) {
         )}
         <span className="flex-1">
           {sending > 0 &&
-            `${sending} daily ${sending === 1 ? "update" : "updates"} waiting to send${online ? "" : " (offline)"}. `}
+            `${sending} ${sending === 1 ? "item" : "items"} (daily updates / material requests) waiting to send${online ? "" : " (offline)"}. `}
           {failed > 0 && `${failed} couldn't be sent — tap to fix.`}
         </span>
       </a>
@@ -234,7 +257,9 @@ export function OutboxPanel({ compact = false }: { compact?: boolean }) {
             <li key={i.client_ref} className="rounded-lg border bg-card p-3">
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {i.project_name} · {formatDate(i.work_date)}
+                  {i.kind === "daily"
+                    ? `${i.project_name} · Daily update ${formatDate(i.work_date)}`
+                    : `${i.project_name} · Material request (${i.items.length} ${i.items.length === 1 ? "item" : "items"})`}
                 </span>
                 {i.status === "failed" ? (
                   <>
@@ -251,14 +276,14 @@ export function OutboxPanel({ compact = false }: { compact?: boolean }) {
                     <Button
                       size="icon"
                       variant="ghost"
-                      aria-label="Delete this unsent update"
+                      aria-label="Delete this unsent item"
                       onClick={async () => {
                         if (
-                          await confirm("Delete this unsent update?", {
+                          await confirm("Delete this unsent item?", {
                             body: "It hasn't been sent, so it will be lost.",
                           })
                         )
-                          await outbox.remove(i.client_ref);
+                          await (i.kind === "daily" ? outbox : materialOutbox).remove(i.client_ref);
                       }}
                     >
                       <Trash2 />

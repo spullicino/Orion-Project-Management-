@@ -395,6 +395,54 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "materials",
+    title: "Material requests",
+    icon: "Package",
+    summary: "Asking for materials to be delivered to site, and tracking them until they arrive.",
+    where: "Projects → a project → Materials, or Materials in the menu",
+    guides: [
+      {
+        title: "Request materials",
+        minRole: "technician",
+        steps: [
+          "Open the project and tap the **Materials** tab (or **Materials** in the menu and choose the project).",
+          "Tap **New request**.",
+          "For each item, write what you need, the quantity and the unit (e.g. Plasterboard 12.5mm, 40 sheets). Tap **Add another item** for more.",
+          "Set **Needed by**, switch on **Urgent** if it is, and add **Delivery notes** (e.g. which gate to use).",
+          "Add photos if they help (e.g. the label of what's needed), then tap **Send request**.",
+        ],
+        tip: "No signal? Send it anyway — it's saved on your phone and sent automatically when you're back online. You'll be notified when it's ordered and delivered.",
+      },
+      {
+        title: "Change or cancel your request",
+        minRole: "technician",
+        steps: [
+          "Open the request. While it still says **Requested**, tap **Edit** to change it, or **Cancel request**.",
+          "Once a manager has ordered it, ask questions in **Comments** instead.",
+        ],
+      },
+      {
+        title: "Order and receive materials",
+        minRole: "manager",
+        steps: [
+          "You're notified of every new request on your projects. Open it from the bell or from **Materials**.",
+          "Tap **Mark ordered** and add the supplier, PO number and expected delivery date. The worker is told it's on its way.",
+          "Tap **PDF for supplier** for a clean list to email to the supplier.",
+          "When it arrives, tap **Record delivery**. Change any quantity that came short — it's then marked **Partly delivered** until the rest arrives.",
+          "If it isn't needed, tap **Reject** and say why.",
+        ],
+        tip: "Requests whose needed-by date has passed are marked **Late**. You also get a morning reminder for materials needed today or tomorrow that haven't been ordered.",
+      },
+      {
+        title: "Order the same again, and see what's been delivered",
+        steps: [
+          "Open an earlier request and tap **Reorder** to start a new one with the same items.",
+          "On a project's **Materials** tab, **Delivered so far** adds up everything delivered to that project.",
+        ],
+      },
+    ],
+  },
+  {
     id: "chats",
     title: "Chats",
     icon: "MessagesSquare",

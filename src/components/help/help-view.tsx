@@ -11,6 +11,7 @@ import {
   Lightbulb,
   ListChecks,
   MapPin,
+  Package,
   MessagesSquare,
   NotebookTabs,
   Rocket,
@@ -33,7 +34,7 @@ import type { AppRole } from "@/types/database";
 
 const ICONS: Record<string, LucideIcon> = {
   Bell, ClipboardPenLine, FolderKanban, GanttChartSquare, House, LayoutDashboard, ListChecks, MessagesSquare,
-  NotebookTabs, Rocket, Share2, ShieldCheck, Table2, UserRound, Users, WifiOff,
+  NotebookTabs, Package, Rocket, Share2, ShieldCheck, Table2, UserRound, Users, WifiOff,
 };
 
 /** Shows **bold** parts of a help sentence in bold. */

@@ -20,6 +20,9 @@ const TYPES: { key: string; label: string }[] = [
   { key: "task.overdue", label: "My tasks are overdue" },
   { key: "daily.new", label: "New daily updates on my projects (managers)" },
   { key: "personal.due", label: "My personal to-dos are due" },
+  { key: "material.new", label: "New material requests on my projects (managers)" },
+  { key: "material.status", label: "Updates on material requests (ordered, delivered…)" },
+  { key: "material.comment", label: "Comments on material requests" },
 ];
 
 export function NotificationSettings({ initial, pushAvailable }: { initial: NotificationPrefs; pushAvailable: boolean }) {

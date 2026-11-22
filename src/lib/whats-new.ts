@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-22-material-requests",
+    date: "2026-11-22",
+    title: "Material requests 📦",
+    body: "Ask for materials to be delivered to site from a project's new Materials tab — items, quantities, needed-by date and photos, even without signal. Managers mark them ordered and delivered, and you're told at each step. Includes a PDF for suppliers, Reorder, and a running list of what's been delivered.",
+    help: "/help#materials",
+  },
+  {
     id: "2026-11-22-stay-signed-in",
     date: "2026-11-22",
     title: "Fewer unexpected sign-outs",
