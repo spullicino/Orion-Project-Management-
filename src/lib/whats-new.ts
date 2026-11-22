@@ -17,6 +17,12 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-22-stay-signed-in",
+    date: "2026-11-22",
+    title: "Fewer unexpected sign-outs",
+    body: "With “Keep me signed in” ticked, the app now keeps you signed in on iPhone too — a weak signal on site no longer sends you back to the sign-in page.",
+  },
+  {
     id: "2026-11-22-chat-media",
     date: "2026-11-22",
     title: "Photos & files in chats",

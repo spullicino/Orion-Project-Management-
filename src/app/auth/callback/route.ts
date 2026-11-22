@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { maybeBootstrapAdmin } from "@/lib/auth/bootstrap";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { SESSION_ONLY_COOKIE } from "@/lib/supabase/remember";
 import { safeNextPath } from "@/lib/validation/auth";
 
 /** Google sign-in returns here with a one-time code that we swap for a session. */
@@ -10,7 +12,9 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(searchParams.get("next"));
 
   if (code) {
-    const supabase = await createClient();
+    // These sign-ins are always remembered on this device.
+    (await cookies()).delete(SESSION_ONLY_COOKIE);
+    const supabase = await createClient({ sessionOnly: false });
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.user) {
       await maybeBootstrapAdmin(data.user);

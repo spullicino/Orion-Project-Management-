@@ -1,4 +1,5 @@
 import "server-only";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { maybeBootstrapAdmin } from "@/lib/auth/bootstrap";
@@ -53,7 +54,11 @@ async function repairMissingProfile(userId: string): Promise<string | null> {
 /** Who is signed in, and their profile. Cached per request. */
 export const getSessionState = cache(async (): Promise<SessionState> => {
   const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
+  const { data: claims, error: claimsError } = await supabase.auth.getClaims();
+  if (!claims?.claims?.sub && claimsError && isAuthRetryableFetchError(claimsError)) {
+    // Don't treat a dropped connection as "signed out" (that would send people to the login page).
+    throw new Error("We couldn't reach the server to check your sign-in. Please check your connection and try again.");
+  }
   const userId = claims?.claims?.sub ?? null;
   const email = (claims?.claims?.email as string | undefined) ?? null;
   const meta = (claims?.claims?.user_metadata ?? {}) as Record<string, unknown>;
