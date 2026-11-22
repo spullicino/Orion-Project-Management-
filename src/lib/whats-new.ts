@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-22-copy-task",
+    date: "2026-11-22",
+    title: "Copy a task to other projects",
+    body: "Set up a task once — like a monthly bill — and copy it to other projects, each with its own date. Open the task and tap “Copy to other projects”.",
+    help: "/help#tasks",
+    minRole: "technician",
+  },
+  {
     id: "2026-11-21-project-access",
     date: "2026-11-21",
     title: "You only see your own projects",

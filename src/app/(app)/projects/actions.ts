@@ -8,6 +8,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
 import {
+  copyTaskSchema,
   ATTACHMENT_MAX_BYTES,
   checklistItemSchema,
   clientSchema,
@@ -630,4 +631,55 @@ export async function deleteClient(clientId: string): Promise<Result> {
   if (error) return fail(friendly(error.message));
   revalidatePath("/clients");
   return { ok: true, message: "Client deleted" };
+}
+
+export type CopyTarget = { id: string; name: string; color: string; groups: { id: string; name: string }[] };
+
+/** Projects the current user can add tasks to (for "Copy to other projects"), with their groups. */
+export async function loadCopyTargets(excludeProjectId: string): Promise<Result<CopyTarget[]>> {
+  const me = await requireActiveProfile();
+  if (!hasRole(me.role, "technician")) return { ok: true, data: [] };
+  const supabase = await createClient();
+  const [{ data: projects, error }, { data: memberships }] = await Promise.all([
+    supabase.from("projects").select("id, name, color, status").eq("is_template", false).neq("status", "archived").order("name"),
+    supabase.from("project_members").select("project_id").eq("user_id", me.id),
+  ]);
+  if (error) return fail(friendly(error.message));
+  const mine = new Set((memberships ?? []).map((m) => m.project_id));
+  // Managers and admins can add tasks to every project they can see; technicians only to projects they're on.
+  const editable = (projects ?? []).filter((p) => p.id !== excludeProjectId && (hasRole(me.role, "manager") || mine.has(p.id)));
+  if (!editable.length) return { ok: true, data: [] };
+  const { data: groups } = await supabase
+    .from("groups")
+    .select("id, name, project_id, position")
+    .in("project_id", editable.map((p) => p.id))
+    .order("position");
+  return {
+    ok: true,
+    data: editable.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      groups: (groups ?? []).filter((g) => g.project_id === p.id).map((g) => ({ id: g.id, name: g.name })),
+    })),
+  };
+}
+
+/** Copies a task into other projects (see migration 0018 for what is and isn't copied). */
+export async function copyTask(taskId: string, input: unknown): Promise<Result<{ project_id: string; task_id: string }[]>> {
+  const me = await requireActiveProfile();
+  if (!hasRole(me.role, "technician")) return fail("You don't have permission to do that.");
+  if (!uuid.safeParse(taskId).success) return fail("Invalid task");
+  const parsed = copyTaskSchema.safeParse(input);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("copy_task_to_projects", { p_task: taskId, p_targets: parsed.data.targets });
+  if (error) {
+    if (/function .* does not exist|schema cache/i.test(error.message)) return fail("Copying tasks needs the latest database update (ask your administrator).");
+    return fail(friendly(error.message));
+  }
+  const copied = (data ?? []) as { project_id: string; task_id: string }[];
+  for (const c of copied) refreshProject(c.project_id);
+  queuePush(); // owners on the other projects are told they have a task
+  return { ok: true, data: copied };
 }

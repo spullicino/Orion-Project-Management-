@@ -130,3 +130,11 @@ export const shareLinkSchema = z.object({
 
 export const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 export const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] as const;
+
+/** Copy a task into other projects: for each, optionally a group and a new due date. */
+export const copyTaskSchema = z.object({
+  targets: z
+    .array(z.object({ project_id: uuid, group_id: uuid.nullable().optional(), due_date: optionalDate }))
+    .min(1, "Choose at least one project")
+    .max(50),
+});

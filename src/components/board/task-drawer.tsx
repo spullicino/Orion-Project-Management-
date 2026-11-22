@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X } from "lucide-react";
+import { Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -30,6 +30,7 @@ import { cn, fullName } from "@/lib/utils";
 import { ATTACHMENT_MAX_BYTES } from "@/lib/validation/projects";
 import type { BoardTask, TaskDetail } from "@/types/board";
 import { useBoard } from "./board-context";
+import { CopyTaskDialog } from "./copy-task-dialog";
 import { DateCell, InternalSwitch, OwnerPicker, PriorityPicker, ProgressCell, RepeatPicker, StatusPicker } from "./cells";
 
 function timeAgo(iso: string) {
@@ -117,6 +118,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
   const [detail, setDetail] = useState<TaskDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
+  const [copyOpen, setCopyOpen] = useState(false);
   const [checkItem, setCheckItem] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -485,6 +487,12 @@ function DrawerBody({ task }: { task: BoardTask }) {
               </ul>
             </Section>
 
+            <div className="flex flex-wrap gap-2">
+            {perms.canEdit && (
+              <Button variant="outline" onClick={() => setCopyOpen(true)}>
+                <Copy aria-hidden /> Copy to other projects
+              </Button>
+            )}
             {perms.canManage && (
               <Button
                 variant="outline"
@@ -502,9 +510,13 @@ function DrawerBody({ task }: { task: BoardTask }) {
                 <Trash2 aria-hidden /> Delete task
               </Button>
             )}
+            </div>
           </>
         )}
       </div>
+      {perms.canEdit && (
+        <CopyTaskDialog task={task} groupName={board.groups.find((g) => g.id === task.group_id)?.name ?? ""} open={copyOpen} onClose={() => setCopyOpen(false)} />
+      )}
       {dialog}
     </div>
   );

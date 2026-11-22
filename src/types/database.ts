@@ -279,6 +279,7 @@ export type Database = {
       create_due_notifications: { Args: Record<string, never>; Returns: number };
       claim_push_batch: { Args: { p_limit?: number }; Returns: Json };
       claim_chat_push_batch: { Args: { p_limit?: number }; Returns: Json };
+      copy_task_to_projects: { Args: { p_task: string; p_targets: Json }; Returns: Json };
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };

@@ -1120,3 +1120,48 @@ describe("people only see projects they're on (managers included; admins see all
     });
   });
 });
+
+describe("copy a task to other projects", () => {
+  const task = "40000000-0000-4000-8000-000000000004"; // Valletta "Electrical first fix": tech1 owner, 3 checklist items
+  const copy = (targets: string) => `select public.copy_task_to_projects('${task}', '${targets}'::jsonb) as v`;
+  type Copied = { title: string; due: string; days: number; done: boolean; checks: number; ticked: number; owners: string[]; internal: boolean; rule: string | null };
+  const copiedInto = async (db: { query: <T>(s: string) => Promise<T[]> }, project: string) =>
+    db.query<Copied>(`select n.title, n.due_date::text as due, (n.due_date - o.due_date) as days, (n.completed_at is not null) as done,
+        n.is_internal as internal, n.repeat_rule as rule,
+        (select count(*)::int from public.task_checklist_items c where c.task_id = n.id) as checks,
+        (select count(*)::int from public.task_checklist_items c where c.task_id = n.id and c.is_done) as ticked,
+        coalesce((select array_agg(a.user_id::text order by a.user_id) from public.task_assignees a where a.task_id = n.id), '{}') as owners
+      from public.tasks n, public.tasks o where o.id = '${task}' and n.project_id = '${project}' and n.title = 'Electrical first fix'`);
+
+  it("a manager copies it to another project with a new date; owners not on that project are left off", async () => {
+    await asUser(USERS.manager, async (db) => {
+      await db.query(`update public.tasks set is_internal = true, repeat_rule = 'monthly' where id = '${task}'`);
+      await db.query(`insert into public.task_assignees (task_id, user_id) values ('${task}', '${USERS.manager}')`);
+      const [{ v }] = await db.query<{ v: { project_id: string; task_id: string }[] }>(
+        copy(`[{"project_id":"${PROJECTS.mosta}","due_date":"2027-01-20"}]`),
+      );
+      expect(v).toHaveLength(1);
+      const [c] = await copiedInto(db, PROJECTS.mosta);
+      // Mosta members: manager + tech2 — so tech1 (not on Mosta) is dropped.
+      expect(c).toMatchObject({ due: "2027-01-20", done: false, checks: 3, ticked: 0, internal: true, rule: "monthly", owners: [USERS.manager] });
+    });
+  });
+
+  it("a technician can't copy into a project they're not on", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(copy(`[{"project_id":"${PROJECTS.mosta}"}]`))).toMatch(/can't add tasks/);
+    });
+  });
+
+  it("nobody can copy a task from a project they can't see", async () => {
+    await asUser(USERS.tech2, async (db) => {
+      expect(await db.fails(copy(`[{"project_id":"${PROJECTS.mosta}"}]`))).toMatch(/Task not found/);
+    });
+  });
+
+  it("basic users can't copy at all", async () => {
+    await asUser(USERS.basic, async (db) => {
+      expect(await db.fails(copy(`[{"project_id":"${PROJECTS.valletta}"}]`))).toMatch(/can't add tasks/);
+    });
+  });
+});

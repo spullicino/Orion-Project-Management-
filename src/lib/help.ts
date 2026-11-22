@@ -179,6 +179,17 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Repeating tasks show a 🔁 symbol on the board. Finished late? The next one is still set in the future, not already overdue.",
       },
       {
+        title: "Copy a task to other projects",
+        minRole: "technician",
+        steps: [
+          "Open the task, e.g. an internal “Monthly bill”.",
+          "At the bottom of the task, tap **Copy to other projects**.",
+          "Tick the projects to copy it to. For each one, choose the **Group** and the **Due date**.",
+          "Tap **Copy**. Each copy starts as Not started, with the same details, checklist (unticked), Internal and Repeat settings.",
+        ],
+        tip: "Owners are kept only if they're on that project. Comments, files and history stay with the original.",
+      },
+      {
         title: "Keep a task internal (team only)",
         minRole: "technician",
         steps: [
