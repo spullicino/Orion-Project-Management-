@@ -52,6 +52,18 @@ export function MaterialsView({
   // eslint-disable-next-line react-hooks/set-state-in-effect -- fresh server data replaces the list
   useEffect(() => setList(initial), [initial]);
 
+  // Home's "Request materials" shortcut opens the form straight away (/materials?new=1).
+  const wantsNew = params.get("new") === "1";
+  useEffect(() => {
+    if (!wantsNew) return;
+    const canAsk = projectId ? editable.some((p) => p.id === projectId) : editable.length > 0;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- opened from a link
+    if (canAsk) setForm({ start: { mode: "new" }, projectId, key: Date.now() });
+    const next = new URLSearchParams(params.toString());
+    next.delete("new");
+    router.replace(next.toString() ? `${pathname}?${next}` : pathname, { scroll: false });
+  }, [wantsNew]); // eslint-disable-line react-hooks/exhaustive-deps -- only when the link is opened
+
   const reload = useCallback(async () => {
     const [res, mats] = await Promise.all([loadMaterialRequests(projectId ?? null), projectId ? loadProjectMaterials(projectId) : Promise.resolve(null)]);
     if (res.ok) setList(res.data ?? []);

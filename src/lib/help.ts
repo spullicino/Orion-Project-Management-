@@ -405,7 +405,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Request materials",
         minRole: "technician",
         steps: [
-          "Open the project and tap the **Materials** tab (or **Materials** in the menu and choose the project).",
+          "Tap **Request materials** on Home (or open the project and tap the **Materials** tab).",
           "Tap **New request**.",
           "For each item, write what you need, the quantity and the unit (e.g. Plasterboard 12.5mm, 40 sheets). Tap **Add another item** for more.",
           "Set **Needed by**, switch on **Urgent** if it is, and add **Delivery notes** (e.g. which gate to use).",
