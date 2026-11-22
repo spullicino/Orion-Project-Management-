@@ -65,6 +65,87 @@ export type Row = TaskRow | GroupRow | MilestoneRow;
 export type Tick = { x: number; width: number; label: string; weekend?: boolean };
 export type DepPath = { from: string; to: string; d: string; late: boolean };
 
+export type MilestoneLabel = {
+  ids: string[];
+  /** x of the text's anchor point; anchor "end" means the text ends there (label left of the diamond). */
+  x: number;
+  anchor: "start" | "end";
+  /** 0 = top/only line, 1 = second line (used when labels would collide). */
+  line: 0 | 1;
+  text: string;
+  full: string;
+};
+
+/** Approximate width of 11px bold text (exports have no font measuring). */
+export const LABEL_CHAR_W = 6.6;
+const MILESTONE_ROW_TWO_LINES = 52;
+
+/**
+ * Places milestone labels without overlaps. First tries one line (label beside its diamond,
+ * right or left). If anything collides, uses two lines: labels above and below the diamonds,
+ * alternating so neighbours don't touch. Milestones on the same day share one label; a label
+ * that still can't fit is shortened to the room available.
+ */
+export function placeMilestoneLabels(ms: { id: string; title: string; date: string; x: number }[], width: number): { labels: MilestoneLabel[]; twoLines: boolean } {
+  const clusters: { ids: string[]; full: string; short: string; x: number }[] = [];
+  for (const m of [...ms].sort((a, b) => a.x - b.x)) {
+    const last = clusters[clusters.length - 1];
+    if (last && Math.abs(last.x - m.x) < 1) {
+      last.ids.push(m.id);
+      last.full += ` · ${m.title}`;
+      last.short = `${m.title} (+${last.ids.length - 1})`; // latest one added, e.g. "Practical completion (+2)"
+    } else clusters.push({ ids: [m.id], full: m.title, short: m.title, x: m.x });
+  }
+  const GAP = 6;
+
+  const place = (twoLines: boolean) => {
+    const lines: (0 | 1)[] = twoLines ? [0, 1] : [0];
+    // On one line, labels sit beside the diamonds, so diamonds count as taken space.
+    const busy: [number, number][][] = [twoLines ? [] : clusters.map((c) => [c.x - 10, c.x + 10]), []];
+    const free = (line: 0 | 1, a: number, b: number) => a >= 0 && b <= width && busy[line].every(([s, e]) => b + GAP <= s || a >= e + GAP);
+    const labels: MilestoneLabel[] = [];
+    let allFull = true;
+    clusters.forEach((c, i) => {
+      const w = c.full.length * LABEL_CHAR_W;
+      // Beside the diamond (one line): start 16px to its right, or end 16px to its left.
+      // Above/below it (two lines): start just left of it, or end just right of it.
+      const rightStart = twoLines ? c.x - 4 : c.x + 16;
+      const leftEnd = twoLines ? c.x + 4 : c.x - 16;
+      // Alternate the preferred line so neighbouring milestones go above / below.
+      const order = twoLines ? (i % 2 === 0 ? lines : [...lines].reverse()) : lines;
+      const options = order.flatMap((line) => [
+        { line, anchor: "start" as const, x: rightStart, a: rightStart, b: rightStart + w },
+        { line, anchor: "end" as const, x: leftEnd, a: leftEnd - w, b: leftEnd },
+      ]);
+      const pick = options.find((o) => free(o.line, o.a, o.b));
+      if (pick) {
+        busy[pick.line].push([pick.a, pick.b]);
+        labels.push({ ids: c.ids, x: pick.x, anchor: pick.anchor, line: pick.line, text: c.full, full: c.full });
+        return;
+      }
+      allFull = false;
+      // Shorten to the largest free gap to the right of the diamond.
+      const startX = rightStart;
+      const room = order.map((line) => {
+        const next = Math.min(width, ...busy[line].filter(([s]) => s >= startX).map(([s]) => s - GAP));
+        const blocked = busy[line].some(([s, e]) => s < startX && e + GAP > startX);
+        return { line, chars: blocked ? 0 : Math.floor((next - startX) / LABEL_CHAR_W) };
+      });
+      const best = room.reduce((a, b) => (b.chars > a.chars ? b : a));
+      if (best.chars >= 6) {
+        const text = ellipsize(c.ids.length > 1 ? c.short : c.full, best.chars);
+        busy[best.line].push([startX, startX + text.length * LABEL_CHAR_W]);
+        labels.push({ ids: c.ids, x: startX, anchor: "start", line: best.line, text, full: c.full });
+      }
+    });
+    return { labels, allFull };
+  };
+
+  const one = place(false);
+  if (one.allFull) return { labels: one.labels, twoLines: false };
+  return { labels: place(true).labels, twoLines: true };
+}
+
 export type GanttLayout = {
   start: string;
   end: string;
@@ -77,6 +158,8 @@ export type GanttLayout = {
   bottomTicks: Tick[];
   deps: DepPath[];
   milestones: (GanttMilestone & { x: number })[];
+  /** Where each milestone label goes, so labels never overlap (milestones on the same day share one). */
+  milestoneLabels: MilestoneLabel[];
   todayX: number | null;
   /** Legend for the chosen colouring. */
   legend: { label: string; color: string }[];
@@ -169,11 +252,15 @@ export function layoutGantt(input: GanttInput, opts: GanttOptions): GanttLayout 
   const xFor = (iso: string) => daysBetween(start, iso) * dayWidth;
   const labelsById = new Map(input.labels.map((l) => [l.id, l]));
 
+  const milestones = input.milestones.map((m) => ({ ...m, x: xFor(m.date) + dayWidth / 2 }));
+  const placed = placeMilestoneLabels(milestones, days * dayWidth);
+
   const rows: Row[] = [];
   let y = HEADER_HEIGHT;
   if (input.milestones.length) {
-    rows.push({ kind: "milestones", y, height: MILESTONE_ROW_HEIGHT });
-    y += MILESTONE_ROW_HEIGHT;
+    const h = placed.twoLines ? MILESTONE_ROW_TWO_LINES : MILESTONE_ROW_HEIGHT;
+    rows.push({ kind: "milestones", y, height: h });
+    y += h;
   }
 
   const taskRowById = new Map<string, TaskRow>();
@@ -242,7 +329,8 @@ export function layoutGantt(input: GanttInput, opts: GanttOptions): GanttLayout 
     topTicks: top,
     bottomTicks: bottom,
     deps,
-    milestones: input.milestones.map((m) => ({ ...m, x: xFor(m.date) + dayWidth / 2 })),
+    milestones,
+    milestoneLabels: placed.labels,
     todayX: todayInRange ? xFor(today) + dayWidth / 2 : null,
     legend,
   };

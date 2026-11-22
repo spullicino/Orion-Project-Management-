@@ -125,7 +125,8 @@ function ExportSvg({
       <g transform={`translate(${PAD}, ${chartTop})`}>
         <rect x={0} y={0} width={chartW} height={chartH} fill="#ffffff" stroke={C.grid} />
         {chart(`hdr-${page.index}`, 0, HEADER_HEIGHT, 0)}
-        <g transform={`translate(0, 0)`}>{chart(`body-${page.index}`, page.y0, bodyH, shift)}</g>
+        {/* After shifting this page's rows up, they sit right under the header — clip exactly there. */}
+        {chart(`body-${page.index}`, HEADER_HEIGHT, bodyH, shift)}
         <line x1={LABEL_W} x2={LABEL_W} y1={0} y2={chartH} stroke={C.grid} />
       </g>
 

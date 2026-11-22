@@ -2,7 +2,7 @@
  * Presentational SVG pieces of the Gantt chart. No hooks, no browser APIs:
  * used on screen, on the public share page and rendered to a string for exports.
  */
-import { BAR_HEIGHT, ellipsize, HEADER_HEIGHT, type GanttLayout, type Row, type TaskRow } from "@/lib/gantt/layout";
+import { BAR_HEIGHT, ellipsize, HEADER_HEIGHT, LABEL_CHAR_W, type GanttLayout, type Row, type TaskRow } from "@/lib/gantt/layout";
 
 export const FONT = "Inter, Helvetica, Arial, sans-serif";
 export const C = {
@@ -208,7 +208,8 @@ export function GanttTimeline({
         const w = o ? o.width : r.bar.width;
         const y = r.y + (r.height - BAR_HEIGHT) / 2;
         const done = !!r.task.completed_at;
-        const label = ellipsize(r.task.title, Math.floor((w - 12) / 6.6));
+        // The name goes inside the bar if it fits, otherwise in full just to the right of it.
+        const inside = r.task.title.length * LABEL_CHAR_W + 16 <= w;
         const draggable = !!handlers.onBarPointerDown;
         return (
           <g key={`bar-${r.task.id}`} opacity={o ? 0.85 : 1}>
@@ -226,9 +227,14 @@ export function GanttTimeline({
             />
             {/* progress fill */}
             <rect x={x + 1} y={y} width={Math.max((Math.max(w - 2, 4) * r.task.progress) / 100, 0)} height={BAR_HEIGHT} rx={6} fill={r.color} pointerEvents="none" />
-            {w > 40 && (
+            {inside ? (
               <text x={x + 8} y={y + 15} fontSize={11} fontWeight={700} fill={textColor} pointerEvents="none">
-                {label}
+                {r.task.title}
+              </text>
+            ) : (
+              // Regular weight on purpose: PDFs only have regular and bold Helvetica (anything else turns into Times).
+              <text x={x + w + 14} y={y + 15} fontSize={11} fill={textColor} pointerEvents="none">
+                {ellipsize(r.task.title, 48)}
               </text>
             )}
             {draggable && (
@@ -254,11 +260,31 @@ export function GanttTimeline({
               onPointerDown={handlers.onMilestonePointerDown ? (e) => handlers.onMilestonePointerDown!(e, m.id) : undefined}
               onClick={handlers.onMilestoneClick && !handlers.onMilestonePointerDown ? () => handlers.onMilestoneClick!(m.id) : undefined}
             >
+              <title>{m.title}</title>
               <path d={`M${x},${cy - s} L${x + s},${cy} L${x},${cy + s} L${x - s},${cy} Z`} fill={m.color} stroke="#ffffff" strokeWidth={1.5} />
-              <text x={x + s + 5} y={cy + 4} fontSize={11} fontWeight={700} fill={textColor}>
-                {ellipsize(m.title, 28)}
-              </text>
             </g>
+          );
+        })}
+      {msRow &&
+        layout.milestoneLabels.map((l) => {
+          const cy = msRow.y + msRow.height / 2;
+          const two = layout.milestoneLabels.some((x) => x.line === 1);
+          const dragged = handlers.milestoneOverride && l.ids.includes(handlers.milestoneOverride.id) ? layout.milestones.find((m) => m.id === handlers.milestoneOverride!.id) : null;
+          const dx = dragged ? handlers.milestoneOverride!.x - dragged.x : 0;
+          return (
+            <text
+              key={`msl-${l.ids.join("-")}`}
+              x={l.x + dx}
+              y={two ? (l.line === 0 ? msRow.y + 14 : msRow.y + msRow.height - 6) : cy + 4}
+              fontSize={11}
+              fontWeight={700}
+              fill={textColor}
+              textAnchor={l.anchor}
+              pointerEvents="none"
+            >
+              <title>{l.full}</title>
+              {l.text}
+            </text>
           );
         })}
 

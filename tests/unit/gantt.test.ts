@@ -93,3 +93,30 @@ describe("dragging and helpers", () => {
     expect(ellipsize("Paint", 10)).toBe("Paint");
   });
 });
+
+describe("milestone labels never overlap", () => {
+  it("moves colliding labels to a second line or the left, and merges same-day milestones", async () => {
+    const { placeMilestoneLabels, LABEL_CHAR_W } = await import("@/lib/gantt/layout");
+    const ms = [
+      { id: "a", title: "Floor 6 complete", date: "2027-02-24", x: 600 },
+      { id: "b", title: "Penthouses complete", date: "2027-03-10", x: 640 },
+      { id: "c", title: "Maisonettes complete", date: "2027-03-26", x: 700 },
+      { id: "d", title: "Practical completion – M&E", date: "2027-03-26", x: 700 },
+    ];
+    const { labels, twoLines } = placeMilestoneLabels(ms, 760);
+    expect(twoLines).toBe(true);
+    // Same day → one shared label.
+    expect(labels.find((l) => l.ids.includes("c"))!.ids).toEqual(["c", "d"]);
+    // No two labels on the same line overlap, and none run off the chart.
+    const boxes = labels.map((l) => {
+      const w = l.text.length * LABEL_CHAR_W;
+      const a = l.anchor === "start" ? l.x : l.x - w;
+      return { line: l.line, a, b: a + w };
+    });
+    for (const p of boxes) {
+      expect(p.a).toBeGreaterThanOrEqual(0);
+      expect(p.b).toBeLessThanOrEqual(760);
+      for (const q of boxes) if (p !== q && p.line === q.line) expect(p.b <= q.a || q.b <= p.a).toBe(true);
+    }
+  });
+});
