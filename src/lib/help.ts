@@ -428,6 +428,15 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Too many? **Mute** a busy chat, or switch off **New chat messages** in Profile → Notifications. Quiet hours keep your phone silent at night.",
       },
       {
+        title: "See all photos and files in a chat",
+        steps: [
+          "Open the chat and tap **Chat options** (⋯) at the top.",
+          "Tap **Photos & files**. Switch between **Photos** and **Files**; newest are first, grouped by month.",
+          "Tap a photo to see it full screen, or a file to open or download it.",
+          "Tap **Go to message** (or the speech-bubble next to a file) to jump to where it was posted.",
+        ],
+      },
+      {
         title: "Mute a chat",
         steps: [
           "Open the chat and tap **Chat options** (⋯) at the top.",

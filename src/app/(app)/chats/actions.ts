@@ -9,7 +9,7 @@ import { decorateMessages, getChannelPeople, getMessages, listChannels } from "@
 import { rateLimit } from "@/lib/rate-limit";
 import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
-import { chatThumbPath, type ChannelSummary, type ChatMessage, type ChatPerson } from "@/types/chat";
+import { chatThumbPath, type ChannelSummary, type ChatMediaItem, type ChatMessage, type ChatPerson } from "@/types/chat";
 
 const uuid = z.string().uuid();
 const fail = (error: string): Result<never> => ({ ok: false, error });
@@ -310,4 +310,32 @@ export async function archiveChannel(channelId: string): Promise<Result> {
   if (!data?.length) return fail("Project chats are archived together with their project.");
   revalidatePath("/chats", "layout");
   return { ok: true, message: "Chat archived" };
+}
+
+/** "Photos & files" of a chat, newest first, 60 at a time. */
+export async function loadChannelMedia(channelId: string, kind: "photos" | "files", before?: string | null): Promise<Result<ChatMediaItem[]>> {
+  if (!(await quietUser())) return fail("SIGNED_OUT");
+  if (!uuid.safeParse(channelId).success) return fail("Invalid chat");
+  if (before && Number.isNaN(Date.parse(before))) return fail("Invalid date");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_channel_media", { p_channel: channelId, p_kind: kind, p_before: before ?? null, p_limit: 60 });
+  if (error) {
+    if (/function .* does not exist|schema cache/i.test(error.message)) return fail("This needs the latest database update (ask your administrator).");
+    return fail(error.message);
+  }
+  const items = (data ?? []) as unknown as ChatMediaItem[];
+  const paths = items.flatMap((a) => (kind === "photos" ? [chatThumbPath(a.storage_path), a.storage_path] : [a.storage_path]));
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const { data: signed } = await supabase.storage.from("chat-files").createSignedUrls(paths, 60 * 60 * 2);
+    signed?.forEach((d) => d.path && d.signedUrl && urls.set(d.path, d.signedUrl));
+  }
+  return {
+    ok: true,
+    data: items.map((a) => ({
+      ...a,
+      url: urls.get(a.storage_path) ?? null,
+      thumb_url: kind === "photos" ? (urls.get(chatThumbPath(a.storage_path)) ?? null) : null,
+    })),
+  };
 }

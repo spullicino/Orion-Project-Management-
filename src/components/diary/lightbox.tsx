@@ -7,7 +7,18 @@ import { useEffect, useRef, useState } from "react";
 export type LightboxPhoto = { id: string; full_url?: string | null; thumb_url?: string | null; caption?: string | null; meta?: string };
 
 /** Full-screen photo viewer: swipe or use the arrows / keyboard to move between photos. */
-export function Lightbox({ photos, index, onClose }: { photos: LightboxPhoto[]; index: number | null; onClose: () => void }) {
+export function Lightbox({
+  photos,
+  index,
+  onClose,
+  action,
+}: {
+  photos: LightboxPhoto[];
+  index: number | null;
+  onClose: () => void;
+  /** Optional button under the photo, e.g. "Go to message". */
+  action?: { label: string; onClick: (photoIndex: number) => void };
+}) {
   const [i, setI] = useState(index ?? 0);
   const touchX = useRef<number | null>(null);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- jump to the photo that was tapped
@@ -79,8 +90,15 @@ export function Lightbox({ photos, index, onClose }: { photos: LightboxPhoto[]; 
               </>
             )}
           </div>
-          {(p?.caption || p?.meta) && (
-            <p className="p-4 pb-safe text-center text-sm text-white/80">{[p.caption, p.meta].filter(Boolean).join(" · ")}</p>
+          {(p?.caption || p?.meta || action) && (
+            <div className="grid justify-items-center gap-2 p-4 pb-safe">
+              {(p?.caption || p?.meta) && <p className="text-center text-sm text-white/80">{[p?.caption, p?.meta].filter(Boolean).join(" · ")}</p>}
+              {action && (
+                <button type="button" onClick={() => action.onClick(i)} className="h-11 rounded-lg bg-white/15 px-4 text-sm font-medium text-white hover:bg-white/25">
+                  {action.label}
+                </button>
+              )}
+            </div>
           )}
         </D.Content>
       </D.Portal>

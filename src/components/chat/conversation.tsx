@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowDown, ArrowLeft, Bell, BellOff, FolderOpen, Loader2, MoreVertical, Archive, Users } from "lucide-react";
+import { ChatMedia } from "./chat-media";
+
+import { ArrowDown, ArrowLeft, Bell, BellOff, FolderOpen, Loader2, MoreVertical, Archive, Users, Images } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -148,6 +150,7 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
   const [muted, setMutedState] = useState(channel.muted);
   const [newBelow, setNewBelow] = useState(0);
   const [thread, setThread] = useState<{ parent: ChatMessage; replies: ChatMessage[] } | null>(null);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const threadRef = useRef<string | null>(null);
   const drafts = useRef(new Map<string, { draft: Draft; parentId: string | null }>());
   const scroller = useRef<HTMLDivElement>(null);
@@ -351,6 +354,39 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
     requestAnimationFrame(() => (el.scrollTop = el.scrollHeight - prevHeight));
   }
 
+  // "Go to message" from Photos & files: open the thread for replies; otherwise load
+  // earlier messages until it's on screen, then scroll to it and highlight it briefly.
+  async function goToMessage(messageId: string, parentId: string | null) {
+    if (parentId) {
+      const res = await loadMessage(parentId);
+      if (!res.ok || !res.data) return void toast.error("That message is no longer available.");
+      actions.onReply?.(res.data);
+      return;
+    }
+    let list = messages;
+    let more = hasOlder;
+    for (let page = 0; !list.some((m) => m.id === messageId) && more && page < 25; page++) {
+      const first = list.find((m) => !m.pending);
+      if (!first) break;
+      const res = await loadOlder(channel.id, first.created_at);
+      if (!res.ok) return void toast.error(res.error);
+      more = (res.data?.length ?? 0) >= 40;
+      list = mergeMessages(list, res.data ?? []);
+    }
+    setMessages(list);
+    setHasOlder(more);
+    if (!list.some((m) => m.id === messageId)) return void toast.error("That message is too far back to show.");
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`msg-${messageId}`);
+        if (!el) return;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.classList.add("ring-2", "ring-primary");
+        setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 2500);
+      }),
+    );
+  }
+
   const typeLabel = channel.type === "project" ? "Project chat" : channel.type === "management" ? "Managers & administrators only" : "Company announcements";
 
   return (
@@ -388,6 +424,9 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setMediaOpen(true)}>
+              <Images /> Photos &amp; files
+            </DropdownMenuItem>
             {channel.project_id && (
               <DropdownMenuItem onSelect={() => router.push(`/projects/${channel.project_id}/board`)}>
                 <FolderOpen /> Open project
@@ -492,6 +531,7 @@ export function Conversation({ channel, initial, people, me }: { channel: Channe
         )}
       </Sheet>
       {dialog}
+      <ChatMedia channelId={channel.id} open={mediaOpen} onClose={() => setMediaOpen(false)} onGoToMessage={(a) => void goToMessage(a.message_id, a.parent_id)} />
     </div>
   );
 }

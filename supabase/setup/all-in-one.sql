@@ -4,7 +4,7 @@
 --
 -- Use this ONLY for a brand-new, empty Supabase project. For an existing
 -- installation, run just the new files from supabase/migrations instead.
--- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql
+-- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql, 20261130000019_chat_media.sql
 -- =====================================================================
 
 -- >>>>>>>>>>>>>>>>>>>> 20261119000001_foundation.sql
@@ -3633,3 +3633,47 @@ end;
 $$;
 revoke all on function public.copy_task_to_projects(uuid, jsonb) from public, anon;
 grant execute on function public.copy_task_to_projects(uuid, jsonb) to authenticated;
+
+
+-- >>>>>>>>>>>>>>>>>>>> 20261130000019_chat_media.sql
+-- =====================================================================
+-- Orion Projects — 0019 Photos & files of a chat
+--
+-- Every photo or file shared in a chat, newest first (like WhatsApp's "Media
+-- and docs"). Runs as the caller, so chat permissions apply: you only get
+-- media from chats you can read. Deleted messages are left out.
+-- =====================================================================
+
+create or replace function public.get_channel_media(
+  p_channel uuid,
+  p_kind text default 'photos',      -- 'photos' or 'files'
+  p_before timestamptz default null,
+  p_limit integer default 60
+)
+returns jsonb
+language sql stable security invoker
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(x order by x->>'created_at' desc, x->>'id' desc), '[]')
+  from (
+    select jsonb_build_object(
+      'id', a.id, 'message_id', m.id, 'parent_id', m.parent_id,
+      'storage_path', a.storage_path, 'file_name', a.file_name, 'mime_type', a.mime_type,
+      'size_bytes', a.size_bytes, 'width', a.width, 'height', a.height,
+      'created_at', m.created_at,
+      'author', (select jsonb_build_object('first_name', pr.first_name, 'last_name', pr.last_name) from public.profiles pr where pr.id = m.author_id)
+    ) as x
+    from public.message_attachments a
+    join public.messages m on m.id = a.message_id
+    where m.channel_id = p_channel
+      and m.deleted_at is null
+      and (p_before is null or m.created_at < p_before)
+      -- Same rule as the app: photos are the compressed JPEGs it creates (with a size); everything else is a file.
+      and case when p_kind = 'files' then not (a.mime_type = 'image/jpeg' and a.width is not null)
+               else (a.mime_type = 'image/jpeg' and a.width is not null) end
+    order by m.created_at desc, a.id desc
+    limit least(greatest(coalesce(p_limit, 60), 1), 200)
+  ) s
+$$;
+revoke all on function public.get_channel_media(uuid, text, timestamptz, integer) from public, anon;
+grant execute on function public.get_channel_media(uuid, text, timestamptz, integer) to authenticated;

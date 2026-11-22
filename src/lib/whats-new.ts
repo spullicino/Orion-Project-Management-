@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-22-chat-media",
+    date: "2026-11-22",
+    title: "Photos & files in chats",
+    body: "See every photo and file ever shared in a chat in one place — open the chat's ⋯ menu and tap “Photos & files”. Tap “Go to message” to jump to where it was posted.",
+    help: "/help#chats",
+  },
+  {
     id: "2026-11-22-copy-task",
     date: "2026-11-22",
     title: "Copy a task to other projects",

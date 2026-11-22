@@ -1165,3 +1165,33 @@ describe("copy a task to other projects", () => {
     });
   });
 });
+
+describe("photos & files of a chat", () => {
+  const valletta = `(select id from public.channels where project_id = '${PROJECTS.valletta}')`;
+  const setup = `
+    insert into public.messages (id, channel_id, author_id, body) values ('73000000-0000-4000-8000-000000000001', ${valletta}, '${USERS.tech1}', 'Photos');
+    insert into public.message_attachments (message_id, storage_path, file_name, mime_type, size_bytes, width, height) values
+      ('73000000-0000-4000-8000-000000000001', 'x/73000000-0000-4000-8000-000000000001/a.jpg', 'a.jpg', 'image/jpeg', 100, 10, 10),
+      ('73000000-0000-4000-8000-000000000001', 'x/73000000-0000-4000-8000-000000000001/plan.pdf', 'plan.pdf', 'application/pdf', 900, null, null);
+    insert into public.messages (id, channel_id, author_id, body, deleted_at) values ('73000000-0000-4000-8000-000000000002', ${valletta}, '${USERS.tech1}', '', now());
+    insert into public.message_attachments (message_id, storage_path, file_name, mime_type, size_bytes, width, height) values
+      ('73000000-0000-4000-8000-000000000002', 'x/73000000-0000-4000-8000-000000000002/gone.jpg', 'gone.jpg', 'image/jpeg', 100, 10, 10);`;
+  const media = (kind: string) => `select public.get_channel_media(${valletta}, '${kind}') as v`;
+
+  it("lists photos and files separately, without deleted messages", async () => {
+    await withSetup(setup, USERS.basic, async (db) => {
+      const [{ v: photos }] = await db.query<{ v: { file_name: string; author: { first_name: string } }[] }>(media("photos"));
+      const [{ v: files }] = await db.query<{ v: { file_name: string }[] }>(media("files"));
+      expect(photos.map((p) => p.file_name)).toEqual(["a.jpg"]);
+      expect(photos[0].author.first_name).toBe("Tina");
+      expect(files.map((f) => f.file_name)).toEqual(["plan.pdf"]);
+    });
+  });
+
+  it("shows nothing from chats you can't read", async () => {
+    await withSetup(setup, USERS.tech2, async (db) => {
+      const [{ v }] = await db.query<{ v: unknown[] }>(media("photos"));
+      expect(v).toEqual([]);
+    });
+  });
+});

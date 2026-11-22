@@ -130,6 +130,7 @@ export function MessageItem({
 
   return (
     <div
+      id={inThread ? undefined : `msg-${m.id}`}
       className={cn(
         "group relative flex gap-3 rounded-lg px-2 transition-colors",
         showHeader ? "mt-3 pt-1" : "mt-0.5",

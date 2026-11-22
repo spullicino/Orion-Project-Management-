@@ -54,3 +54,20 @@ export type ChatMessage = {
 /** Images get a small preview file stored next to them. */
 export const isImageAttachment = (a: Pick<ChatAttachment, "mime_type" | "width">) => a.mime_type === "image/jpeg" && a.width !== null;
 export const chatThumbPath = (path: string) => path.replace(/\.jpg$/, "_thumb.jpg");
+
+/** A photo or file in a chat's "Photos & files" view. */
+export type ChatMediaItem = {
+  id: string;
+  message_id: string;
+  parent_id: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  width: number | null;
+  height: number | null;
+  created_at: string;
+  author: { first_name: string | null; last_name: string | null } | null;
+  url?: string | null;
+  thumb_url?: string | null;
+};
