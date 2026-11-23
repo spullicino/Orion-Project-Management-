@@ -14,9 +14,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { todayISO } from "@/lib/board";
 import { processPhoto, type ProcessedPhoto } from "@/lib/images/compress";
 import { MAX_MATERIAL_PHOTOS } from "@/lib/validation/materials";
-import { COMMON_UNITS } from "@/types/materials";
+import { COMMON_UNITS, type Product } from "@/types/materials";
+import { ProductPicker } from "./product-picker";
 
-export type MaterialFormItem = { name: string; quantity: string; unit: string; note: string };
+const PRODUCTS_CACHE = "orion:products";
+/** The product list is kept on the phone so the picker works without signal. */
+function cachedProducts(): Product[] {
+  try {
+    return JSON.parse(localStorage.getItem(PRODUCTS_CACHE) ?? "[]") as Product[];
+  } catch {
+    return [];
+  }
+}
+export function rememberProducts(list: Product[]) {
+  try {
+    localStorage.setItem(PRODUCTS_CACHE, JSON.stringify(list));
+  } catch {
+    /* storage full or unavailable */
+  }
+}
+
+export type MaterialFormItem = { name: string; quantity: string; unit: string; note: string; product_id?: string | null };
 export type MaterialFormStart = {
   /** "new" (also used for Reorder), or "edit" an existing request that's still waiting. */
   mode: "new" | "edit";
@@ -29,7 +47,7 @@ export type MaterialFormStart = {
 };
 type Project = { id: string; name: string };
 
-const blank = (): MaterialFormItem => ({ name: "", quantity: "", unit: "pcs", note: "" });
+const blank = (): MaterialFormItem => ({ name: "", quantity: "", unit: "pcs", note: "", product_id: null });
 
 /** New / reorder / edit a material request. New requests go through the phone's outbox (works offline). */
 export function MaterialForm({
@@ -39,7 +57,10 @@ export function MaterialForm({
   projectId: fixedProject,
   start,
   onSaved,
+  products: productList,
 }: {
+  /** The product catalogue (falls back to the copy saved on this phone). */
+  products?: Product[];
   open: boolean;
   onClose: () => void;
   /** Projects to choose from (when not opened from inside a project). */
@@ -49,6 +70,7 @@ export function MaterialForm({
   onSaved?: () => void;
 }) {
   const { enqueueMaterial } = useOutbox();
+  const [catalogue] = useState<Product[]>(() => (productList?.length ? productList : typeof window === "undefined" ? [] : cachedProducts()));
   const [projectId, setProjectId] = useState(fixedProject ?? (projects?.length === 1 ? projects[0].id : ""));
   const [items, setItems] = useState<MaterialFormItem[]>(start.items?.length ? start.items : [blank()]);
   const [neededBy, setNeededBy] = useState(start.needed_by ?? "");
@@ -91,7 +113,7 @@ export function MaterialForm({
     const bad = filled.find((it) => !it.name.trim() || !(Number(it.quantity) > 0));
     if (bad) return setError("Each item needs a name and a quantity more than 0.");
     if (processing) return setError("Please wait — photos are still being prepared.");
-    const clean = filled.map((it) => ({ name: it.name.trim(), quantity: Number(it.quantity), unit: it.unit || "pcs", note: it.note.trim() || null }));
+    const clean = filled.map((it) => ({ name: it.name.trim(), quantity: Number(it.quantity), unit: it.unit || "pcs", note: it.note.trim() || null, product_id: it.product_id ?? null }));
     setSaving(true);
     try {
       if (editing && start.requestId) {
@@ -149,7 +171,13 @@ export function MaterialForm({
             {items.map((it, i) => (
               <div key={i} className="grid gap-2 rounded-xl border p-3">
                 <div className="flex gap-2">
-                  <Input value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder="e.g. Plasterboard 12.5mm" aria-label={`Item ${i + 1}`} maxLength={200} className="flex-1" />
+                  <ProductPicker
+                    products={catalogue}
+                    value={it.name}
+                    productId={it.product_id ?? null}
+                    label={`Item ${i + 1}`}
+                    onChange={({ name, product }) => setItem(i, product ? { name, product_id: product.id, unit: product.unit } : { name, product_id: null })}
+                  />
                   {items.length > 1 && (
                     <Button variant="ghost" size="icon" onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))} aria-label={`Remove item ${i + 1}`}>
                       <Trash2 />

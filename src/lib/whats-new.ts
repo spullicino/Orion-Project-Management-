@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-23-products-report",
+    date: "2026-11-23",
+    title: "Product list and materials report",
+    body: "When requesting materials, pick products from a list instead of typing them (the unit fills in). Managers keep the list under Products, and each project's Materials tab now has a materials report — what was delivered, per product, for any dates — as PDF or Excel.",
+    help: "/help#materials",
+  },
+  {
     id: "2026-11-22-board-percent",
     date: "2026-11-22",
     title: "% complete on the Board and Kanban",

@@ -1,4 +1,4 @@
-import { Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { Boxes, Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import type { AppRole } from "@/types/database";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; minRole?: AppRole };
@@ -17,6 +17,7 @@ export const SECONDARY_NAV: NavItem[] = [
   { href: "/my-tasks", label: "My Tasks", icon: ListChecks },
   { href: "/materials", label: "Materials", icon: Package },
   { href: "/personal", label: "Personal", icon: NotebookTabs },
+  { href: "/products", label: "Products", icon: Boxes, minRole: "manager" },
   { href: "/clients", label: "Clients", icon: Building2, minRole: "manager" },
   { href: "/admin", label: "Admin", icon: ShieldCheck, minRole: "admin" },
   { href: "/help", label: "Help", icon: CircleHelp },

@@ -407,7 +407,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Tap **Request materials** on Home (or open the project and tap the **Materials** tab).",
           "Tap **New request**.",
-          "For each item, write what you need, the quantity and the unit (e.g. Plasterboard 12.5mm, 40 sheets). Tap **Add another item** for more.",
+          "For each item, start typing and pick the product from the list — its unit is filled in. Not in the list? Just type it. Then enter the quantity. Tap **Add another item** for more.",
           "Set **Needed by**, switch on **Urgent** if it is, and add **Delivery notes** (e.g. which gate to use).",
           "Add photos if they help (e.g. the label of what's needed), then tap **Send request**.",
         ],
@@ -434,10 +434,27 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Requests whose needed-by date has passed are marked **Late**. You also get a morning reminder for materials needed today or tomorrow that haven't been ordered.",
       },
       {
-        title: "Order the same again, and see what's been delivered",
+        title: "Order the same again",
+        steps: ["Open an earlier request and tap **Reorder** to start a new one with the same items."],
+      },
+      {
+        title: "Materials report for a project",
         steps: [
-          "Open an earlier request and tap **Reorder** to start a new one with the same items.",
-          "On a project's **Materials** tab, **Delivered so far** adds up everything delivered to that project.",
+          "Open the project, tap **Materials**, then **Materials report**.",
+          "Choose the dates (**From** / **To**) and, if you like, a category.",
+          "You'll see how much of each product was delivered (and how much was requested).",
+          "Tap **PDF** or **Excel (CSV)** to download it.",
+        ],
+      },
+      {
+        title: "Keep the product list",
+        minRole: "manager",
+        steps: [
+          "Open **Products** in the menu (on phones: **Profile → Products**).",
+          "Tap **Add product**: name, unit, and optionally a category (e.g. Electrical) and product code.",
+          "Have a list in Excel? Tap **Import from Excel**, copy the columns Name, Unit, Category, Code and paste them in.",
+          "Products you no longer use can be **retired** — they disappear from new requests but stay in old ones and in reports.",
+          "If a worker types something that isn't in the list, open the request and tap **Add to products** next to it.",
         ],
       },
     ],

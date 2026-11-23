@@ -35,7 +35,7 @@ export type MaterialOutboxItem = {
   needed_by: string | null;
   urgent: boolean;
   delivery_note: string | null;
-  items: { name: string; quantity: number; unit: string; note: string | null }[];
+  items: { name: string; quantity: number; unit: string; note: string | null; product_id?: string | null }[];
   copied_from: string | null;
   photos: OutboxPhoto[];
   created?: boolean;

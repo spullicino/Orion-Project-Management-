@@ -1290,3 +1290,64 @@ describe("material requests", () => {
     });
   });
 });
+
+describe("product catalogue and materials report", () => {
+  const plaster = "75000000-0000-4000-8000-000000000001";
+  const products = `insert into public.products (id, name, unit, category) values ('${plaster}', 'Plasterboard 12.5mm', 'sheets', 'Drylining');`;
+  const req = "75100000-0000-4000-8000-000000000001";
+  const asTech = (sql: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true); ${sql}; reset role;`;
+  const create = `select public.create_material_request('${req}', '${PROJECTS.valletta}', null, false, null,
+      '[{"name":"Plasterboard 12.5mm","quantity":40,"unit":"sheets","product_id":"${plaster}"},
+        {"name":"drywall screws","quantity":3,"unit":"boxes"},
+        {"name":"Bonding plaster","quantity":5,"unit":"bags"}]'::jsonb)`;
+
+  it("everyone signed in can read products; only managers add or change them; only admins delete", async () => {
+    await withSetup(products, USERS.tech1, async (db) => {
+      expect(await count(db, "select 1 from public.products")).toBe(1);
+      expect(await db.fails("insert into public.products (name) values ('Cement')")).toMatch(/row-level security/);
+      expect(await db.query("update public.products set name = 'x' returning id")).toHaveLength(0);
+    });
+    await withSetup(products, USERS.manager, async (db) => {
+      expect(await db.fails("insert into public.products (name, unit, category) values ('Cement', 'bags', 'Building')")).toBeNull();
+      expect(await db.query("delete from public.products returning id")).toHaveLength(0);
+    });
+    await withSetup(products, USERS.admin, async (db) => {
+      expect(await db.query("delete from public.products where name = 'Plasterboard 12.5mm' returning id")).toHaveLength(1);
+    });
+  });
+
+  it("requests record the chosen product; typed items matching a product (or added later) are linked automatically", async () => {
+    await withSetup(`${products} ${asTech(create)}`, USERS.manager, async (db) => {
+      const linked = await db.query<{ name: string; product_id: string | null }>(`select name, product_id from public.material_request_items where request_id = '${req}' order by position`);
+      expect(linked.map((r) => !!r.product_id)).toEqual([true, false, false]);
+      // A manager adds "Drywall screws" (boxes) to the catalogue → the typed item is linked.
+      await db.query("insert into public.products (name, unit, category) values ('Drywall screws', 'boxes', 'Fixings')");
+      const again = await db.query<{ product_id: string | null }>(`select product_id from public.material_request_items where request_id = '${req}' order by position`);
+      expect(again.map((r) => !!r.product_id)).toEqual([true, true, false]);
+    });
+  });
+
+  it("the report adds up delivered quantities per product, within the dates, and shows typed items too", async () => {
+    const deliver = `update public.material_requests set status = 'ordered' where id = '${req}';
+      update public.material_request_items set delivered_qty = quantity where request_id = '${req}' and name <> 'Bonding plaster';
+      update public.material_request_items set delivered_qty = 2 where request_id = '${req}' and name = 'Bonding plaster';
+      update public.material_requests set status = 'partly_delivered' where id = '${req}';`;
+    await withSetup(`${products} ${asTech(create)}`, USERS.manager, async (db) => {
+      await db.query(deliver);
+      type Line = { name: string; delivered: number; requested: number; in_catalogue: boolean; category: string | null };
+      const [{ v }] = await db.query<{ v: Line[] }>(`select public.get_material_report('${PROJECTS.valletta}') as v`);
+      expect(v.map((l) => [l.name, Number(l.delivered), Number(l.requested), l.in_catalogue])).toEqual([
+        ["Plasterboard 12.5mm", 40, 40, true],
+        ["Bonding plaster", 2, 5, false],
+        ["drywall screws", 3, 3, false],
+      ]);
+      const [{ v: none }] = await db.query<{ v: Line[] }>(`select public.get_material_report('${PROJECTS.valletta}', public.malta_today() + 1, null) as v`);
+      expect(none).toEqual([]);
+    });
+    // Someone not on the project gets nothing.
+    await withSetup(`${products} ${asTech(create)}`, USERS.tech2, async (db) => {
+      const [{ v }] = await db.query<{ v: unknown[] }>(`select public.get_material_report('${PROJECTS.valletta}') as v`);
+      expect(v).toEqual([]);
+    });
+  });
+});

@@ -5,7 +5,8 @@ import { MaterialsView } from "@/components/materials/materials-view";
 import { hasRole } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
 import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
-import { getMaterialRequests, getProjectMaterials } from "@/lib/data/materials";
+import { getMaterialRequests } from "@/lib/data/materials";
+import { getActiveProducts } from "@/lib/data/products";
 import { getBoard } from "@/lib/data/projects";
 
 export const metadata: Metadata = { title: "Materials" };
@@ -16,7 +17,7 @@ export default async function ProjectMaterialsPage({ params }: { params: Promise
   if (!board) notFound();
   let data;
   try {
-    data = await Promise.all([getMaterialRequests(projectId), getProjectMaterials(projectId)]);
+    data = await Promise.all([getMaterialRequests(projectId), getActiveProducts()]);
   } catch (e) {
     if (e instanceof DatabaseUpdateNeeded) return <DatabaseUpdateNotice isAdmin={me.role === "admin"} />;
     throw e;
@@ -31,9 +32,10 @@ export default async function ProjectMaterialsPage({ params }: { params: Promise
       meId={me.id}
       projectId={projectId}
       initial={data[0]}
-      initialMaterials={data[1]}
       editable={canRequest ? [project] : []}
       manageable={canManage ? [projectId] : []}
+      products={data[1]}
+      projectName={board.project.name}
     />
   );
 }

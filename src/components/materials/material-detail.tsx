@@ -1,9 +1,10 @@
 "use client";
 
-import { Ban, CheckCheck, Copy, FileDown, Loader2, Pencil, RotateCcw, Send, ShoppingCart, Truck, XCircle } from "lucide-react";
+import { Ban, CheckCheck, Copy, FileDown, Loader2, Pencil, Plus, RotateCcw, Send, ShoppingCart, Truck, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { addMaterialComment, loadMaterialRequest, updateMaterialStatus } from "@/app/(app)/materials/actions";
+import { saveProduct } from "@/app/(app)/products/actions";
 import { Lightbox } from "@/components/diary/lightbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -97,7 +98,7 @@ export function MaterialDetail({
   const mine = r?.requested_by === me.id;
   const open = r ? ["requested", "ordered", "partly_delivered"].includes(r.status) : false;
   const late = r && open && r.needed_by && r.needed_by < todayISO();
-  const formItems = r?.items.map((i) => ({ name: i.name, quantity: String(Number(i.quantity)), unit: i.unit, note: i.note ?? "" })) ?? [];
+  const formItems = r?.items.map((i) => ({ name: i.name, quantity: String(Number(i.quantity)), unit: i.unit, note: i.note ?? "", product_id: i.product_id ?? null })) ?? [];
 
   return (
     <Sheet open={!!requestId} onOpenChange={(o) => !o && onClose()}>
@@ -169,6 +170,29 @@ export function MaterialDetail({
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{it.name}</span>
                         {it.note && <span className="block text-sm text-muted-foreground">{it.note}</span>}
+                        {it.product_id === null && (
+                          <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            Not in the product list
+                            {canManage && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-9"
+                                disabled={busy}
+                                onClick={async () => {
+                                  setBusy(true);
+                                  const res = await saveProduct(null, { name: it.name, unit: it.unit });
+                                  setBusy(false);
+                                  if (!res.ok) return void toast.error(res.error);
+                                  toast.success(`“${it.name}” added to products`);
+                                  await load();
+                                }}
+                              >
+                                <Plus aria-hidden /> Add to products
+                              </Button>
+                            )}
+                          </span>
+                        )}
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="block font-semibold tabular-nums">

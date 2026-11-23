@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, CircleHelp, Package, ListChecks, NotebookTabs, ShieldCheck } from "lucide-react";
+import { Boxes, Building2, ChevronRight, CircleHelp, Package, ListChecks, NotebookTabs, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { SignOutButton } from "@/components/pwa/sign-out-button";
 import Link from "next/link";
@@ -64,6 +64,7 @@ export default async function ProfilePage() {
             { href: "/my-tasks", label: "My Tasks", icon: ListChecks, show: true },
             { href: "/materials", label: "Material requests", icon: Package, show: true },
             { href: "/personal", label: "Personal notes & to-dos", icon: NotebookTabs, show: true },
+            { href: "/products", label: "Products (for material requests)", icon: Boxes, show: can.createProjects(profile.role) },
             { href: "/clients", label: "Clients", icon: Building2, show: can.createProjects(profile.role) },
             { href: "/help", label: "Help & how-to guides", icon: CircleHelp, show: true },
           ]

@@ -24,7 +24,19 @@ export const materialItemSchema = z.object({
   quantity: z.coerce.number({ message: "Enter a quantity" }).positive("The quantity must be more than 0").max(1_000_000),
   unit: z.string().trim().min(1).max(20).default("pcs"),
   note: optionalText(300),
+  /** Chosen from the product list (null = typed by hand). */
+  product_id: uuid.nullable().optional(),
 });
+
+export const productSchema = z.object({
+  name: z.string().trim().min(1, "Give the product a name").max(200),
+  unit: z.string().trim().min(1, "Choose a unit").max(20),
+  category: optionalText(60),
+  code: optionalText(60),
+});
+
+/** Pasted from Excel: one product per line. */
+export const productImportSchema = z.array(productSchema).min(1, "Nothing to import").max(2000, "Import up to 2,000 products at a time");
 
 export const createMaterialSchema = z.object({
   id: uuid,

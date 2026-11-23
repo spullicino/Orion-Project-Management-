@@ -18,7 +18,7 @@ import {
 } from "@/lib/validation/materials";
 import { thumbPath } from "@/types/diary";
 import type { MaterialRequestRow } from "@/types/database";
-import type { MaterialListItem, MaterialRequestDetail, ProjectMaterial } from "@/types/materials";
+import type { MaterialListItem, MaterialRequestDetail, ProjectMaterial, ReportLine } from "@/types/materials";
 
 const uuid = z.string().uuid();
 const fail = (error: string): Result<never> => ({ ok: false, error });
@@ -237,4 +237,16 @@ export async function addMaterialComment(id: string, input: unknown): Promise<Re
   if (error) return fail(friendly(error.message));
   queuePush();
   return { ok: true };
+}
+
+/** Materials report for a project: delivered quantities per product, optionally between two dates. */
+export async function loadMaterialReport(projectId: string, from?: string | null, to?: string | null): Promise<Result<ReportLine[]>> {
+  await requireActiveProfile();
+  if (!uuid.safeParse(projectId).success) return fail("Invalid project");
+  const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional();
+  if (!date.safeParse(from).success || !date.safeParse(to).success) return fail("Invalid dates");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_material_report", { p_project: projectId, p_from: from || null, p_to: to || null });
+  if (error) return fail(friendly(error.message));
+  return { ok: true, data: (data ?? []) as unknown as ReportLine[] };
 }

@@ -33,7 +33,7 @@ export type MaterialListItem = {
   late: boolean;
 };
 
-export type MaterialItem = { id: string; position: number; name: string; quantity: number; unit: string; note: string | null; delivered_qty: number };
+export type MaterialItem = { id: string; position: number; name: string; quantity: number; unit: string; note: string | null; delivered_qty: number; product_id?: string | null };
 
 export type MaterialRequestDetail = {
   id: string;
@@ -64,3 +64,19 @@ export type MaterialRequestDetail = {
 export type ProjectMaterial = { name: string; unit: string; delivered: number; requested: number; last_delivered: string | null; requests: number[] };
 
 export const COMMON_UNITS = ["pcs", "boxes", "bags", "sheets", "m", "m²", "m³", "kg", "litres", "rolls", "lengths", "pallets", "sets"];
+
+export type Product = { id: string; name: string; unit: string; category: string | null; code: string | null; active: boolean };
+
+export type ReportLine = {
+  product_id: string | null;
+  name: string;
+  unit: string;
+  category: string | null;
+  code: string | null;
+  in_catalogue: boolean;
+  delivered: number;
+  requested: number;
+  requests: number[];
+  first_delivered: string | null;
+  last_delivered: string | null;
+};

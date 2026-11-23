@@ -98,7 +98,8 @@ export type MaterialRequestRow = {
   created_at: string;
   updated_at: string;
 };
-export type MaterialItemRow = { id: string; request_id: string; position: number; name: string; quantity: number; unit: string; note: string | null; delivered_qty: number };
+export type MaterialItemRow = { id: string; request_id: string; position: number; name: string; quantity: number; unit: string; note: string | null; delivered_qty: number; product_id: string | null };
+export type ProductRow = { id: string; name: string; unit: string; category: string | null; code: string | null; active: boolean; created_by: string | null; created_at: string; updated_at: string };
 export type MaterialPhotoRow = { id: string; request_id: string; project_id: string; storage_path: string; width: number | null; height: number | null; size_bytes: number | null; uploaded_by: string | null; created_at: string };
 export type MaterialCommentRow = { id: string; request_id: string; author_id: string; body: string; created_at: string };
 export type ChecklistRow = { id: string; task_id: string; title: string; is_done: boolean; position: number; created_at: string };
@@ -143,6 +144,7 @@ export type Database = {
       groups: Table<GroupRow, Partial<GroupRow> & { project_id: string; name: string }>;
       tasks: Table<TaskRow, Partial<TaskRow> & { project_id: string; group_id: string; title: string }>;
       material_requests: Table<MaterialRequestRow, Partial<MaterialRequestRow> & { id: string; project_id: string }>;
+      products: Table<ProductRow, Partial<ProductRow> & { name: string }>;
       material_request_items: Table<MaterialItemRow, Partial<MaterialItemRow> & { request_id: string; name: string; quantity: number }>;
       material_request_photos: Table<MaterialPhotoRow, Partial<MaterialPhotoRow> & { id: string; request_id: string; project_id: string; storage_path: string }>;
       material_request_comments: Table<MaterialCommentRow, Partial<MaterialCommentRow> & { request_id: string; body: string }>;
@@ -314,6 +316,7 @@ export type Database = {
       get_material_requests: { Args: { p_project: string | null; p_open_only: boolean }; Returns: Json };
       get_material_request: { Args: { p_id: string }; Returns: Json };
       get_project_materials: { Args: { p_project: string }; Returns: Json };
+      get_material_report: { Args: { p_project: string; p_from: string | null; p_to: string | null }; Returns: Json };
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };

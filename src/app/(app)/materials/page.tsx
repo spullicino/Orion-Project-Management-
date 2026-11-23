@@ -8,6 +8,7 @@ import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
 import { getPostableProjects } from "@/lib/data/diary";
 import { getMaterialRequests } from "@/lib/data/materials";
 import { listProjects } from "@/lib/data/projects";
+import { getActiveProducts } from "@/lib/data/products";
 
 export const metadata: Metadata = { title: "Material requests" };
 
@@ -29,9 +30,10 @@ export default async function MaterialsPage() {
     throw e;
   }
   const canManage = hasRole(me.role, "manager");
-  const [postable, visible] = await Promise.all([
+  const [postable, visible, products] = await Promise.all([
     hasRole(me.role, "technician") ? getPostableProjects().catch(() => []) : Promise.resolve([]),
     canManage ? listProjects().catch(() => []) : Promise.resolve([]),
+    getActiveProducts(),
   ]);
   return (
     <>
@@ -41,6 +43,7 @@ export default async function MaterialsPage() {
         initial={list}
         editable={postable.map((p) => ({ id: p.id, name: p.name }))}
         manageable={visible.map((p) => p.id)}
+        products={products}
       />
     </>
   );

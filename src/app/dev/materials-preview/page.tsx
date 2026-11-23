@@ -41,13 +41,25 @@ export default function MaterialsPreview() {
           meId="u2"
           projectId="p1"
           initial={list}
-          initialMaterials={[
-            { name: "Timber battens 50x25", unit: "lengths", delivered: 60, requested: 60, last_delivered: now, requests: [1] },
-            { name: "Wood glue", unit: "pcs", delivered: 4, requested: 4, last_delivered: now, requests: [1] },
-          ]}
           editable={[{ id: "p1", name: P.name }]}
           manageable={["p1"]}
           detailLoader={async () => ({ ok: true as const, data: detail })}
+          projectName={P.name}
+          products={[
+            { id: "pr1", name: "Plasterboard 12.5mm", unit: "sheets", category: "Drylining", code: null, active: true },
+            { id: "pr2", name: "Plasterboard 15mm", unit: "sheets", category: "Drylining", code: null, active: true },
+            { id: "pr3", name: "Drywall screws 3.5x25", unit: "boxes", category: "Fixings", code: "DS25", active: true },
+            { id: "pr4", name: "Twin & earth cable 2.5mm", unit: "rolls", category: "Electrical", code: "TE25", active: true },
+            { id: "pr5", name: "Cement", unit: "bags", category: "Building", code: null, active: true },
+          ]}
+          reportLoader={async () => ({
+            ok: true as const,
+            data: [
+              { product_id: "pr1", name: "Plasterboard 12.5mm", unit: "sheets", category: "Drylining", code: null, in_catalogue: true, delivered: 240, requested: 260, requests: [1, 3], first_delivered: addDays(t, -20), last_delivered: addDays(t, -2) },
+              { product_id: "pr3", name: "Drywall screws 3.5x25", unit: "boxes", category: "Fixings", code: "DS25", in_catalogue: true, delivered: 12, requested: 12, requests: [1], first_delivered: addDays(t, -20), last_delivered: addDays(t, -20) },
+              { product_id: null, name: "Corner bead 3m", unit: "lengths", category: null, code: null, in_catalogue: false, delivered: 30, requested: 30, requests: [2], first_delivered: addDays(t, -9), last_delivered: addDays(t, -9) },
+            ],
+          })}
         />
       </main>
     </OutboxProvider>

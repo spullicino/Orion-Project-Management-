@@ -3,18 +3,18 @@
 import { Camera, MessageSquare, Package, Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadMaterialRequests, loadProjectMaterials } from "@/app/(app)/materials/actions";
+import { loadMaterialRequests } from "@/app/(app)/materials/actions";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { shortDate } from "@/lib/board";
 import { chatTime } from "@/lib/chat";
 import { cn, fullName } from "@/lib/utils";
-import { OPEN_STATUSES, type MaterialListItem, type ProjectMaterial } from "@/types/materials";
+import { OPEN_STATUSES, type MaterialListItem, type Product } from "@/types/materials";
 import { MaterialDetail, StatusPill } from "./material-detail";
-import { MaterialForm, type MaterialFormStart } from "./material-form";
+import { MaterialReport } from "./material-report";
+import { MaterialForm, rememberProducts, type MaterialFormStart } from "./material-form";
 
 type Project = { id: string; name: string };
-const qty = (n: number) => Number(n).toLocaleString("en-GB", { maximumFractionDigits: 2 });
 
 /**
  * Material requests: for one project (its Materials tab) or across all your projects.
@@ -24,17 +24,23 @@ export function MaterialsView({
   meId,
   projectId,
   initial,
-  initialMaterials,
   editable,
   manageable,
   detailLoader,
+  products = [],
+  projectName,
+  reportLoader,
 }: {
+  projectName?: string;
+  /** Development preview only. */
+  reportLoader?: Parameters<typeof MaterialReport>[0]["loader"];
+  /** Active products for the request form's picker. */
+  products?: Product[];
   /** Development preview only. */
   detailLoader?: Parameters<typeof MaterialDetail>[0]["loader"];
   meId: string;
   projectId?: string;
   initial: MaterialListItem[];
-  initialMaterials?: ProjectMaterial[];
   editable: Project[];
   manageable: string[];
 }) {
@@ -43,7 +49,6 @@ export function MaterialsView({
   const params = useSearchParams();
   const openId = params.get("request");
   const [list, setList] = useState(initial);
-  const [materials, setMaterials] = useState(initialMaterials ?? []);
   const [tab, setTab] = useState<"requests" | "delivered">("requests");
   const [filter, setFilter] = useState<"open" | "all" | "mine">("open");
   const [projectFilter, setProjectFilter] = useState("");
@@ -51,6 +56,10 @@ export function MaterialsView({
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- fresh server data replaces the list
   useEffect(() => setList(initial), [initial]);
+  // Keep a copy of the product list on this phone, for requests made without signal.
+  useEffect(() => {
+    if (products.length) rememberProducts(products);
+  }, [products]);
 
   // Home's "Request materials" shortcut opens the form straight away (/materials?new=1).
   const wantsNew = params.get("new") === "1";
@@ -65,9 +74,8 @@ export function MaterialsView({
   }, [wantsNew]); // eslint-disable-line react-hooks/exhaustive-deps -- only when the link is opened
 
   const reload = useCallback(async () => {
-    const [res, mats] = await Promise.all([loadMaterialRequests(projectId ?? null), projectId ? loadProjectMaterials(projectId) : Promise.resolve(null)]);
+    const res = await loadMaterialRequests(projectId ?? null);
     if (res.ok) setList(res.data ?? []);
-    if (mats?.ok) setMaterials(mats.data ?? []);
   }, [projectId]);
 
   const openRequest = (id: string | null) => {
@@ -97,7 +105,7 @@ export function MaterialsView({
             {(
               [
                 { k: "requests", label: "Requests" },
-                { k: "delivered", label: "Delivered so far" },
+                { k: "delivered", label: "Materials report" },
               ] as const
             ).map(({ k, label }) => (
               <button
@@ -192,35 +200,9 @@ export function MaterialsView({
             </ul>
           )}
         </>
-      ) : materials.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">Nothing has been delivered to this project yet.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <caption className="sr-only">Materials delivered to this project</caption>
-            <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="p-3 font-semibold">Material</th>
-                <th className="p-3 text-right font-semibold">Delivered</th>
-                <th className="hidden p-3 font-semibold sm:table-cell">Requests</th>
-                <th className="p-3 font-semibold">Last</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {materials.map((m) => (
-                <tr key={`${m.name}|${m.unit}`}>
-                  <td className="p-3 font-medium">{m.name}</td>
-                  <td className="p-3 text-right tabular-nums">
-                    {qty(m.delivered)} {m.unit}
-                  </td>
-                  <td className="hidden p-3 text-muted-foreground sm:table-cell">{m.requests.map((n) => `#${n}`).join(", ")}</td>
-                  <td className="p-3 text-muted-foreground">{m.last_delivered ? shortDate(m.last_delivered.slice(0, 10)) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      ) : projectId ? (
+        <MaterialReport projectId={projectId} projectName={projectName ?? ""} loader={reportLoader} />
+      ) : null}
 
       <MaterialDetail
         requestId={openId}
@@ -240,6 +222,7 @@ export function MaterialsView({
           open
           onClose={() => setForm(null)}
           projects={editable}
+          products={products}
           projectId={form.projectId}
           start={form.start}
           onSaved={() => {
