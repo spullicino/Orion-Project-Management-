@@ -728,3 +728,30 @@ export async function insertTaskAt(anchorId: string, input: unknown): Promise<Re
   if (projectId) refreshProject(projectId);
   return { ok: true, data: { id: data as unknown as string } };
 }
+
+/** Moves a group up/down one place, or to the top/bottom of the project. */
+export async function moveGroup(groupId: string, to: "up" | "down" | "top" | "bottom"): Promise<Result> {
+  await requireRole("manager");
+  if (!uuid.safeParse(groupId).success || !["up", "down", "top", "bottom"].includes(to)) return fail("Invalid request");
+  const supabase = await createClient();
+  const { data: g } = await supabase.from("groups").select("project_id").eq("id", groupId).maybeSingle();
+  if (!g) return fail("Group not found");
+  const { data: all, error } = await supabase.from("groups").select("id, position, created_at").eq("project_id", g.project_id).order("position").order("created_at");
+  if (error) return fail(friendly(error.message));
+  const ids = (all ?? []).map((x) => x.id);
+  const from = ids.indexOf(groupId);
+  const target = to === "top" ? 0 : to === "bottom" ? ids.length - 1 : to === "up" ? Math.max(0, from - 1) : Math.min(ids.length - 1, from + 1);
+  if (from === -1 || from === target) return { ok: true };
+  ids.splice(from, 1);
+  ids.splice(target, 0, groupId);
+  // Number them 1, 2, 3… and save only the ones whose place changed.
+  for (const [i, id] of ids.entries()) {
+    const before = all!.find((x) => x.id === id)!;
+    if (Number(before.position) === i + 1) continue;
+    const { data: updated, error: upErr } = await supabase.from("groups").update({ position: i + 1 }).eq("id", id).select("id");
+    if (upErr) return fail(friendly(upErr.message));
+    if (!updated?.length) return fail("You can't change the groups on this project.");
+  }
+  refreshProject(g.project_id);
+  return { ok: true };
+}

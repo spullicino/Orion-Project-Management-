@@ -20,7 +20,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
     id: "2026-11-23-task-order",
     date: "2026-11-23",
     title: "Insert tasks in between, and reorder",
-    body: "Open a task and tap “Insert task above/below” to add one exactly where it belongs — linked tasks stay in a chain (A → new → B). Drag tasks by their handle on the Board (or use Move up/down) to change the order; the Gantt follows.",
+    body: "Open a task and tap “Insert task above/below” to add one exactly where it belongs — linked tasks stay in a chain (A → new → B). Drag tasks by their handle on the Board (or use Move up/down) to change the order. Managers can also move whole groups from the group's ⋯ menu. The Gantt follows.",
     help: "/help#tasks",
     minRole: "technician",
   },

@@ -14,10 +14,10 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { ChevronDown, ChevronRight, CheckSquare, GripVertical, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, ChevronDown, ChevronRight, CheckSquare, GripVertical, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createGroup, createTask, deleteGroup, updateGroup } from "@/app/(app)/projects/actions";
+import { createGroup, createTask, deleteGroup, moveGroup, updateGroup } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -300,7 +300,9 @@ function AddTaskRow({ group }: { group: Group }) {
 }
 
 function GroupHeader({ group, count, pct, collapsed, onToggle }: { group: Group; count: number; pct: number | null; collapsed: boolean; onToggle: () => void }) {
-  const { perms } = useBoard();
+  const { perms, board } = useBoard();
+  const isFirst = board.groups[0]?.id === group.id;
+  const isLast = board.groups[board.groups.length - 1]?.id === group.id;
   const { confirm, dialog } = useConfirm();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(group.name);
@@ -361,6 +363,25 @@ function GroupHeader({ group, count, pct, collapsed, onToggle }: { group: Group;
             <DropdownMenuItem onSelect={() => setRenaming(true)}>
               <Pencil /> Rename
             </DropdownMenuItem>
+            {(
+              [
+                { to: "top", label: "Move to top", icon: ArrowUpToLine, disabled: isFirst },
+                { to: "up", label: "Move up", icon: ArrowUp, disabled: isFirst },
+                { to: "down", label: "Move down", icon: ArrowDown, disabled: isLast },
+                { to: "bottom", label: "Move to bottom", icon: ArrowDownToLine, disabled: isLast },
+              ] as const
+            ).map(({ to, label, icon: Icon, disabled }) => (
+              <DropdownMenuItem
+                key={to}
+                disabled={disabled}
+                onSelect={async () => {
+                  const res = await moveGroup(group.id, to);
+                  if (!res.ok) toast.error(res.error);
+                }}
+              >
+                <Icon /> {label}
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuItem
               destructive
               onSelect={async () => {
