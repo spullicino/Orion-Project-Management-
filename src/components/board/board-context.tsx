@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getTaskDetail, updateTask, type Result } from "@/app/(app)/projects/actions";
+import { getTaskDetail, moveTask as moveTaskAction, updateTask, type Result } from "@/app/(app)/projects/actions";
 import { EMPTY_FILTERS, type BoardFilters } from "@/lib/board";
 import { taskRisk, type Risk } from "@/lib/health";
 import type { Board, BoardTask, Member, StatusLabel, TaskDetail } from "@/types/board";
@@ -33,6 +33,8 @@ type Ctx = {
   /** Gantt & Kanban: also show internal (team-only) tasks. Remembered on this device. */
   showInternal: boolean;
   setShowInternal: (v: boolean) => void;
+  /** Moves a task to a group, just before another task (or to the end). Instant on screen, then saved. */
+  moveTask: (taskId: string, groupId: string, beforeId: string | null) => Promise<boolean>;
   /** Optimistically changes a task on screen, then saves it. Reverts and shows an error if saving fails. */
   patchTask: (id: string, patch: Partial<BoardTask>) => Promise<boolean>;
   openTaskId: string | null;
@@ -125,6 +127,33 @@ export function BoardProvider({
     [tasks, labelsById],
   );
 
+  const moveTask = useCallback(
+    async (taskId: string, groupId: string, beforeId: string | null) => {
+      const before = tasks;
+      const moving = tasks.find((t) => t.id === taskId);
+      if (!moving || beforeId === taskId) return false;
+      setTasks((ts) => {
+        const rest = ts.filter((t) => t.id !== taskId);
+        const moved = { ...moving, group_id: groupId };
+        let at = beforeId ? rest.findIndex((t) => t.id === beforeId) : -1;
+        if (at < 0) {
+          // End of the group: after its last task (or at the very end).
+          const lastIdx = rest.map((t) => t.group_id).lastIndexOf(groupId);
+          at = lastIdx < 0 ? rest.length : lastIdx + 1;
+        }
+        return [...rest.slice(0, at), moved, ...rest.slice(at)];
+      });
+      const res = await moveTaskAction(taskId, groupId, beforeId);
+      if (!res.ok) {
+        setTasks(before);
+        toast.error(res.error);
+        return false;
+      }
+      return true;
+    },
+    [tasks],
+  );
+
   const openTask = useCallback(
     (id: string | null) => {
       const next = new URLSearchParams(params.toString());
@@ -137,8 +166,8 @@ export function BoardProvider({
   );
 
   const value = useMemo(
-    () => ({ board, tasks, byId, labelsById, membersById, risks, perms, filters, setFilters, showInternal, setShowInternal, patchTask, openTaskId, openTask, loadTaskDetail }),
-    [board, tasks, byId, labelsById, membersById, risks, perms, filters, showInternal, setShowInternal, patchTask, openTaskId, openTask, loadTaskDetail],
+    () => ({ board, tasks, byId, labelsById, membersById, risks, perms, filters, setFilters, showInternal, setShowInternal, patchTask, moveTask, openTaskId, openTask, loadTaskDetail }),
+    [board, tasks, byId, labelsById, membersById, risks, perms, filters, showInternal, setShowInternal, patchTask, moveTask, openTaskId, openTask, loadTaskDetail],
   );
   return <BoardContext value={value}>{children}</BoardContext>;
 }

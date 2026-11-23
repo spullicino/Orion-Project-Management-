@@ -316,6 +316,8 @@ export type Database = {
       get_material_requests: { Args: { p_project: string | null; p_open_only: boolean }; Returns: Json };
       get_material_request: { Args: { p_id: string }; Returns: Json };
       get_project_materials: { Args: { p_project: string }; Returns: Json };
+      move_task: { Args: { p_task: string; p_group: string; p_before: string | null }; Returns: undefined };
+      insert_task_at: { Args: { p_anchor: string; p_where: string; p_title: string; p_start: string | null; p_due: string | null; p_rewire: boolean }; Returns: string };
       get_material_report: { Args: { p_project: string; p_from: string | null; p_to: string | null }; Returns: Json };
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };

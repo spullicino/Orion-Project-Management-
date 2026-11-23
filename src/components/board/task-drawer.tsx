@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,7 @@ import { ATTACHMENT_MAX_BYTES } from "@/lib/validation/projects";
 import type { BoardTask, TaskDetail } from "@/types/board";
 import { useBoard } from "./board-context";
 import { CopyTaskDialog } from "./copy-task-dialog";
+import { InsertTaskDialog } from "./insert-task-dialog";
 import { DateCell, InternalSwitch, OwnerPicker, PriorityPicker, ProgressCell, RepeatPicker, StatusPicker } from "./cells";
 
 function timeAgo(iso: string) {
@@ -114,11 +115,13 @@ function AutoSaveText({
 }
 
 function DrawerBody({ task }: { task: BoardTask }) {
-  const { board, perms, patchTask, labelsById, openTask, byId, loadTaskDetail } = useBoard();
+  const { board, perms, patchTask, labelsById, openTask, byId, loadTaskDetail, tasks: allTasks, moveTask } = useBoard();
+  const groupTasks = allTasks.filter((t) => t.group_id === task.group_id);
   const [detail, setDetail] = useState<TaskDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [copyOpen, setCopyOpen] = useState(false);
+  const [insert, setInsert] = useState<"above" | "below" | null>(null);
   const [checkItem, setCheckItem] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -489,6 +492,30 @@ function DrawerBody({ task }: { task: BoardTask }) {
 
             <div className="flex flex-wrap gap-2">
             {perms.canEdit && (
+              <>
+                <Button variant="outline" onClick={() => setInsert("above")}>
+                  <ArrowUpToLine aria-hidden /> Insert task above
+                </Button>
+                <Button variant="outline" onClick={() => setInsert("below")}>
+                  <ArrowDownToLine aria-hidden /> Insert task below
+                </Button>
+                {(() => {
+                  const siblings = groupTasks;
+                  const i = siblings.findIndex((t) => t.id === task.id);
+                  return (
+                    <>
+                      <Button variant="outline" disabled={i <= 0} onClick={() => void moveTask(task.id, task.group_id, siblings[i - 1].id)}>
+                        <ArrowUp aria-hidden /> Move up
+                      </Button>
+                      <Button variant="outline" disabled={i === -1 || i >= siblings.length - 1} onClick={() => void moveTask(task.id, task.group_id, siblings[i + 2]?.id ?? null)}>
+                        <ArrowDown aria-hidden /> Move down
+                      </Button>
+                    </>
+                  );
+                })()}
+              </>
+            )}
+            {perms.canEdit && (
               <Button variant="outline" onClick={() => setCopyOpen(true)}>
                 <Copy aria-hidden /> Copy to other projects
               </Button>
@@ -514,6 +541,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
           </>
         )}
       </div>
+      {insert && <InsertTaskDialog anchor={task} where={insert} onClose={() => setInsert(null)} />}
       {perms.canEdit && (
         <CopyTaskDialog task={task} groupName={board.groups.find((g) => g.id === task.group_id)?.name ?? ""} open={copyOpen} onClose={() => setCopyOpen(false)} />
       )}

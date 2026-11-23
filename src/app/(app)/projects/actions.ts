@@ -683,3 +683,48 @@ export async function copyTask(taskId: string, input: unknown): Promise<Result<{
   queuePush(); // owners on the other projects are told they have a task
   return { ok: true, data: copied };
 }
+
+const needsUpdate = (m: string) => /function .* does not exist|schema cache/i.test(m);
+
+/** Moves a task within (or into) a group: before another task, or to the end. */
+export async function moveTask(taskId: string, groupId: string, beforeId: string | null): Promise<Result> {
+  await requireActiveProfile();
+  if (![taskId, groupId].every((x) => uuid.safeParse(x).success) || (beforeId && !uuid.safeParse(beforeId).success)) return fail("Invalid task");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("move_task", { p_task: taskId, p_group: groupId, p_before: beforeId });
+  if (error) return fail(needsUpdate(error.message) ? "Reordering tasks needs the latest database update (ask your administrator)." : friendly(error.message));
+  const projectId = await taskProjectId(supabase, taskId);
+  if (projectId) refreshProject(projectId);
+  return { ok: true };
+}
+
+const insertSchema = z.object({
+  where: z.enum(["above", "below"]),
+  title: z.string().trim().min(1, "Give the task a name").max(300),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  rewire: z.boolean().default(true),
+}).refine((v) => !v.start_date || !v.due_date || v.due_date >= v.start_date, { message: "The due date can't be before the start date." });
+
+/** Adds a task right above or below another one (and keeps linked tasks in a chain). */
+export async function insertTaskAt(anchorId: string, input: unknown): Promise<Result<{ id: string }>> {
+  const me = await requireActiveProfile();
+  if (!hasRole(me.role, "technician")) return fail("You don't have permission to do that.");
+  if (!uuid.safeParse(anchorId).success) return fail("Invalid task");
+  const parsed = insertSchema.safeParse(input);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("insert_task_at", {
+    p_anchor: anchorId,
+    p_where: v.where,
+    p_title: v.title,
+    p_start: v.start_date ?? null,
+    p_due: v.due_date ?? null,
+    p_rewire: v.rewire,
+  });
+  if (error) return fail(needsUpdate(error.message) ? "Inserting tasks needs the latest database update (ask your administrator)." : friendly(error.message));
+  const projectId = await taskProjectId(supabase, anchorId);
+  if (projectId) refreshProject(projectId);
+  return { ok: true, data: { id: data as unknown as string } };
+}

@@ -1,6 +1,20 @@
 "use client";
 
-import { ChevronDown, ChevronRight, CheckSquare, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { ChevronDown, ChevronRight, CheckSquare, GripVertical, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createGroup, createTask, deleteGroup, updateGroup } from "@/app/(app)/projects/actions";
@@ -105,17 +119,66 @@ function TaskBadges({ task }: { task: BoardTask }) {
   );
 }
 
+/** Drag a task by its handle; drop it on another task to place it there. */
+function useTaskDrag(task: BoardTask, layout: "row" | "card") {
+  const { perms } = useBoard();
+  const enabled = perms.canEdit;
+  const { attributes, listeners, setNodeRef: setDragRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
+    // Rows (computers) and cards (phones) both exist on the page, one hidden: they need separate ids.
+    id: `task:${layout}:${task.id}`,
+    data: { taskId: task.id, groupId: task.group_id },
+    disabled: !enabled,
+  });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `over:${layout}:${task.id}`, data: { taskId: task.id, groupId: task.group_id }, disabled: !enabled });
+  const style: React.CSSProperties = transform
+    ? { transform: `translate3d(0, ${transform.y}px, 0)`, position: "relative", zIndex: 30, boxShadow: "0 10px 25px rgb(0 0 0 / 0.15)" }
+    : {};
+  const setRef = (el: HTMLElement | null) => {
+    setDragRef(el);
+    setDropRef(el);
+  };
+  return { enabled, setRef, handle: { attributes, listeners, setActivatorNodeRef }, style, over: isOver && !isDragging };
+}
+
+function DragHandle({
+  title,
+  attributes,
+  listeners,
+  setActivatorNodeRef,
+}: { title: string } & ReturnType<typeof useTaskDrag>["handle"]) {
+  return (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...listeners}
+      {...attributes}
+      aria-label={`Move “${title}” (drag, or press space then use the arrow keys)`}
+      className="flex h-11 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/70 hover:bg-accent hover:text-foreground active:cursor-grabbing"
+    >
+      <GripVertical className="size-4" aria-hidden />
+    </button>
+  );
+}
+
 function TaskRow({ task, color }: { task: BoardTask; color: string }) {
   const { openTask, risks } = useBoard();
   const risk = risks.get(task.id);
   const { builtins, custom, template } = useColumns();
+  const { enabled, setRef, handle, style, over } = useTaskDrag(task, "row");
+  const { attributes, listeners, setActivatorNodeRef } = handle;
   return (
-    <div role="row" className="grid items-center border-b bg-card hover:bg-accent/40" style={{ gridTemplateColumns: template }}>
-      <div role="cell" className="sticky left-0 z-10 flex h-12 min-w-0 items-center gap-2 bg-inherit pl-0 pr-2" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
+    <div
+      role="row"
+      ref={setRef}
+      className={cn("grid items-center border-b bg-card hover:bg-accent/40", over && "shadow-[inset_0_3px_0_0_var(--color-primary)]")}
+      style={{ gridTemplateColumns: template, ...style }}
+    >
+      <div role="cell" className="sticky left-0 z-10 flex h-12 min-w-0 items-center gap-1 bg-inherit pl-1 pr-2" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
+        {enabled && <DragHandle title={task.title} attributes={attributes} listeners={listeners} setActivatorNodeRef={setActivatorNodeRef} />}
         <button
           type="button"
           onClick={() => openTask(task.id)}
-          className={cn("ml-3 min-w-0 flex-1 truncate rounded text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", task.completed_at && "text-muted-foreground line-through")}
+          className={cn("min-w-0 flex-1 truncate rounded text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", !enabled && "ml-2", task.completed_at && "text-muted-foreground line-through")}
         >
           {task.title}
         </button>
@@ -147,9 +210,20 @@ function TaskCard({ task, color }: { task: BoardTask; color: string }) {
   const { openTask, membersById, risks } = useBoard();
   const risk = risks.get(task.id);
   const state = dueState(task.due_date, !!task.completed_at);
+  const { enabled, setRef, handle, style, over } = useTaskDrag(task, "card");
+  const { attributes, listeners, setActivatorNodeRef } = handle;
   return (
-    <li className="overflow-hidden rounded-xl border bg-card" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
-      <button type="button" onClick={() => openTask(task.id)} className="block w-full px-4 pb-2 pt-3 text-left">
+    <li
+      ref={setRef}
+      className={cn("relative overflow-hidden rounded-xl border bg-card", over && "ring-2 ring-primary")}
+      style={{ boxShadow: `inset 4px 0 0 ${color}`, ...style }}
+    >
+      {enabled && (
+        <span className="absolute right-1 top-1">
+          <DragHandle title={task.title} attributes={attributes} listeners={listeners} setActivatorNodeRef={setActivatorNodeRef} />
+        </span>
+      )}
+      <button type="button" onClick={() => openTask(task.id)} className={cn("block w-full px-4 pb-2 pt-3 text-left", enabled && "pr-10")}>
         <span className={cn("block font-medium", task.completed_at && "text-muted-foreground line-through")}>{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           {task.due_date && <span className={DUE_STYLES[state]}>{state === "overdue" ? "Overdue · " : "Due "}{shortDate(task.due_date)}</span>}
@@ -172,6 +246,16 @@ function TaskCard({ task, color }: { task: BoardTask; color: string }) {
         </div>
       )}
     </li>
+  );
+}
+
+/** Drop here to move a task to the end of this group. */
+function GroupEndDrop({ group, layout, children }: { group: Group; layout: "row" | "card"; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `end:${layout}:${group.id}`, data: { groupId: group.id, taskId: null } });
+  return (
+    <div ref={setNodeRef} className={cn(isOver && "bg-primary/5 shadow-[inset_0_3px_0_0_var(--color-primary)]")}>
+      {children}
+    </div>
   );
 }
 
@@ -338,8 +422,34 @@ function AddGroup() {
 
 // ---------------------------------------------------------------------------
 
+/** The task under the finger / mouse is the drop target (keyboard dragging falls back to overlap). */
+const dropUnderPointer: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : rectIntersection(args);
+};
+
 export function BoardView() {
-  const { board, tasks, filters, perms } = useBoard();
+  const { board, tasks, filters, perms, moveTask } = useBoard();
+  // Mouse: drag after moving 6px. Touch: press and hold the handle briefly, so swiping still scrolls.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor),
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const taskId = e.active.data.current?.taskId as string | undefined;
+    const target = e.over?.data.current as { taskId: string | null; groupId: string } | undefined;
+    if (!taskId || !target || target.taskId === taskId) return;
+    let before = target.taskId;
+    if (before) {
+      // Dragging down within the same group places it after the task it's dropped on.
+      const inGroup = tasks.filter((t) => t.group_id === target.groupId);
+      const from = inGroup.findIndex((t) => t.id === taskId);
+      const to = inGroup.findIndex((t) => t.id === before);
+      if (from !== -1 && from < to) before = inGroup[to + 1]?.id ?? null;
+    }
+    void moveTask(taskId, target.groupId, before);
+  };
   const { builtins, custom, template } = useColumns();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const visible = useMemo(() => filterTasks(tasks, filters, perms.meId), [tasks, filters, perms.meId]);
@@ -353,6 +463,7 @@ export function BoardView() {
           This project has no groups yet.{perms.canManage ? " Add one to start adding tasks." : ""}
         </p>
       )}
+      <DndContext id="board-dnd" sensors={sensors} collisionDetection={dropUnderPointer} onDragEnd={onDragEnd}>
       <div className="grid min-w-0 gap-6">
         {board.groups.map((g) => {
           const groupTasks = visible.filter((t) => t.group_id === g.id);
@@ -389,7 +500,11 @@ export function BoardView() {
                         <TaskRow key={t.id} task={t} color={g.color} />
                       ))}
                     </div>
-                    {perms.canEdit && <AddTaskRow group={g} />}
+                    {perms.canEdit && (
+                      <GroupEndDrop group={g} layout="row">
+                        <AddTaskRow group={g} />
+                      </GroupEndDrop>
+                    )}
                   </div>
                   {/* Phones: cards */}
                   <div className="md:hidden">
@@ -399,8 +514,10 @@ export function BoardView() {
                       ))}
                     </ul>
                     {perms.canEdit && (
-                      <div className="mt-2 rounded-xl border border-dashed">
-                        <AddTaskRow group={g} />
+                      <div className="mt-2 overflow-hidden rounded-xl border border-dashed">
+                        <GroupEndDrop group={g} layout="card">
+                          <AddTaskRow group={g} />
+                        </GroupEndDrop>
                       </div>
                     )}
                   </div>
@@ -411,6 +528,7 @@ export function BoardView() {
           );
         })}
       </div>
+      </DndContext>
       {filtering && visible.length === 0 && <p className="mt-6 text-center text-muted-foreground">No tasks match these filters.</p>}
       {perms.canManage && (
         <div className="mt-6">

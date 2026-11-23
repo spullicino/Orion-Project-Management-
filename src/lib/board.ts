@@ -162,3 +162,19 @@ export function describeChange(
       return `changed ${field.replace(/_/g, " ")}`;
   }
 }
+
+/** Suggested dates: below = starts the day after the task finishes; above = ends the day before it starts. */
+export function suggestDates(anchor: Pick<BoardTask, "start_date" | "due_date">, where: "above" | "below") {
+  const days = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+  const length = anchor.start_date && anchor.due_date ? Math.max(0, days(anchor.start_date, anchor.due_date)) : 4;
+  if (where === "below") {
+    const from = anchor.due_date ?? anchor.start_date;
+    if (!from) return { start: "", due: "" };
+    const start = addDays(from, 1);
+    return { start, due: addDays(start, length) };
+  }
+  const to = anchor.start_date ?? anchor.due_date;
+  if (!to) return { start: "", due: "" };
+  const due = addDays(to, -1);
+  return { start: addDays(due, -length), due };
+}

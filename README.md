@@ -206,6 +206,7 @@ The app also shows an *Install Orion Projects* pop-up on phones from the second 
 - **Repeating tasks** — in a task, set **Repeat** (daily, weekdays, weekly, every 2 weeks, monthly, every 3 months, yearly; optional end date). Marking it Done creates the next one with the same owners and checklist.
 - **Products** (managers) — the list workers pick from in material requests (name, unit, category, code); import from Excel; retire old ones. Each project's Materials tab has a **Materials report** (delivered per product, any dates) as PDF or Excel (CSV).
 - **Materials** — workers request materials (items, quantities, needed-by, photos; works offline). The project's managers mark them *Ordered* (supplier, PO, expected date), *Delivered* / *Partly delivered* or *Rejected*; everyone is notified. PDF for suppliers, Reorder, and *Delivered so far* per project. All requests across your projects: **Materials** in the menu.
+- **Task order** — *Insert task above/below* (in the task panel; rewires linked tasks A → new → B, later dates aren't moved) and drag to reorder on the Board (or *Move up/down*); the Gantt follows.
 - **Copy a task to other projects** — in a task, *Copy to other projects*: pick projects, a group and due date for each. Details, checklist, Internal and Repeat settings come along; owners only if they're on that project.
 - **Internal tasks** — switch on **Internal** in a task (🔒) for team-only work such as invoicing: never on client links or exports, not counted in % complete or health, hidden on Gantt/Kanban unless *Show internal tasks* is on.
 - **Kanban** — drag cards between statuses (on phones: press and hold).
@@ -266,7 +267,7 @@ People waiting for approval or deactivated see nothing. Daily updates can be edi
 2. If the update includes **new database files** (`supabase/migrations/…`), run **only the new ones**, in number order, in Supabase **SQL Editor** — the release notes say which. If a screen says *"The database needs an update"*, a file was missed.
 3. If the update mentions new settings, add them in Vercel and redeploy.
 
-Database files applied so far: `…0001` to `…0021` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
+Database files applied so far: `…0001` to `…0022` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
 
 ---
 
@@ -336,7 +337,7 @@ Add a new file in `supabase/migrations/` (never edit an applied one), add RLS po
 
 ```
 supabase/
-  migrations/        0001 foundation … 0021 product catalogue (append-only)
+  migrations/        0001 foundation … 0022 task order (append-only)
   setup/             all-in-one.sql (generated: every migration, for new installs)
   seed.sql           demo data (local/testing only)
   templates/         branded auth emails

@@ -179,6 +179,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Repeating tasks show a 🔁 symbol on the board. Finished late? The next one is still set in the future, not already overdue.",
       },
       {
+        title: "Add a task in between others, or change the order",
+        minRole: "technician",
+        steps: [
+          "Open the task next to where the new one should go (tap it on the Board or the Gantt).",
+          "At the bottom, tap **Insert task above** or **Insert task below**. Dates are suggested (just before or after it) — change them if needed.",
+          "If the tasks are linked, keep **Keep the chain in order** ticked: the links become A → new → B. Later dates aren't moved.",
+          "To change the order, drag a task by its handle (⋮⋮) on the Board — on phones, press and hold the handle. Or open the task and tap **Move up** / **Move down**. The Gantt follows the same order.",
+        ],
+      },
+      {
         title: "Copy a task to other projects",
         minRole: "technician",
         steps: [

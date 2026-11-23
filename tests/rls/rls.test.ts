@@ -1351,3 +1351,49 @@ describe("product catalogue and materials report", () => {
     });
   });
 });
+
+describe("inserting a task between others, and moving tasks", () => {
+  // Valletta "In progress" group: Partition walls (pos 1), Electrical first fix (2), Data cabling (3); Data cabling waits for Electrical.
+  const order = async (db: { query: <T>(s: string) => Promise<T[]> }) =>
+    (await db.query<{ title: string }>(`select title from public.tasks where group_id = '${GROUPS.vallettaInProgress}' order by position, created_at`)).map((r) => r.title);
+  const elec = "40000000-0000-4000-8000-000000000004";
+  const partition = TASKS.vallettaPartitions;
+
+  it("inserts below a task, in the right place, and rewires A → new → B", async () => {
+    await asUser(USERS.manager, async (db) => {
+      const [{ v: id }] = await db.query<{ v: string }>(`select public.insert_task_at('${elec}', 'below', 'Containment inspection') as v`);
+      expect(await order(db)).toEqual(["Partition walls", "Electrical first fix", "Containment inspection", "Data cabling"]);
+      const links = await db.query<{ t: string; d: string }>(
+        `select t.title as t, d2.title as d from public.task_dependencies d join public.tasks t on t.id = d.task_id join public.tasks d2 on d2.id = d.depends_on_task_id
+         where t.group_id = '${GROUPS.vallettaInProgress}' order by 1`,
+      );
+      expect(links).toEqual([
+        { t: "Containment inspection", d: "Electrical first fix" },
+        { t: "Data cabling", d: "Containment inspection" },
+      ]);
+      expect(id).toBeTruthy();
+    });
+  });
+
+  it("inserts above a task; technicians can insert but links are left to managers", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      await db.query(`select public.insert_task_at('${partition}', 'above', 'Set out walls')`);
+      expect(await order(db)).toEqual(["Set out walls", "Partition walls", "Electrical first fix", "Data cabling"]);
+    });
+  });
+
+  it("moves a task before another, or to the end, and only for people who can edit", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      await db.query(`select public.move_task('${partition}', '${GROUPS.vallettaInProgress}', null)`);
+      expect(await order(db)).toEqual(["Electrical first fix", "Data cabling", "Partition walls"]);
+      await db.query(`select public.move_task('${partition}', '${GROUPS.vallettaInProgress}', '${elec}')`);
+      expect(await order(db)).toEqual(["Partition walls", "Electrical first fix", "Data cabling"]);
+    });
+    await asUser(USERS.basic, async (db) => {
+      expect(await db.fails(`select public.move_task('${partition}', '${GROUPS.vallettaInProgress}', null)`)).toMatch(/can't move tasks/);
+    });
+    await asUser(USERS.tech2, async (db) => {
+      expect(await db.fails(`select public.move_task('${partition}', '${GROUPS.vallettaInProgress}', null)`)).toMatch(/Task not found/);
+    });
+  });
+});
