@@ -151,7 +151,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         minRole: "technician",
         steps: [
           "Tap the task to open its details.",
-          "Change the **Status** (e.g. Working on it, Stuck, Done), **Owners**, **Priority**, **Start** and **Due** dates, or **Progress**.",
+          "Change the **Status** (e.g. Working on it, Stuck, Done), **Owners**, **Priority**, **Start** and **Due** dates, or **Progress** (in steps of 5%).",
           "Changes save straight away — there's no save button.",
         ],
         tip: "Marking a task **Done** sets it to 100% and removes it from everyone's “due” lists.",

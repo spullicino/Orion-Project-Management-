@@ -272,8 +272,9 @@ export function ProgressCell({ task }: { task: BoardTask }) {
           {bar}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="grid w-60 grid-cols-3 gap-1.5">
-        {[0, 10, 25, 50, 75, 90].map((v) => (
+      <PopoverContent className="grid w-72 grid-cols-4 gap-1.5" aria-label="Choose progress">
+        {/* Every 5%, so progress can be updated little and often. 100% = set a "done" status. */}
+        {Array.from({ length: 20 }, (_, i) => i * 5).map((v) => (
           <button
             key={v}
             type="button"
@@ -286,7 +287,7 @@ export function ProgressCell({ task }: { task: BoardTask }) {
             {v}%
           </button>
         ))}
-        <p className="col-span-3 pt-1 text-xs text-muted-foreground">Set the status to a “done” status to mark it 100%.</p>
+        <p className="col-span-4 pt-1 text-xs text-muted-foreground">Set the status to a “done” status to mark it 100%.</p>
       </PopoverContent>
     </Popover>
   );
