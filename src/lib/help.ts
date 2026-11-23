@@ -232,7 +232,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         minRole: "manager",
         steps: [
           "Tap **Add group** at the bottom of the Board to add a phase (e.g. Phase 2).",
-          "Use the group's **⋯** menu to **Rename**, **Move up / down / to top / to bottom**, or **Delete group**. The Gantt follows the same order.",
+          "Use the group's **⋯** menu to **Rename**, **Move up / down / to top / to bottom**, or **Delete group**.",
+          "Or drag a group by the handle (⋮⋮) next to its name and drop it on another group (on phones, press and hold the handle). The Gantt follows the same order.",
         ],
       },
       {

@@ -729,10 +729,14 @@ export async function insertTaskAt(anchorId: string, input: unknown): Promise<Re
   return { ok: true, data: { id: data as unknown as string } };
 }
 
-/** Moves a group up/down one place, or to the top/bottom of the project. */
-export async function moveGroup(groupId: string, to: "up" | "down" | "top" | "bottom"): Promise<Result> {
+/**
+ * Moves a group up/down one place, to the top/bottom, or (dragging) just before another
+ * group — `{ before: id }`, or `{ before: null }` for the end.
+ */
+export async function moveGroup(groupId: string, to: "up" | "down" | "top" | "bottom" | { before: string | null }): Promise<Result> {
   await requireRole("manager");
-  if (!uuid.safeParse(groupId).success || !["up", "down", "top", "bottom"].includes(to)) return fail("Invalid request");
+  const valid = typeof to === "object" ? to.before === null || uuid.safeParse(to.before).success : ["up", "down", "top", "bottom"].includes(to);
+  if (!uuid.safeParse(groupId).success || !valid) return fail("Invalid request");
   const supabase = await createClient();
   const { data: g } = await supabase.from("groups").select("project_id").eq("id", groupId).maybeSingle();
   if (!g) return fail("Group not found");
@@ -740,9 +744,14 @@ export async function moveGroup(groupId: string, to: "up" | "down" | "top" | "bo
   if (error) return fail(friendly(error.message));
   const ids = (all ?? []).map((x) => x.id);
   const from = ids.indexOf(groupId);
-  const target = to === "top" ? 0 : to === "bottom" ? ids.length - 1 : to === "up" ? Math.max(0, from - 1) : Math.min(ids.length - 1, from + 1);
-  if (from === -1 || from === target) return { ok: true };
+  if (from === -1) return fail("Group not found");
   ids.splice(from, 1);
+  let target: number;
+  if (typeof to === "object") {
+    const at = to.before ? ids.indexOf(to.before) : -1;
+    target = at === -1 ? ids.length : at;
+  } else target = to === "top" ? 0 : to === "bottom" ? ids.length : to === "up" ? Math.max(0, from - 1) : Math.min(ids.length, from + 1);
+  if (target === from) return { ok: true };
   ids.splice(target, 0, groupId);
   // Number them 1, 2, 3… and save only the ones whose place changed.
   for (const [i, id] of ids.entries()) {

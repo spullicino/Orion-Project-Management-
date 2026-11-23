@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, ChevronDown, ChevronRight, CheckSquare, GripVertical, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createGroup, createTask, deleteGroup, moveGroup, updateGroup } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ function DragHandle({
       ref={setActivatorNodeRef}
       {...listeners}
       {...attributes}
-      aria-label={`Move “${title}” (drag, or press space then use the arrow keys)`}
+      aria-label={`Move ${title.startsWith("group ") ? title : `“${title}”`} (drag, or press space then use the arrow keys)`}
       className="flex h-11 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/70 hover:bg-accent hover:text-foreground active:cursor-grabbing"
     >
       <GripVertical className="size-4" aria-hidden />
@@ -249,6 +249,33 @@ function TaskCard({ task, color }: { task: BoardTask; color: string }) {
   );
 }
 
+/** A group on the board; managers can drag it by its header handle. */
+function GroupSection({ group, children }: { group: Group; children: (handle: React.ReactNode) => React.ReactNode }) {
+  const { perms } = useBoard();
+  const { attributes, listeners, setNodeRef: setDragRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
+    id: `group:${group.id}`,
+    data: { kind: "group", groupId: group.id },
+    disabled: !perms.canManage,
+  });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `groupdrop:${group.id}`, data: { kind: "group", groupId: group.id, taskId: null }, disabled: !perms.canManage });
+  const setRef = (el: HTMLElement | null) => {
+    setDragRef(el);
+    setDropRef(el);
+  };
+  const style: React.CSSProperties = transform
+    ? { transform: `translate3d(0, ${transform.y}px, 0)`, position: "relative", zIndex: 40, opacity: 0.9 }
+    : {};
+  return (
+    <section ref={setRef} aria-label={group.name} className={cn("min-w-0 rounded-xl", isOver && !isDragging && "ring-2 ring-primary ring-offset-4 ring-offset-background")} style={style}>
+      {children(
+        perms.canManage ? (
+          <DragHandle title={`group “${group.name}”`} attributes={attributes} listeners={listeners} setActivatorNodeRef={setActivatorNodeRef} />
+        ) : null,
+      )}
+    </section>
+  );
+}
+
 /** Drop here to move a task to the end of this group. */
 function GroupEndDrop({ group, layout, children }: { group: Group; layout: "row" | "card"; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `end:${layout}:${group.id}`, data: { groupId: group.id, taskId: null } });
@@ -299,7 +326,22 @@ function AddTaskRow({ group }: { group: Group }) {
   );
 }
 
-function GroupHeader({ group, count, pct, collapsed, onToggle }: { group: Group; count: number; pct: number | null; collapsed: boolean; onToggle: () => void }) {
+function GroupHeader({
+  group,
+  count,
+  pct,
+  collapsed,
+  onToggle,
+  handle,
+}: {
+  group: Group;
+  count: number;
+  pct: number | null;
+  collapsed: boolean;
+  onToggle: () => void;
+  /** Managers: the handle to drag the whole group by. */
+  handle?: React.ReactNode;
+}) {
   const { perms, board } = useBoard();
   const isFirst = board.groups[0]?.id === group.id;
   const isLast = board.groups[board.groups.length - 1]?.id === group.id;
@@ -317,6 +359,7 @@ function GroupHeader({ group, count, pct, collapsed, onToggle }: { group: Group;
 
   return (
     <div className="flex items-center gap-1 py-2">
+      {handle}
       <button
         type="button"
         onClick={onToggle}
@@ -457,7 +500,34 @@ export function BoardView() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
+  // Group order shown on screen (changes instantly when a group is dragged, then saves).
+  const [groupOrder, setGroupOrder] = useState<string[] | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fresh server data replaces the local order
+  useEffect(() => setGroupOrder(null), [board.groups]);
+  const groups = groupOrder ? groupOrder.map((id) => board.groups.find((g) => g.id === id)!).filter(Boolean) : board.groups;
+
   const onDragEnd = (e: DragEndEvent) => {
+    if (e.active.data.current?.kind === "group") {
+      const groupId = e.active.data.current.groupId as string;
+      const targetGroup = e.over?.data.current?.groupId as string | undefined;
+      if (!targetGroup || targetGroup === groupId) return;
+      const ids = groups.map((g) => g.id);
+      const from = ids.indexOf(groupId);
+      const to = ids.indexOf(targetGroup);
+      // Dropped on a group below → goes after it; above → before it.
+      const before = from < to ? (ids[to + 1] ?? null) : targetGroup;
+      const next = ids.filter((id) => id !== groupId);
+      const at = before ? next.indexOf(before) : next.length;
+      next.splice(at, 0, groupId);
+      setGroupOrder(next);
+      void moveGroup(groupId, { before }).then((res) => {
+        if (!res.ok) {
+          setGroupOrder(null);
+          toast.error(res.error);
+        }
+      });
+      return;
+    }
     const taskId = e.active.data.current?.taskId as string | undefined;
     const target = e.over?.data.current as { taskId: string | null; groupId: string } | undefined;
     if (!taskId || !target || target.taskId === taskId) return;
@@ -486,14 +556,17 @@ export function BoardView() {
       )}
       <DndContext id="board-dnd" sensors={sensors} collisionDetection={dropUnderPointer} onDragEnd={onDragEnd}>
       <div className="grid min-w-0 gap-6">
-        {board.groups.map((g) => {
+        {groups.map((g) => {
           const groupTasks = visible.filter((t) => t.group_id === g.id);
           if (filtering && groupTasks.length === 0) return null;
           const isCollapsed = collapsed[g.id] ?? false;
           return (
-            <section key={g.id} aria-label={g.name} className="min-w-0">
+            <GroupSection key={g.id} group={g}>
+              {(groupHandle) => (
+              <>
               <GroupHeader
                 group={g}
+                handle={groupHandle}
                 count={groupTasks.length}
                 pct={groupTasks.length ? Math.round(groupTasks.reduce((n, t) => n + (t.completed_at ? 100 : t.progress), 0) / groupTasks.length) : null}
                 collapsed={isCollapsed} onToggle={() => setCollapsed((c) => ({ ...c, [g.id]: !isCollapsed }))} />
@@ -545,7 +618,9 @@ export function BoardView() {
                   {groupTasks.length === 0 && !perms.canEdit && <p className="px-3 text-sm text-muted-foreground">No tasks.</p>}
                 </>
               )}
-            </section>
+              </>
+              )}
+            </GroupSection>
           );
         })}
       </div>
