@@ -12,7 +12,13 @@ import { Lightbox } from "./lightbox";
 
 const PAGE = 60;
 
-export function PhotoGallery({ projectId, initial }: { projectId: string; initial: GalleryPhoto[] }) {
+export function PhotoGallery({
+  projectId,
+  initial,
+}: {
+  projectId: string;
+  initial: GalleryPhoto[];
+}) {
   const [photos, setPhotos] = useState(initial);
   const [hasMore, setHasMore] = useState(initial.length >= PAGE);
   const [from, setFrom] = useState("");
@@ -30,14 +36,22 @@ export function PhotoGallery({ projectId, initial }: { projectId: string; initia
 
   const fetchPage = (f: string, t: string, before: string | null) =>
     start(async () => {
-      const res = await loadPhotos({ project: projectId, from: f || null, to: t || null, before });
+      const res = await loadPhotos({
+        project: projectId,
+        from: f || null,
+        to: t || null,
+        before,
+      });
       if (!res.ok) return void toast.error(res.error);
-      setPhotos((ps) => (before ? [...ps, ...(res.data ?? [])] : (res.data ?? [])));
+      setPhotos((ps) =>
+        before ? [...ps, ...(res.data ?? [])] : (res.data ?? []),
+      );
       setHasMore((res.data?.length ?? 0) >= PAGE);
     });
 
   // Group by day for headings.
-  const days: { date: string; photos: { p: GalleryPhoto; index: number }[] }[] = [];
+  const days: { date: string; photos: { p: GalleryPhoto; index: number }[] }[] =
+    [];
   photos.forEach((p, index) => {
     const last = days[days.length - 1];
     if (last?.date === p.work_date) last.photos.push({ p, index });
@@ -47,29 +61,59 @@ export function PhotoGallery({ projectId, initial }: { projectId: string; initia
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="grid gap-1 text-xs text-muted-foreground">
+        <label className="grid min-w-0 flex-1 basis-32 gap-1 sm:flex-none text-xs text-muted-foreground">
           From
-          <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); fetchPage(e.target.value, to, null); }} className="w-44" />
+          <Input
+            type="date"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              fetchPage(e.target.value, to, null);
+            }}
+            className="w-full sm:w-44"
+          />
         </label>
-        <label className="grid gap-1 text-xs text-muted-foreground">
+        <label className="grid min-w-0 flex-1 basis-32 gap-1 sm:flex-none text-xs text-muted-foreground">
           To
-          <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); fetchPage(from, e.target.value, null); }} className="w-44" />
+          <Input
+            type="date"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              fetchPage(from, e.target.value, null);
+            }}
+            className="w-full sm:w-44"
+          />
         </label>
         {(from || to) && (
-          <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); fetchPage("", "", null); }}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+              fetchPage("", "", null);
+            }}
+          >
             <X aria-hidden /> Clear
           </Button>
         )}
       </div>
 
       {photos.length === 0 && !pending && (
-        <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No photos {from || to ? "in these dates" : "yet. Photos from daily updates appear here"}.</p>
+        <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+          No photos{" "}
+          {from || to
+            ? "in these dates"
+            : "yet. Photos from daily updates appear here"}
+          .
+        </p>
       )}
 
       {days.map((d) => (
         <section key={d.date} aria-label={formatDate(d.date)}>
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
-            {formatDate(d.date)} · {d.photos.length} {d.photos.length === 1 ? "photo" : "photos"}
+            {formatDate(d.date)} · {d.photos.length}{" "}
+            {d.photos.length === 1 ? "photo" : "photos"}
           </h2>
           <ul className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
             {d.photos.map(({ p, index }) => (
@@ -81,7 +125,13 @@ export function PhotoGallery({ projectId, initial }: { projectId: string; initia
                   aria-label={`Photo by ${fullName(p.author)}, ${formatDate(p.work_date)}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- signed URLs */}
-                  <img src={p.thumb_url ?? ""} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+                  <img
+                    src={p.thumb_url ?? ""}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-cover"
+                  />
                 </button>
               </li>
             ))}
@@ -90,12 +140,27 @@ export function PhotoGallery({ projectId, initial }: { projectId: string; initia
       ))}
 
       {hasMore && (
-        <Button variant="outline" disabled={pending} className="justify-self-center" onClick={() => fetchPage(from, to, photos[photos.length - 1]?.created_at ?? null)}>
-          {pending && <Loader2 className="animate-spin" aria-hidden />} Show more photos
+        <Button
+          variant="outline"
+          disabled={pending}
+          className="justify-self-center"
+          onClick={() =>
+            fetchPage(from, to, photos[photos.length - 1]?.created_at ?? null)
+          }
+        >
+          {pending && <Loader2 className="animate-spin" aria-hidden />} Show
+          more photos
         </Button>
       )}
 
-      <Lightbox photos={photos.map((p) => ({ ...p, meta: `${fullName(p.author)} · ${formatDate(p.work_date)}` }))} index={open} onClose={() => setOpen(null)} />
+      <Lightbox
+        photos={photos.map((p) => ({
+          ...p,
+          meta: `${fullName(p.author)} · ${formatDate(p.work_date)}`,
+        }))}
+        index={open}
+        onClose={() => setOpen(null)}
+      />
     </div>
   );
 }
