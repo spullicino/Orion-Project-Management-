@@ -65,13 +65,13 @@ export function TeamOverviewCards({
   const maxRequests = full ? 20 : 4;
 
   return (
-    <section aria-labelledby="team-overview" className={cn("mb-4 grid gap-3", full ? "lg:grid-cols-2" : "md:grid-cols-2")}>
+    <section aria-labelledby="team-overview" className={cn("mb-4 grid grid-cols-1 gap-3", full ? "lg:grid-cols-2" : "md:grid-cols-2")}>
       <h2 id="team-overview" className="sr-only">
         Team overview
       </h2>
 
-      <Card>
-        <CardContent className="grid gap-4 p-5">
+      <Card className="min-w-0">
+        <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
           <Link href="/daily-update/team" className="flex items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ClipboardPenLine className="size-6 text-primary" aria-hidden />
             <span className="flex-1 text-lg font-semibold">Daily updates today</span>
@@ -114,7 +114,7 @@ export function TeamOverviewCards({
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground">{time(u.created_at)}</span>
                       </span>
-                      <span className="mt-0.5 line-clamp-2 block pl-4.5 text-sm text-muted-foreground">
+                      <span className="mt-0.5 line-clamp-2 pl-4.5 text-sm text-muted-foreground">
                         {u.issues && <AlertTriangle className="mr-1 inline size-3.5 text-amber-600" aria-label="Has issues" />}
                         {u.work_done}
                       </span>
@@ -132,8 +132,8 @@ export function TeamOverviewCards({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="grid gap-4 p-5">
+      <Card className="min-w-0">
+        <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
           <Link href="/materials" className="flex items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Package className="size-6 text-primary" aria-hidden />
             <span className="flex-1 text-lg font-semibold">Material requests</span>
@@ -151,7 +151,7 @@ export function TeamOverviewCards({
                   <Link href={`/materials?request=${r.id}`} className="flex items-start gap-2 py-2 hover:bg-accent/40">
                     <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: r.project.color }} aria-hidden />
                     <span className="min-w-0 flex-1 text-sm">
-                      <span className="block truncate">
+                      <span className="line-clamp-2 break-words">
                         <span className="font-medium">#{r.number}</span> {r.summary}
                       </span>
                       <span className="block truncate text-muted-foreground">

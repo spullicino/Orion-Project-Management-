@@ -3,7 +3,11 @@ import { previewBoard } from "@/dev/fixtures";
 import { PreviewClient } from "@/dev/preview-client";
 
 /** Development-only visual preview of the board with sample data (no database needed). */
-export default async function BoardPreview({ searchParams }: { searchParams: Promise<{ view?: string; role?: string }> }) {
+export default async function BoardPreview({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; role?: string }>;
+}) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { view, role } = await searchParams;
   return (

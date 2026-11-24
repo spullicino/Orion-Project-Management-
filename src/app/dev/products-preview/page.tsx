@@ -11,11 +11,46 @@ export default function ProductsPreview() {
       <h1 className="mb-4 text-2xl font-bold">Products</h1>
       <ProductsView
         initial={[
-          { id: "pr1", name: "Plasterboard 12.5mm", unit: "sheets", category: "Drylining", code: null, active: true },
-          { id: "pr2", name: "Plasterboard 15mm", unit: "sheets", category: "Drylining", code: null, active: true },
-          { id: "pr3", name: "Drywall screws 3.5x25", unit: "boxes", category: "Fixings", code: "DS25", active: true },
-          { id: "pr4", name: "Twin & earth cable 2.5mm", unit: "rolls", category: "Electrical", code: "TE25", active: true },
-          { id: "pr6", name: "Old fitting", unit: "pcs", category: "Plumbing", code: null, active: false },
+          {
+            id: "pr1",
+            name: "Plasterboard 12.5mm",
+            unit: "sheets",
+            category: "Drylining",
+            code: null,
+            active: true,
+          },
+          {
+            id: "pr2",
+            name: "Plasterboard 15mm",
+            unit: "sheets",
+            category: "Drylining",
+            code: null,
+            active: true,
+          },
+          {
+            id: "pr3",
+            name: "Drywall screws 3.5x25",
+            unit: "boxes",
+            category: "Fixings",
+            code: "DS25",
+            active: true,
+          },
+          {
+            id: "pr4",
+            name: "Twin & earth cable 2.5mm",
+            unit: "rolls",
+            category: "Electrical",
+            code: "TE25",
+            active: true,
+          },
+          {
+            id: "pr6",
+            name: "Old fitting",
+            unit: "pcs",
+            category: "Plumbing",
+            code: null,
+            active: false,
+          },
         ]}
       />
     </main>

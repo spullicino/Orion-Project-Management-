@@ -4,7 +4,11 @@ import { HELP_TOPICS } from "@/lib/help";
 import type { AppRole } from "@/types/database";
 
 /** Development-only preview of the Help page (no database needed). */
-export default async function HelpPreview({ searchParams }: { searchParams: Promise<{ role?: AppRole }> }) {
+export default async function HelpPreview({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: AppRole }>;
+}) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { role } = await searchParams;
   return (
