@@ -8,6 +8,24 @@ import { Button } from "@/components/ui/button";
 
 type Status = { push: boolean; cron: boolean; email: boolean };
 
+/** The one-time Supabase snippet that wakes the app every 15 minutes for timed reminders. */
+export function reminderScheduleSql(siteUrl: string) {
+  return `-- Orion Projects: check every 15 minutes for the daily update reminder.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+select cron.schedule(
+  'orion-reminders',
+  '*/15 * * * *',
+  $job$
+  select net.http_get(
+    url := '${siteUrl}/api/cron/reminders',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (select token from public.job_secrets where name = 'reminders')),
+    timeout_milliseconds := 30000
+  );
+  $job$
+);`;
+}
+
 function Row({ ok, label, hint }: { ok: boolean; label: string; hint: string }) {
   return (
     <li className="flex items-start gap-3 py-2">
@@ -39,13 +57,51 @@ function Secret({ name, value }: { name: string; value: string }) {
   );
 }
 
-export function SetupCard({ status }: { status: Status }) {
+export function SetupCard({ status, reminder }: { status: Status; reminder?: { siteUrl: string; checkedAt: string | null; migrated: boolean; running: boolean } }) {
+  const [showSql, setShowSql] = useState(false);
+  const running = !!reminder?.running;
   const [keys, setKeys] = useState<{ publicKey: string; privateKey: string; cronSecret: string } | null>(null);
   return (
     <div className="grid gap-4">
       <ul className="divide-y">
         <Row ok={status.push} label="Phone push notifications" hint="Add NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT in Vercel (generate them below)." />
         <Row ok={status.cron} label="Daily job (reminders & summary)" hint="Add CRON_SECRET in Vercel (generate below)." />
+        {reminder && (
+          <li className="grid gap-2 py-2">
+            <div className="flex items-start gap-3">
+              {running ? <Check className="mt-0.5 size-5 shrink-0 text-success" aria-label="Set up" /> : <X className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-label="Not set up" />}
+              <span className="min-w-0">
+                <span className="block font-medium">Timed reminders (daily update reminder)</span>
+                <span className="block text-sm text-muted-foreground">
+                  {!reminder.migrated
+                    ? "Run database update 0023 first."
+                    : running
+                      ? `Working — last check ${new Date(reminder.checkedAt!).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" })}.`
+                      : "Not running yet. In Supabase → SQL Editor, run the snippet below once. This page shows a tick within 15 minutes."}
+                </span>
+              </span>
+            </div>
+            {reminder.migrated && (
+              <div className="grid gap-2 pl-8">
+                <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setShowSql((v) => !v)}>
+                  {showSql ? "Hide snippet" : running ? "Show the Supabase snippet again" : "Show the Supabase snippet"}
+                </Button>
+                {showSql && (
+                  <div className="grid gap-2">
+                    <pre className="max-h-72 overflow-auto rounded-lg bg-muted p-3 text-xs">{reminderScheduleSql(reminder.siteUrl)}</pre>
+                    <Button
+                      variant="outline"
+                      className="justify-self-start"
+                      onClick={() => navigator.clipboard.writeText(reminderScheduleSql(reminder.siteUrl)).then(() => toast.success("Snippet copied"))}
+                    >
+                      <Copy aria-hidden /> Copy snippet
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </li>
+        )}
         <Row ok={status.email} label="Daily email summary" hint="Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and EMAIL_FROM in Vercel (same details as Supabase's email settings)." />
       </ul>
       {!keys ? (

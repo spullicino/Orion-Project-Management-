@@ -18,6 +18,7 @@ const ICONS: Record<string, typeof Bell> = {
   "task.overdue": AlertTriangle,
   mention: AtSign,
   "daily.new": ClipboardPenLine,
+  "daily.reminder": ClipboardPenLine,
   "personal.due": NotebookTabs,
   "material.new": Package,
   "material.status": Package,

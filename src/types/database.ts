@@ -50,6 +50,11 @@ export type AppSettings = {
   daily_update_weekdays: number[];
   timezone: string;
   updated_at: string;
+  /** Daily update reminder (database update 0023). */
+  daily_reminder_enabled?: boolean;
+  daily_reminder_time?: string; // "16:30:00"
+  daily_reminder_sent_on?: string | null;
+  reminder_checked_at?: string | null;
 };
 
 import type { Client, ColumnKind, CustomColumn, Priority, StatusLabel } from "./board";
@@ -138,6 +143,7 @@ export type Database = {
       profiles: Table<Profile, Partial<Profile> & { id: string; email: string }>;
       invites: Table<Invite, Partial<Invite> & { email: string }>;
       app_settings: Table<AppSettings>;
+      job_secrets: Table<{ name: string; token: string }>;
       projects: Table<ProjectRow, Partial<ProjectRow> & { name: string }>;
       project_members: Table<{ project_id: string; user_id: string; added_by: string | null; added_at: string }>;
       clients: Table<Client & { created_by: string | null }, Partial<Client & { created_by: string | null }> & { name: string }>;
@@ -305,6 +311,7 @@ export type Database = {
       get_postable_projects: { Args: Record<string, never>; Returns: Json };
       list_my_channels: { Args: Record<string, never>; Returns: Json };
       create_due_notifications: { Args: Record<string, never>; Returns: number };
+      queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       claim_push_batch: { Args: { p_limit?: number }; Returns: Json };
       claim_chat_push_batch: { Args: { p_limit?: number }; Returns: Json };
       get_channel_media: { Args: { p_channel: string; p_kind?: string; p_before?: string | null; p_limit?: number }; Returns: Json };

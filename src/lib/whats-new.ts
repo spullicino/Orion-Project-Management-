@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-24-daily-reminder",
+    date: "2026-11-24",
+    title: "Reminder to post your daily update",
+    body: "On working days at 4:30pm, technicians who haven't posted that day's daily update get a phone reminder — tap it to post. Administrators can change the time (or switch it off) in Admin → Settings.",
+    help: "/help#daily-update",
+    minRole: "technician",
+  },
+  {
     id: "2026-11-24-admin-names",
     date: "2026-11-24",
     title: "Administrators can fill in people's names",

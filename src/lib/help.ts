@@ -382,6 +382,17 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "No signal on site? Post anyway. The update is saved on your phone and sends by itself when you're back online — a yellow bar shows what's waiting.",
       },
       {
+        title: "Daily reminder to post",
+        minRole: "technician",
+        steps: [
+          "On working days, if you haven't posted your daily update yet, your phone gets a reminder in the afternoon (4:30pm unless your administrator changed it).",
+          "Tap the reminder to go straight to **Daily Update** and post.",
+          "Already posted that day? You won't get it.",
+          "To stop these reminders, open **🔔 → Settings** and switch off **Reminder to post my daily update**.",
+        ],
+        tip: "Phone notifications must be turned on first: **🔔 → Settings → Turn on phone notifications**.",
+      },
+      {
         title: "Edit or delete an update",
         minRole: "technician",
         steps: [
@@ -714,6 +725,16 @@ export const HELP_TOPICS: HelpTopic[] = [
           "The name shows straight away everywhere — Home, Daily updates, tasks, chats and material requests.",
         ],
         tip: "They can still change their own name later in **Profile**.",
+      },
+      {
+        title: "Set the daily update reminder time",
+        minRole: "admin",
+        steps: [
+          "Open **Admin → Settings**.",
+          "**Daily update reminder** is on by default. Pick the **Reminder time** (Malta time) — e.g. 16:30 (4:30 pm).",
+          "On working days at that time, technicians on active projects who haven't posted yet get a phone notification. It arrives within 15 minutes of the time.",
+          "**First time only:** in **Admin → Setup**, tap **Show the Supabase snippet**, copy it and run it once in Supabase → SQL Editor. A green tick shows when it's working.",
+        ],
       },
       {
         title: "Settings and setup",

@@ -14,7 +14,7 @@ import {
   setStatusSchema,
   settingsSchema,
 } from "@/lib/validation/admin";
-import type { AppRole } from "@/types/database";
+import type { AppRole, AppSettings } from "@/types/database";
 
 export type ActionResult = { ok?: boolean; error?: string; message?: string };
 
@@ -143,15 +143,18 @@ export async function revokeInvite(input: { inviteId: string }): Promise<ActionR
   return done("Invitation cancelled");
 }
 
-export async function updateSettings(input: { basicCanPostChat: boolean }): Promise<ActionResult> {
+export async function updateSettings(input: { basicCanPostChat?: boolean; reminderEnabled?: boolean; reminderTime?: string }): Promise<ActionResult> {
   await requireRole("admin");
   const parsed = settingsSchema.safeParse(input);
-  if (!parsed.success) return { error: "Invalid request" };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+  const d = parsed.data;
+  const patch: Partial<AppSettings> = {};
+  if (d.basicCanPostChat !== undefined) patch.basic_can_post_chat = d.basicCanPostChat;
+  if (d.reminderEnabled !== undefined) patch.daily_reminder_enabled = d.reminderEnabled;
+  if (d.reminderTime !== undefined) patch.daily_reminder_time = d.reminderTime;
+  if (!Object.keys(patch).length) return { error: "Nothing to save" };
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("app_settings")
-    .update({ basic_can_post_chat: parsed.data.basicCanPostChat })
-    .eq("id", true);
+  const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
   if (error) return { error: error.message };
   return done("Settings saved");
 }

@@ -12,7 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { resolveAvatarUrls } from "@/lib/storage";
+import { getSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
+
+/** The 15-minute reminder job has called in within the last 40 minutes. */
+function checkedRecently(iso: string | null | undefined) {
+  return !!iso && Date.now() - new Date(iso).getTime() < 40 * 60 * 1000;
+}
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -87,7 +93,10 @@ export default async function AdminPage() {
             <CardDescription>What&apos;s switched on for this installation.</CardDescription>
           </CardHeader>
           <CardContent>
-            <SetupCard status={{ push: pushConfigured(), cron: !!process.env.CRON_SECRET, email: emailConfigured() }} />
+            <SetupCard
+              status={{ push: pushConfigured(), cron: !!process.env.CRON_SECRET, email: emailConfigured() }}
+              reminder={{ siteUrl: await getSiteUrl(), checkedAt: settings?.reminder_checked_at ?? null, migrated: settings?.daily_reminder_enabled !== undefined, running: checkedRecently(settings?.reminder_checked_at) }}
+            />
           </CardContent>
         </Card>
 

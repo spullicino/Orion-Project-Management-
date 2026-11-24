@@ -30,7 +30,7 @@ describe("table privileges", () => {
       await asUser(USERS.admin, async (db) => {
         names = (
           await db.query<{ tablename: string }>(
-            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox') order by 1",
+            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets') order by 1",
           )
         ).map((r) => r.tablename);
       });
@@ -1416,6 +1416,56 @@ describe("inserting a task between others, and moving tasks", () => {
     });
     await asUser(USERS.tech2, async (db) => {
       expect(await db.fails(`select public.move_task('${partition}', '${GROUPS.vallettaInProgress}', null)`)).toMatch(/Task not found/);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("daily update reminder", () => {
+  type Row = Record<string, unknown>;
+  const at = (local: string) => `'${local}'::timestamp at time zone 'Europe/Malta'`;
+  const run = (local: string) => `select public.queue_daily_update_reminders(${at(local)});`;
+  const reminders = async (db: { query: (s: string) => Promise<Row[]> }) =>
+    (await db.query("select title from public.notifications where type = 'daily.reminder'")).length;
+
+  it("only the server may run it", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.queue_daily_update_reminders()")).toMatch(/permission denied/);
+      expect(await db.fails("select * from public.job_secrets")).toMatch(/permission denied/);
+    });
+  });
+
+  it("reminds technicians on active projects who haven't posted, once, at the chosen time on working days", async () => {
+    // Wednesday 9 Jan 2030. tech2 already posted that day; tech1 hasn't.
+    const setup = `
+      insert into public.daily_updates (project_id, author_id, work_date, work_done)
+        values ('${PROJECTS.mosta}', '${USERS.tech2}', '2030-01-09', 'Rails done');
+      ${run("2030-01-09 16:00")} ${run("2030-01-09 16:30")} ${run("2030-01-09 16:45")}`;
+    await withSetup(setup, USERS.tech1, async (db) => expect(await reminders(db)).toBe(1));
+    await withSetup(setup, USERS.tech2, async (db) => expect(await reminders(db)).toBe(0));
+    await withSetup(setup, USERS.manager, async (db) => expect(await reminders(db)).toBe(0));
+    await withSetup(setup, USERS.basic, async (db) => expect(await reminders(db)).toBe(0));
+  });
+
+  it("follows the time an administrator sets, skips weekends and can be switched off", async () => {
+    await withSetup(`update public.app_settings set daily_reminder_time = '17:15'; ${run("2030-01-09 16:45")}`, USERS.tech1, async (db) =>
+      expect(await reminders(db)).toBe(0),
+    );
+    await withSetup(`update public.app_settings set daily_reminder_time = '17:15'; ${run("2030-01-09 17:15")}`, USERS.tech1, async (db) =>
+      expect(await reminders(db)).toBe(1),
+    );
+    await withSetup(run("2030-01-12 16:45"), USERS.tech1, async (db) => expect(await reminders(db)).toBe(0)); // Saturday
+    await withSetup(`update public.app_settings set daily_reminder_enabled = false; ${run("2030-01-09 16:45")}`, USERS.tech1, async (db) =>
+      expect(await reminders(db)).toBe(0),
+    );
+  });
+
+  it("only administrators can change the reminder settings", async () => {
+    await asUser(USERS.manager, async (db) => {
+      expect(await db.query("update public.app_settings set daily_reminder_time = '09:00' where id returning id")).toHaveLength(0);
+    });
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.query("update public.app_settings set daily_reminder_time = '17:00' where id returning id")).toHaveLength(1);
     });
   });
 });

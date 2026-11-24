@@ -15,7 +15,13 @@ export const setStatusSchema = z.object({
 });
 
 export const settingsSchema = z.object({
-  basicCanPostChat: z.boolean(),
+  basicCanPostChat: z.boolean().optional(),
+  reminderEnabled: z.boolean().optional(),
+  // Quarter hours between 06:00 and 20:45 (the reminder job checks every 15 minutes).
+  reminderTime: z
+    .string()
+    .regex(/^(0[6-9]|1\d|20):(00|15|30|45)$/, "Choose a time between 06:00 and 20:45")
+    .optional(),
 });
 
 /** An administrator typing in someone else's name. */

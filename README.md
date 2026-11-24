@@ -267,7 +267,7 @@ People waiting for approval or deactivated see nothing. Daily updates can be edi
 2. If the update includes **new database files** (`supabase/migrations/…`), run **only the new ones**, in number order, in Supabase **SQL Editor** — the release notes say which. If a screen says *"The database needs an update"*, a file was missed.
 3. If the update mentions new settings, add them in Vercel and redeploy.
 
-Database files applied so far: `…0001` to `…0022` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
+Database files applied so far: `…0001` to `…0023` (`supabase/setup/all-in-one.sql` contains all of them, for new installations only).
 
 ---
 
@@ -337,7 +337,7 @@ Add a new file in `supabase/migrations/` (never edit an applied one), add RLS po
 
 ```
 supabase/
-  migrations/        0001 foundation … 0022 task order (append-only)
+  migrations/        0001 foundation … 0023 daily reminder (append-only)
   setup/             all-in-one.sql (generated: every migration, for new installs)
   seed.sql           demo data (local/testing only)
   templates/         branded auth emails
