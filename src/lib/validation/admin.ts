@@ -22,5 +22,5 @@ export const settingsSchema = z.object({
 export const setNameSchema = z.object({
   userId: z.string().uuid(),
   firstName: z.string().trim().min(1, "Enter a first name").max(80),
-  lastName: z.string().trim().min(1, "Enter a surname").max(80),
+  lastName: z.string().trim().max(80).optional().default(""), // surname is optional
 });

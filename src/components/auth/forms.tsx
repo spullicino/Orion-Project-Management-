@@ -108,8 +108,8 @@ export function SignupForm() {
         <FormField id="firstName" label="First name" error={state.fieldErrors?.firstName}>
           <Input name="firstName" autoComplete="given-name" required />
         </FormField>
-        <FormField id="lastName" label="Surname" error={state.fieldErrors?.lastName}>
-          <Input name="lastName" autoComplete="family-name" required />
+        <FormField id="lastName" label="Surname (optional)" error={state.fieldErrors?.lastName}>
+          <Input name="lastName" autoComplete="family-name" />
         </FormField>
       </div>
       <FormField id="email" label="Email" error={state.fieldErrors?.email}>

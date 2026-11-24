@@ -50,14 +50,14 @@ export function EditNameButton({ user }: { user: Profile }) {
               <Input value={first} onChange={(e) => setFirst(e.target.value)} maxLength={80} autoComplete="off" autoCapitalize="words" required autoFocus />
             </label>
             <label className="grid gap-1 text-sm font-medium">
-              Surname
-              <Input value={last} onChange={(e) => setLast(e.target.value)} maxLength={80} autoComplete="off" autoCapitalize="words" required />
+              Surname (optional)
+              <Input value={last} onChange={(e) => setLast(e.target.value)} maxLength={80} autoComplete="off" autoCapitalize="words" />
             </label>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={pending || !first.trim() || !last.trim()}>
+              <Button type="submit" disabled={pending || !first.trim()}>
                 {pending && <Loader2 className="animate-spin" aria-hidden />} Save
               </Button>
             </div>

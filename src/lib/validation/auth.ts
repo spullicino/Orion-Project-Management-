@@ -19,7 +19,7 @@ export const loginSchema = z.object({
 export const signupSchema = z
   .object({
     firstName: name("first name"),
-    lastName: name("surname"),
+    lastName: z.string().trim().max(80).optional().default(""), // surname is optional
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string(),

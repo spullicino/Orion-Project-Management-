@@ -26,8 +26,8 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <FormField id="firstName" label="First name" error={state.fieldErrors?.firstName}>
           <Input name="firstName" defaultValue={profile.first_name} autoComplete="given-name" required />
         </FormField>
-        <FormField id="lastName" label="Surname" error={state.fieldErrors?.lastName}>
-          <Input name="lastName" defaultValue={profile.last_name} autoComplete="family-name" required />
+        <FormField id="lastName" label="Surname (optional)" error={state.fieldErrors?.lastName}>
+          <Input name="lastName" defaultValue={profile.last_name} autoComplete="family-name" />
         </FormField>
       </div>
       <FormField id="email" label="Email" hint="Your sign-in email. Ask an administrator to change it.">

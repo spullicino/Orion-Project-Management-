@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const profileSchema = z.object({
   firstName: z.string().trim().min(1, "Enter your first name").max(80),
-  lastName: z.string().trim().min(1, "Enter your surname").max(80),
+  lastName: z.string().trim().max(80).optional().default(""), // surname is optional
   phone: z
     .string()
     .trim()

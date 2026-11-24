@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { can, hasRole } from "@/lib/auth/roles";
 import { isPublicPath } from "@/lib/supabase/proxy";
 import { loginSchema, safeNextPath, setPasswordSchema, signupSchema } from "@/lib/validation/auth";
-import { inviteSchema } from "@/lib/validation/admin";
+import { inviteSchema, setNameSchema } from "@/lib/validation/admin";
 import { profileSchema } from "@/lib/validation/profile";
 
 describe("hasRole", () => {
@@ -73,6 +73,16 @@ describe("validation", () => {
       phone: null,
     });
     expect(profileSchema.safeParse({ firstName: "A", lastName: "B", phone: "call me" }).success).toBe(false);
+  });
+
+  it("makes the surname optional but still needs a first name", () => {
+    expect(profileSchema.parse({ firstName: "Sunny", lastName: "", phone: "" }).lastName).toBe("");
+    expect(profileSchema.parse({ firstName: "Sunny" }).lastName).toBe("");
+    expect(profileSchema.safeParse({ firstName: " ", lastName: "Lakha" }).success).toBe(false);
+    expect(setNameSchema.parse({ userId: "00000000-0000-4000-8000-000000000001", firstName: "Sunny", lastName: "" }).lastName).toBe("");
+    expect(setNameSchema.safeParse({ userId: "00000000-0000-4000-8000-000000000001", firstName: "" }).success).toBe(false);
+    const base = { firstName: "Ada", email: "a@b.co", password: "longenough1", confirmPassword: "longenough1" };
+    expect(signupSchema.safeParse(base).success).toBe(true);
   });
 });
 
