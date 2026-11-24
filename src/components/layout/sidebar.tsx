@@ -9,9 +9,10 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { hasRole, ROLE_LABEL } from "@/lib/auth/roles";
 import { cn, fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
-import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from "./nav-items";
+import { SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
+import { CountBadge } from "./bottom-tabs";
 
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavLink({ item, pathname, newRequests }: { item: NavItem; pathname: string; newRequests?: number }) {
   const active = isActive(pathname, item.href);
   const Icon = item.icon;
   return (
@@ -26,11 +27,12 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       <Icon className="size-5" aria-hidden />
       <span className="flex-1">{item.label}</span>
       {item.href === "/chats" && <UnreadBadge />}
+      {item.href === "/overview" && <CountBadge count={newRequests ?? 0} label="new material requests" />}
     </Link>
   );
 }
 
-export function Sidebar({ profile, avatarUrl }: { profile: Profile; avatarUrl: string | null }) {
+export function Sidebar({ profile, avatarUrl, newRequests = 0 }: { profile: Profile; avatarUrl: string | null; newRequests?: number }) {
   const pathname = usePathname();
   const secondary = SECONDARY_NAV.filter((i) => !i.minRole || hasRole(profile.role, i.minRole));
   return (
@@ -41,8 +43,8 @@ export function Sidebar({ profile, avatarUrl }: { profile: Profile; avatarUrl: s
         </Link>
       </div>
       <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3">
-        {PRIMARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
+        {sidebarNav(hasRole(profile.role, "manager")).map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} newRequests={newRequests} />
         ))}
         <NotificationBell withLabel />
         {secondary.length > 0 && <div className="my-3 h-px bg-border" />}

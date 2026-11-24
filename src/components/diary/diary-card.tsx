@@ -32,7 +32,7 @@ export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me
   const name = fullName(update.author);
 
   return (
-    <article className="rounded-xl border bg-card p-4">
+    <article id={`update-${update.id}`} className="scroll-mt-20 rounded-xl border bg-card p-4">
       <header className="mb-3 flex items-start gap-3">
         <UserAvatar person={update.author} src={update.author_avatar_src} size={40} />
         <div className="min-w-0 flex-1">

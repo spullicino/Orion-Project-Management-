@@ -53,7 +53,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         title: "Find your way around",
         steps: [
-          "**On a phone:** use the bar at the bottom — Home, Projects, Daily Update, Chats and Profile.",
+          "**On a phone:** use the bar at the bottom — Home, Projects, Daily Update, Chats and Profile. Managers and admins have **Overview** in place of Daily Update.",
           "**On a computer:** use the menu on the left.",
           "My Tasks, Personal and Help are in the left menu on a computer, or under **Profile** on a phone.",
           "The 🔔 bell at the top shows your notifications.",
@@ -78,6 +78,17 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Tap **What's new** (next to the greeting) to see recent improvements. A red dot means there's something you haven't seen yet.",
         ],
         tip: "If you see “Add your name”, tap it so colleagues know who you are.",
+      },
+      {
+        title: "See today's updates and material requests at a glance",
+        minRole: "manager",
+        steps: [
+          "Open **Home** — the two cards at the top show **Daily updates today** and **Material requests** for your projects. On a phone you can also tap **Overview** in the bottom bar.",
+          "**Daily updates today** shows how many people have posted, who hasn't yet, and the latest updates. Tap an update to read it in full, or **See all daily updates** for photos, other days and PDF reports.",
+          "**Material requests** shows new (not yet ordered), open and late requests, most urgent first. Tap one to open it and mark it ordered or delivered.",
+          "A red number on **Overview** means there are new material requests waiting.",
+          "To post your own update or request materials, use the buttons at the top of **Overview** (or the shortcuts on Home).",
+        ],
       },
     ],
   },
@@ -360,7 +371,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Post your daily update",
         minRole: "technician",
         steps: [
-          "Tap **Daily Update**.",
+          "Tap **Daily Update** (managers: **Overview → Post an update**).",
           "Choose the **Project**.",
           "Write **What did you do today?**",
           "Pick the hours you worked (optional).",

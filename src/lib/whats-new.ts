@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-24-overview",
+    date: "2026-11-24",
+    title: "Overview: daily updates and material requests at a glance",
+    body: "Home now starts with two cards: who has (and hasn't) posted today's daily update, and open material requests — urgent and late first. On phones, Overview replaces Daily Update in the bottom bar, with a red number when new material requests come in. Post your own update from the button on Overview.",
+    help: "/help#home",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-24-products-excel",
     date: "2026-11-24",
     title: "Product list to and from Excel",

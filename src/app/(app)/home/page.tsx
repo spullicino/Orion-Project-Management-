@@ -15,6 +15,7 @@ import { getMyTasks, listProjects } from "@/lib/data/projects";
 import { HealthBadge } from "@/components/health-badge";
 import { healthSummary } from "@/lib/health";
 import { createClient } from "@/lib/supabase/server";
+import { TeamOverview } from "@/components/overview/team-overview";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -99,6 +100,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </Alert>
         </Link>
       )}
+
+      {hasRole(profile.role, "manager") && <TeamOverview />}
 
       <Link href="/my-tasks" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Card className="transition-colors hover:bg-accent/40">

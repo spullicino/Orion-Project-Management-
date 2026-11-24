@@ -8,6 +8,7 @@ import {
   OutboxPanel,
   OutboxProvider,
 } from "@/components/diary/outbox-provider";
+import { hasRole } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
 import { resolveAvatarUrls } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +21,8 @@ export default async function AppLayout({
 }) {
   const profile = await requireActiveProfile();
   const supabase = await createClient();
-  const [[avatarUrl], unread, notifCount] = await Promise.all([
+  const isManager = hasRole(profile.role, "manager");
+  const [[avatarUrl], unread, notifCount, newRequests] = await Promise.all([
     resolveAvatarUrls(supabase, [profile.avatar_url]),
     // Badges work once the related database updates have been run; until then they show nothing.
     supabase.rpc("get_unread_total").then((r) => (r.error ? 0 : Number(r.data ?? 0))),
@@ -29,6 +31,14 @@ export default async function AppLayout({
       .select("id", { count: "exact", head: true })
       .is("read_at", null)
       .then((r) => r.count ?? 0),
+    // Managers' Overview badge: material requests nobody has ordered yet.
+    isManager
+      ? supabase
+          .from("material_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "requested")
+          .then((r) => (r.error ? 0 : (r.count ?? 0)))
+      : Promise.resolve(0),
   ]);
 
   return (
@@ -42,7 +52,7 @@ export default async function AppLayout({
           >
             Skip to content
           </a>
-          <Sidebar profile={profile} avatarUrl={avatarUrl} />
+          <Sidebar profile={profile} avatarUrl={avatarUrl} newRequests={newRequests} />
           <div className="flex min-w-0 flex-1 flex-col">
             <MobileHeader profile={profile} avatarUrl={avatarUrl} />
             <OfflineBanner />
@@ -54,7 +64,7 @@ export default async function AppLayout({
               {children}
             </main>
           </div>
-          <BottomTabs />
+          <BottomTabs isManager={isManager} newRequests={newRequests} />
           <InstallPrompt />
           <OfflineWarmup />
         </div>
