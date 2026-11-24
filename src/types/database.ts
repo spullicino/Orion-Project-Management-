@@ -144,6 +144,8 @@ export type Database = {
       invites: Table<Invite, Partial<Invite> & { email: string }>;
       app_settings: Table<AppSettings>;
       job_secrets: Table<{ name: string; token: string }>;
+      announcements: Table<{ id: string; title: string; body: string; remind_every_hours: number | null; created_by: string | null; created_at: string }>;
+      announcement_recipients: Table<{ announcement_id: string; user_id: string; read_at: string | null; last_sent_at: string; times_sent: number }>;
       projects: Table<ProjectRow, Partial<ProjectRow> & { name: string }>;
       project_members: Table<{ project_id: string; user_id: string; added_by: string | null; added_at: string }>;
       clients: Table<Client & { created_by: string | null }, Partial<Client & { created_by: string | null }> & { name: string }>;
@@ -313,6 +315,9 @@ export type Database = {
       create_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       touch_last_seen: { Args: Record<string, never>; Returns: undefined };
+      queue_announcement_reminders: { Args: { p_now?: string }; Returns: number };
+      send_announcement: { Args: { p_title: string; p_body: string; p_user_ids: string[]; p_remind_every_hours?: number | null }; Returns: string };
+      mark_announcement_read: { Args: { p_id: string }; Returns: undefined };
       get_user_activity: { Args: Record<string, never>; Returns: Json };
       claim_push_batch: { Args: { p_limit?: number }; Returns: Json };
       claim_chat_push_batch: { Args: { p_limit?: number }; Returns: Json };

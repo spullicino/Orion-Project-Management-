@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-important-messages",
+    date: "2026-11-25",
+    title: "Important messages people can't miss",
+    body: "Admin → Important messages: send a message to a level, projects or chosen people. They get a phone notification that stays on screen, the message covers the app until they tap “I've read this”, and it's sent again until they do. You see who has read it.",
+    help: "/help#admin",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-25-activity",
     date: "2026-11-25",
     title: "Activity: see who is using the app",

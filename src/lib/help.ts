@@ -727,6 +727,19 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "They can still change their own name later in **Profile**.",
       },
       {
+        title: "Send an important message people can't miss",
+        minRole: "admin",
+        steps: [
+          "Open **Admin** and tap **Important messages**.",
+          "Write a short **Title** and the **Message**.",
+          "Choose who gets it: **By level** (e.g. Technician), **By project**, **Chosen people** or **Everyone**.",
+          "Choose **If not read, send again** (e.g. every 2 hours, 7am–7pm, for up to 3 days), then tap **Send important message**.",
+          "They get a phone notification straight away (on Android and computers it stays on screen until tapped), and when they open the app the message covers the screen until they tap **I've read this**.",
+          "Under **Sent messages**, see **3 of 8 read** — tap **Show who has read it** for names and times. Delete a message to stop it.",
+        ],
+        tip: "Repeat sends need the Supabase snippet from **Admin → Setup** (the same one as the daily reminder). People with notifications switched off still see the message when they next open the app.",
+      },
+      {
         title: "See who is (and isn't) using the app",
         minRole: "admin",
         steps: [

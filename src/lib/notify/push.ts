@@ -55,7 +55,11 @@ export async function sendPendingPush(): Promise<{ sent: number; skipped: number
   if (!notes.length && !chats.length) return { sent: 0, skipped: 0 };
 
   const outgoing: Outgoing[] = [
-    ...notes.map((n) => ({ user_id: n.user_id, payload: { title: n.title, body: n.body ?? "", url: n.link ?? "/notifications", tag: n.id } })),
+    ...notes.map((n) => ({
+      user_id: n.user_id,
+      // Important messages from an administrator stay on screen until tapped.
+      payload: { title: n.title, body: n.body ?? "", url: n.link ?? "/notifications", tag: n.id, ...(n.type === "announcement" ? { important: true } : {}) },
+    })),
     ...chats.map((c) => ({
       user_id: c.user_id,
       payload: { kind: "chat", title: c.title, sender: c.sender ?? "", body: c.body, url: c.link, tag: c.tag },
@@ -75,12 +79,13 @@ export async function sendPendingPush(): Promise<{ sent: number; skipped: number
   const jobs: { sub: Sub; payload: string; urgent: boolean }[] = [];
   for (const o of outgoing) {
     const p = prefsBy.get(o.user_id);
-    if (p && (!p.push_enabled || inQuietHours(p.quiet_hours_from, p.quiet_hours_to))) {
+    const important = o.payload.important === true; // important messages ignore quiet hours
+    if (p && (!p.push_enabled || (!important && inQuietHours(p.quiet_hours_from, p.quiet_hours_to)))) {
       skipped++;
       continue;
     }
     const payload = JSON.stringify(o.payload);
-    for (const sub of subsBy.get(o.user_id) ?? []) jobs.push({ sub, payload, urgent: o.payload.kind === "chat" });
+    for (const sub of subsBy.get(o.user_id) ?? []) jobs.push({ sub, payload, urgent: o.payload.kind === "chat" || important });
   }
 
   const used: string[] = [];

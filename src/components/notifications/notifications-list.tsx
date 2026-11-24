@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, Bell, NotebookTabs, Package, CalendarClock, CheckCheck, ClipboardPenLine, Loader2, MessageSquare, RefreshCw, UserPlus, AlertTriangle } from "lucide-react";
+import { AtSign, Bell, NotebookTabs, Package, CalendarClock, CheckCheck, ClipboardPenLine, Loader2, MessageSquare, RefreshCw, UserPlus, AlertTriangle, Megaphone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ const ICONS: Record<string, typeof Bell> = {
   mention: AtSign,
   "daily.new": ClipboardPenLine,
   "daily.reminder": ClipboardPenLine,
+  announcement: Megaphone,
   "personal.due": NotebookTabs,
   "material.new": Package,
   "material.status": Package,

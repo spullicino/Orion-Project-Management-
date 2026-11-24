@@ -212,6 +212,8 @@ self.addEventListener("push", (event) => {
             badge: "/icons/badge-96.png",
             tag: data.tag,
             data: { url: data.url || "/notifications" },
+            // Important messages from an administrator: stay on screen until tapped (Android/computers), buzz.
+            ...(data.important ? { requireInteraction: true, renotify: true, vibrate: [300, 150, 300, 150, 300] } : {}),
           })
           .then(updateIconBadge);
   // One at a time, in order: messages arriving together must not overwrite each other.

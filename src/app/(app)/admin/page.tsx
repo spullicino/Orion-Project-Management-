@@ -1,4 +1,4 @@
-import { Activity } from "lucide-react";
+import { Activity, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
@@ -53,11 +53,18 @@ export default async function AdminPage() {
         title="Admin"
         description="Approve people, set their level and manage settings."
         actions={
-          <Button asChild variant="outline">
-            <Link href="/admin/activity">
-              <Activity aria-hidden /> Activity — who&apos;s using the app
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/admin/messages">
+                <Megaphone aria-hidden /> Important messages
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/admin/activity">
+                <Activity aria-hidden /> Activity — who&apos;s using the app
+              </Link>
+            </Button>
+          </>
         }
       />
       <div className="grid gap-5">

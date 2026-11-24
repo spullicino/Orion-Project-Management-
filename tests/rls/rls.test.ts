@@ -1512,3 +1512,63 @@ describe("who is using the app (Admin → Activity)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("important messages (administrators only)", () => {
+  type Row = Record<string, unknown>;
+  const send = (users: string[], remind = 2) =>
+    `select public.send_announcement('Site closed', 'Do not go to Valletta tomorrow.', array[${users.map((u) => `'${u}'::uuid`).join(",")}], ${remind}::smallint)`;
+  const asAdmin = `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.admin}","role":"authenticated"}', true);`;
+
+  it("only administrators can send", async () => {
+    for (const u of [USERS.manager, USERS.tech1]) {
+      await asUser(u, async (db) => {
+        expect(await db.fails(send([USERS.tech2]))).toMatch(/Only administrators/);
+        expect(await db.fails("insert into public.announcements (title, body) values ('x', 'y')")).toMatch(/permission denied|row-level security/);
+      });
+    }
+  });
+
+  it("recipients get a notification, see only their own messages and can mark them read", async () => {
+    const setup = `${asAdmin} ${send([USERS.tech1])}; reset role;`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      const [a] = await db.query<{ id: string; title: string }>("select id, title from public.announcements");
+      expect(a.title).toBe("Site closed");
+      expect((await db.query("select 1 from public.notifications where type = 'announcement'")).length).toBe(1);
+      expect(await db.fails(`update public.announcement_recipients set read_at = now() where announcement_id = '${a.id}'`)).toMatch(/permission denied/);
+      expect((await db.query<Row>("select read_at from public.announcement_recipients"))[0].read_at).toBeNull();
+      await db.query(`select public.mark_announcement_read('${a.id}')`);
+      const [r] = await db.query<Row>("select read_at from public.announcement_recipients");
+      expect(r.read_at).not.toBeNull();
+    });
+    await withSetup(setup, USERS.tech2, async (db) => {
+      expect(await db.query("select id from public.announcements")).toHaveLength(0);
+      expect(await db.query("select 1 from public.announcement_recipients")).toHaveLength(0);
+      expect(await db.query("select 1 from public.notifications where type = 'announcement'")).toHaveLength(0);
+    });
+  });
+
+  it("administrators see who has read it", async () => {
+    await withSetup(`${asAdmin} ${send([USERS.tech1, USERS.tech2])}; reset role;`, USERS.admin, async (db) => {
+      expect(await db.query("select user_id from public.announcement_recipients")).toHaveLength(2);
+    });
+  });
+
+  it("unread messages are sent again during working hours only, and only the server may do it", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.queue_announcement_reminders()")).toMatch(/permission denied/);
+    });
+    const when = (t: string) => `((now() at time zone 'Europe/Malta')::date + time '${t}') at time zone 'Europe/Malta'`;
+    const setup = (t: string) => `${asAdmin} ${send([USERS.tech1, USERS.tech2])}; reset role;
+      update public.announcement_recipients set last_sent_at = ${when(t)} - interval '3 hours';
+      update public.announcement_recipients set read_at = now() where user_id = '${USERS.tech2}';
+      select public.queue_announcement_reminders(${when(t)}); select public.queue_announcement_reminders(${when(t)});`;
+    const count = async (db: { query: (s: string) => Promise<Row[]> }) =>
+      (await db.query("select 1 from public.notifications where type = 'announcement'")).length;
+    // Midday: tech1 (unread) gets one reminder (not two); tech2 (read) gets none.
+    await withSetup(setup("12:00"), USERS.tech1, async (db) => expect(await count(db)).toBe(2));
+    await withSetup(setup("12:00"), USERS.tech2, async (db) => expect(await count(db)).toBe(1));
+    // Night: nothing new.
+    await withSetup(setup("23:30"), USERS.tech1, async (db) => expect(await count(db)).toBe(1));
+  });
+});

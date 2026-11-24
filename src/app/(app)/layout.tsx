@@ -2,6 +2,7 @@ import { UnreadProvider } from "@/components/chat/unread-provider";
 import { InstallPrompt, OfflineBanner, OfflineWarmup } from "@/components/pwa/app-helpers";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { ActivityPing } from "@/components/activity-ping";
+import { AnnouncementGate } from "@/components/announcement-gate";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -69,6 +70,7 @@ export default async function AppLayout({
           <InstallPrompt />
           <OfflineWarmup />
           <ActivityPing />
+          <AnnouncementGate />
         </div>
       </NotificationsProvider>
       </UnreadProvider>
