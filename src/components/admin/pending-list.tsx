@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDate, fullName } from "@/lib/utils";
 import type { AppRole, Profile } from "@/types/database";
+import { EditNameButton } from "./edit-name";
 import { RoleSelect } from "./role-select";
 import { useAction } from "./use-action";
 
@@ -22,6 +23,7 @@ function PendingRow({ user, avatarUrl }: { user: Profile; avatarUrl: string | nu
           <p className="truncate text-sm text-muted-foreground">{user.email}</p>
           <p className="text-xs text-muted-foreground">Signed up {formatDate(user.created_at)}</p>
         </div>
+        <EditNameButton user={user} />
       </div>
       <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 sm:w-auto">
         <RoleSelect label={`Level for ${fullName(user)}`} value={role} onChange={setRole} disabled={pending} />

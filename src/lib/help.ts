@@ -706,6 +706,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Fill in or correct someone's name",
+        steps: [
+          "In **Admin**, find the person (use **Search people**). People without a name show their email and a **No name yet** tag.",
+          "Tap the **pencil** next to their name.",
+          "Type their **First name** and **Surname**, then tap **Save**.",
+          "The name shows straight away everywhere — Home, Daily updates, tasks, chats and material requests.",
+        ],
+        tip: "They can still change their own name later in **Profile**.",
+      },
+      {
         title: "Settings and setup",
         steps: [
           "**Settings:** choose whether Basic users may write in chats.",

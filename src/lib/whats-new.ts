@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-24-admin-names",
+    date: "2026-11-24",
+    title: "Administrators can fill in people's names",
+    body: "In Admin, tap the pencil next to anyone to type their first name and surname — handy for people who only show as an email. A “No name yet” tag shows who still needs one.",
+    help: "/help#admin",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-24-overview",
     date: "2026-11-24",
     title: "Overview: daily updates and material requests at a glance",

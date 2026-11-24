@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
+import { EditNameButton } from "./edit-name";
 import { RoleSelect } from "./role-select";
 import { useAction } from "./use-action";
 
@@ -22,11 +23,13 @@ function UserRow({ user, avatarUrl, isMe }: { user: Profile; avatarUrl: string |
         <div className="min-w-0">
           <p className="flex min-w-0 items-center gap-2 font-medium">
             <span className="truncate">{fullName(user)}</span>
-            {isMe && <Badge variant="secondary">You</Badge>}
-            {deactivated && <Badge variant="destructive">Deactivated</Badge>}
+            {isMe && <Badge variant="secondary" className="shrink-0">You</Badge>}
+            {!user.first_name?.trim() && <Badge variant="warning" className="shrink-0 whitespace-nowrap">No name yet</Badge>}
+            {deactivated && <Badge variant="destructive" className="shrink-0">Deactivated</Badge>}
           </p>
           <p className="truncate text-sm text-muted-foreground">{user.email}</p>
         </div>
+        <EditNameButton user={user} />
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:w-[340px]">
         <RoleSelect

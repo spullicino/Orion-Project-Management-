@@ -77,6 +77,28 @@ describe("pending (unapproved) users", () => {
 });
 
 // ---------------------------------------------------------------------------
+describe("names set by an administrator", () => {
+  it("an admin can fill in another person's first name and surname", async () => {
+    await asUser(USERS.admin, async (db) => {
+      const rows = await db.query(`update public.profiles set first_name = 'Sunny', last_name = 'Lakha' where id = '${USERS.tech2}' returning first_name, last_name`);
+      expect(rows).toEqual([{ first_name: "Sunny", last_name: "Lakha" }]);
+    });
+  });
+
+  it("a manager cannot change someone else's name (row is invisible to update)", async () => {
+    await asUser(USERS.manager, async (db) => {
+      expect(await db.query(`update public.profiles set first_name = 'X' where id = '${USERS.tech1}' returning id`)).toHaveLength(0);
+    });
+  });
+
+  it("a technician cannot change someone else's name", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.query(`update public.profiles set first_name = 'X' where id = '${USERS.tech2}' returning id`)).toHaveLength(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("user levels & approval", () => {
   it("a technician cannot promote themselves", async () => {
     await asUser(USERS.tech1, async (db) => {

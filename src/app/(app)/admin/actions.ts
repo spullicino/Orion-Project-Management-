@@ -10,6 +10,7 @@ import {
   approveSchema,
   changeRoleSchema,
   inviteSchema,
+  setNameSchema,
   setStatusSchema,
   settingsSchema,
 } from "@/lib/validation/admin";
@@ -48,6 +49,24 @@ export async function changeRole(input: { userId: string; role: AppRole }): Prom
   const { error } = await supabase.from("profiles").update({ role: parsed.data.role }).eq("id", parsed.data.userId);
   if (error) return { error: error.message };
   return done("Level updated");
+}
+
+/** Administrators can fill in or correct anyone's first name and surname. */
+export async function setUserName(input: { userId: string; firstName: string; lastName: string }): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = setNameSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ first_name: parsed.data.firstName, last_name: parsed.data.lastName })
+    .eq("id", parsed.data.userId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data?.length) return { error: "Couldn't find that person." };
+  // Names show everywhere (Home, chats, tasks…), so refresh all pages.
+  revalidatePath("/", "layout");
+  return done("Name saved");
 }
 
 export async function setUserStatus(input: { userId: string; status: "active" | "deactivated" }): Promise<ActionResult> {
