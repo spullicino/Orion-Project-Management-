@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-24-products-excel",
+    date: "2026-11-24",
+    title: "Product list to and from Excel",
+    body: "In Products, tap “Export to Excel” to download the full list. Add new products at the bottom of the spreadsheet and upload it with “Import from Excel” — only the new ones are added; existing products are left as they are.",
+    help: "/help#materials",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-23-task-order",
     date: "2026-11-23",
     title: "Insert tasks in between, and reorder",

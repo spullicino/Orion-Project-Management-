@@ -463,7 +463,9 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Open **Products** in the menu (on phones: **Profile → Products**).",
           "Tap **Add product**: name, unit, and optionally a category (e.g. Electrical) and product code.",
-          "Have a list in Excel? Tap **Import from Excel**, copy the columns Name, Unit, Category, Code and paste them in.",
+          "Tap **Export to Excel** to download the whole list as a spreadsheet (columns Name, Unit, Category, Code).",
+          "To add many products at once, add new rows at the bottom of that spreadsheet, save it, then tap **Import from Excel → Choose Excel or CSV file** and pick it. You can also copy the cells in Excel and paste them in.",
+          "Check the preview and tap **Import**. Only new products are added — ones already in the list (same name and unit) are skipped and left as they are.",
           "Products you no longer use can be **retired** — they disappear from new requests but stay in old ones and in reports.",
           "If a worker types something that isn't in the list, open the request and tap **Add to products** next to it.",
         ],
