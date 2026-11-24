@@ -727,6 +727,18 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "They can still change their own name later in **Profile**.",
       },
       {
+        title: "See who is (and isn't) using the app",
+        minRole: "admin",
+        steps: [
+          "Open **Admin** and tap **Activity — who's using the app**.",
+          "Everyone is listed with the least active first. **Last active** is when they last opened the app (only the time is kept, not what they looked at).",
+          "Dots: 🟢 today · ⚪ in the last 2 days · 🟠 3–6 days ago · 🔴 a week or more, or never.",
+          "Technicians also show their **Last daily update**. A bell with a line through it means phone notifications are off — they won't get reminders.",
+          "Tap the boxes at the top, or use **Show**, to list only people not active this week, who never opened the app, or who have notifications off.",
+        ],
+        tip: "“Last active” starts counting from when this feature went live, so at first some people show “Never” until they next open the app.",
+      },
+      {
         title: "Set the daily update reminder time",
         minRole: "admin",
         steps: [

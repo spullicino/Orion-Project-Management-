@@ -30,7 +30,7 @@ describe("table privileges", () => {
       await asUser(USERS.admin, async (db) => {
         names = (
           await db.query<{ tablename: string }>(
-            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets') order by 1",
+            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets', 'user_activity') order by 1",
           )
         ).map((r) => r.tablename);
       });
@@ -1466,6 +1466,49 @@ describe("daily update reminder", () => {
     });
     await asUser(USERS.admin, async (db) => {
       expect(await db.query("update public.app_settings set daily_reminder_time = '17:00' where id returning id")).toHaveLength(1);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("who is using the app (Admin → Activity)", () => {
+  type Person = { id: string; last_seen_at: string | null; last_update: string | null; push_on: boolean; projects: string[] };
+
+  it("opening the app records only your own 'last active' time", async () => {
+    await withSetup("", USERS.tech1, async (db) => {
+      await db.query("select public.touch_last_seen()");
+      expect(await db.fails("select * from public.user_activity")).toMatch(/permission denied/);
+      expect(await db.fails(`insert into public.user_activity (user_id) values ('${USERS.tech2}')`)).toMatch(/permission denied/);
+    });
+  });
+
+  it("only administrators can see everyone's activity", async () => {
+    for (const u of [USERS.manager, USERS.tech1, USERS.basic]) {
+      await asUser(u, async (db) => {
+        expect(await db.fails("select public.get_user_activity()")).toMatch(/Only administrators/);
+      });
+    }
+  });
+
+  it("shows last active, last daily update, notifications and projects — least active first", async () => {
+    const setup = `
+      set local role authenticated;
+      select set_config('request.jwt.claims', '{"sub":"${USERS.tech1}","role":"authenticated"}', true);
+      select public.touch_last_seen();
+      reset role;
+      insert into public.daily_updates (project_id, author_id, work_date, work_done)
+        values ('${PROJECTS.valletta}', '${USERS.tech1}', '2030-01-09', 'Partitions');`;
+    await withSetup(setup, USERS.admin, async (db) => {
+      const [{ list }] = await db.query<{ list: Person[] }>("select public.get_user_activity() as list");
+      const tech1 = list.find((p) => p.id === USERS.tech1)!;
+      const tech2 = list.find((p) => p.id === USERS.tech2)!;
+      expect(tech1.last_seen_at).not.toBeNull();
+      expect(tech1.last_update).toBe("2030-01-09");
+      expect(tech1.projects.length).toBeGreaterThan(0);
+      expect(tech2.last_seen_at).toBeNull();
+      expect(tech1.push_on).toBe(false);
+      expect(list.findIndex((p) => p.id === USERS.tech2)).toBeLessThan(list.findIndex((p) => p.id === USERS.tech1)); // never seen comes first
+      expect(list.some((p) => p.id === USERS.pending)).toBe(false); // waiting for approval: not listed
     });
   });
 });

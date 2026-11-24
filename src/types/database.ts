@@ -312,6 +312,8 @@ export type Database = {
       list_my_channels: { Args: Record<string, never>; Returns: Json };
       create_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
+      touch_last_seen: { Args: Record<string, never>; Returns: undefined };
+      get_user_activity: { Args: Record<string, never>; Returns: Json };
       claim_push_batch: { Args: { p_limit?: number }; Returns: Json };
       claim_chat_push_batch: { Args: { p_limit?: number }; Returns: Json };
       get_channel_media: { Args: { p_channel: string; p_kind?: string; p_before?: string | null; p_limit?: number }; Returns: Json };

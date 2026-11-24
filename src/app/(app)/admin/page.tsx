@@ -1,3 +1,6 @@
+import { Activity } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
 import { InviteForm, OpenInvites } from "@/components/admin/invite-form";
 import { PendingList } from "@/components/admin/pending-list";
@@ -46,7 +49,17 @@ export default async function AdminPage() {
 
   return (
     <>
-      <PageHeader title="Admin" description="Approve people, set their level and manage settings." />
+      <PageHeader
+        title="Admin"
+        description="Approve people, set their level and manage settings."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/admin/activity">
+              <Activity aria-hidden /> Activity — who&apos;s using the app
+            </Link>
+          </Button>
+        }
+      />
       <div className="grid gap-5">
         <Card>
           <CardHeader>

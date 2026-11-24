@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-activity",
+    date: "2026-11-25",
+    title: "Activity: see who is using the app",
+    body: "Admin → Activity lists everyone with when they last opened the app, their last daily update and whether phone notifications are on — least active first, so you can follow up.",
+    help: "/help#admin",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-24-daily-reminder",
     date: "2026-11-24",
     title: "Reminder to post your daily update",

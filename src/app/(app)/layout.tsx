@@ -1,6 +1,7 @@
 import { UnreadProvider } from "@/components/chat/unread-provider";
 import { InstallPrompt, OfflineBanner, OfflineWarmup } from "@/components/pwa/app-helpers";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
+import { ActivityPing } from "@/components/activity-ping";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -67,6 +68,7 @@ export default async function AppLayout({
           <BottomTabs isManager={isManager} newRequests={newRequests} />
           <InstallPrompt />
           <OfflineWarmup />
+          <ActivityPing />
         </div>
       </NotificationsProvider>
       </UnreadProvider>
