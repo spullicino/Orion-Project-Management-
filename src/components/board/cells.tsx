@@ -42,7 +42,7 @@ export function StatusPicker({ task, className, full }: { task: BoardTask; class
         <button
           type="button"
           aria-label={`Status: ${label?.name ?? "none"}. Change status`}
-          className={cn("rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", full && "w-full", className)}
+          className={cn("flex min-h-11 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", full && "w-full", className)}
         >
           <StatusPill label={label} className={cn("h-9", full && "w-full")} />
         </button>
@@ -243,7 +243,7 @@ export function DateCell({ task, field }: { task: BoardTask; field: "start_date"
           }
           void patchTask(task.id, { [field]: next });
         }}
-        className="absolute inset-0 cursor-pointer opacity-0"
+        className="absolute inset-0 cursor-pointer text-base opacity-0"
       />
     </label>
   );
@@ -372,7 +372,7 @@ export function RepeatPicker({ task }: { task: BoardTask }) {
             aria-label={`${untilText} (repeat end date, optional)`}
             value={task.repeat_until ?? ""}
             onChange={(e) => void patchTask(task.id, { repeat_until: e.target.value || null })}
-            className="absolute inset-0 cursor-pointer opacity-0"
+            className="absolute inset-0 cursor-pointer text-base opacity-0"
           />
         </label>
       )}

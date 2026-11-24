@@ -221,7 +221,7 @@ export function MessageItem({
                 title={r.names.filter(Boolean).join(", ")}
                 aria-pressed={r.mine}
                 aria-label={`${r.emoji} ${r.count}: ${r.names.join(", ")}`}
-                className={cn("inline-flex h-8 items-center gap-1 rounded-full border px-2 text-sm", r.mine ? "border-primary bg-primary/10" : "bg-card", canPost && "hover:bg-accent")}
+                className={cn("inline-flex h-9 min-w-11 items-center justify-center gap-1 rounded-full border px-2.5 text-sm", r.mine ? "border-primary bg-primary/10" : "bg-card", canPost && "hover:bg-accent")}
               >
                 <span>{r.emoji}</span>
                 <span className="text-xs font-semibold tabular-nums">{r.count}</span>
@@ -232,7 +232,7 @@ export function MessageItem({
 
         {/* Thread link */}
         {!inThread && m.reply_count > 0 && actions.onReply && (
-          <button type="button" onClick={() => actions.onReply!(m)} className="mt-1 inline-flex h-8 items-center gap-1 rounded-md text-sm font-semibold text-primary hover:underline">
+          <button type="button" onClick={() => actions.onReply!(m)} className="mt-1 inline-flex h-10 items-center gap-1 rounded-md pr-2 text-sm font-semibold text-primary hover:underline">
             <MessageSquareReply className="size-4" aria-hidden />
             {m.reply_count} {m.reply_count === 1 ? "reply" : "replies"}
           </button>

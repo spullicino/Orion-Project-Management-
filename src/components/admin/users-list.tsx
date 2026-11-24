@@ -20,8 +20,8 @@ function UserRow({ user, avatarUrl, isMe }: { user: Profile; avatarUrl: string |
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <UserAvatar person={user} src={avatarUrl} size={40} className={deactivated ? "opacity-50" : undefined} />
         <div className="min-w-0">
-          <p className="flex items-center gap-2 truncate font-medium">
-            {fullName(user)}
+          <p className="flex min-w-0 items-center gap-2 font-medium">
+            <span className="truncate">{fullName(user)}</span>
             {isMe && <Badge variant="secondary">You</Badge>}
             {deactivated && <Badge variant="destructive">Deactivated</Badge>}
           </p>

@@ -13,7 +13,7 @@ export function DropdownMenuContent({ className, sideOffset = 6, ...props }: Rea
       <M.Content
         sideOffset={sideOffset}
         collisionPadding={12}
-        className={cn("z-50 min-w-48 rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg", className)}
+        className={cn("z-50 min-w-48 rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg", className, "max-w-[calc(100vw-1.5rem)]")}
         {...props}
       />
     </M.Portal>

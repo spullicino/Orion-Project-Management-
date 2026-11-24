@@ -86,6 +86,12 @@
 }
 
 @layer base {
+  /* A grid with no column setting gets one column that can never be wider than its
+     container (the browser default grows to fit long one-line text, which makes
+     phones zoom the whole page out). Any grid-cols-* class still wins. */
+  :where(.grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
   * {
     @apply border-border outline-ring/50;
   }

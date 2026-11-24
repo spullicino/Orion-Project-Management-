@@ -35,7 +35,7 @@ export function CalendarView() {
 
   const chip = (it: Item, compact = false) =>
     it.kind === "milestone" ? (
-      <span key={`m-${it.milestone.id}`} className="flex items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-xs font-semibold">
+      <span key={`m-${it.milestone.id}`} className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-semibold">
         <span className="size-2.5 shrink-0 rotate-45" style={{ background: it.milestone.color }} aria-hidden />
         <span className="truncate">{it.milestone.title}</span>
       </span>
@@ -59,18 +59,18 @@ export function CalendarView() {
   return (
     <>
       <FilterBar />
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Button variant="outline" size="icon" aria-label="Previous month" onClick={() => setMonth(shiftMonth(month, -1))}>
           <ChevronLeft />
         </Button>
-        <h2 className="min-w-44 text-center text-lg font-semibold" aria-live="polite">
+        <h2 className="min-w-0 flex-1 text-center text-lg font-semibold sm:min-w-44 sm:flex-none" aria-live="polite">
           {monthLabel(month)}
         </h2>
         <Button variant="outline" size="icon" aria-label="Next month" onClick={() => setMonth(shiftMonth(month, 1))}>
           <ChevronRight />
         </Button>
         {month !== today.slice(0, 7) && (
-          <Button variant="ghost" onClick={() => setMonth(today.slice(0, 7))}>
+          <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setMonth(today.slice(0, 7))}>
             This month
           </Button>
         )}

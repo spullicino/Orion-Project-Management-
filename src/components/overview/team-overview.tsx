@@ -72,7 +72,7 @@ export function TeamOverviewCards({
 
       <Card className="min-w-0">
         <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
-          <Link href="/daily-update/team" className="flex items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link href="/daily-update/team" className="flex min-h-11 items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ClipboardPenLine className="size-6 text-primary" aria-hidden />
             <span className="flex-1 text-lg font-semibold">Daily updates today</span>
             <ArrowRight className="size-5 text-muted-foreground" aria-hidden />
@@ -135,7 +135,7 @@ export function TeamOverviewCards({
 
       <Card className="min-w-0">
         <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
-          <Link href="/materials" className="flex items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link href="/materials" className="flex min-h-11 items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Package className="size-6 text-primary" aria-hidden />
             <span className="flex-1 text-lg font-semibold">Material requests</span>
             <ArrowRight className="size-5 text-muted-foreground" aria-hidden />

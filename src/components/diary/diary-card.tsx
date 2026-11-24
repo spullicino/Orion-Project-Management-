@@ -38,17 +38,18 @@ export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-tight">{name}</p>
           {showProject && (
-            <Link href={`/projects/${update.project_id}/diary`} className="flex items-center gap-1.5 truncate text-sm font-medium hover:underline">
+            <Link href={`/projects/${update.project_id}/diary`} className="flex min-w-0 items-center gap-1.5 text-sm font-medium hover:underline">
               <span className="size-2.5 shrink-0 rounded-full" style={{ background: update.project.color }} aria-hidden />
-              {update.project.name}
+              <span className="truncate">{update.project.name}</span>
             </Link>
           )}
           <p className="text-sm text-muted-foreground">
             {formatDate(update.work_date)} · posted {timeOf(update.created_at)}
+            {update.hours !== null && <span className="font-semibold text-foreground sm:hidden"> · {Number(update.hours)} h</span>}
           </p>
         </div>
         {update.hours !== null && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+          <span className="hidden shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold sm:inline-flex">
             <Clock className="size-3.5" aria-hidden /> {Number(update.hours)} h
           </span>
         )}

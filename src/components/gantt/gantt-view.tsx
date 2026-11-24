@@ -18,7 +18,7 @@ import { GanttChart } from "./gantt-chart";
 
 function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg border bg-card p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex shrink-0 rounded-lg border bg-card p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -26,7 +26,7 @@ function Segmented<T extends string>({ value, onChange, options, label }: { valu
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn("h-10 rounded-md px-3 text-sm font-medium", value === o.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+          className={cn("h-10 whitespace-nowrap rounded-md px-3 text-sm font-medium", value === o.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
         >
           {o.label}
         </button>
@@ -77,7 +77,8 @@ export function GanttView() {
   return (
     <>
       <FilterBar />
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      {/* Phones: one row of tools you can swipe sideways, so the chart stays near the top. */}
+      <div className="-mx-4 mb-3 flex items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] *:shrink-0 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         <Segmented label="Zoom" value={zoom} onChange={setZoom} options={[{ value: "day", label: "Days" }, { value: "week", label: "Weeks" }, { value: "month", label: "Months" }]} />
         <Segmented label="Colour bars by" value={colorBy} onChange={setColorBy} options={[{ value: "status", label: "By status" }, { value: "group", label: "By group" }]} />
         <Button variant="outline" onClick={() => setTodayKey((k) => k + 1)}>
@@ -85,7 +86,7 @@ export function GanttView() {
         </Button>
         <InternalToggle />
         {perms.canManage && (
-          <div className="flex flex-wrap gap-2 lg:ml-auto">
+          <div className="flex gap-2 *:shrink-0 sm:flex-wrap lg:ml-auto">
             <Button variant="outline" onClick={() => setMilestone({ open: true, value: null })}>
               <Diamond aria-hidden /> Milestone
             </Button>

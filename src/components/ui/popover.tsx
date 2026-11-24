@@ -15,7 +15,7 @@ export function PopoverContent({ className, align = "start", sideOffset = 6, ...
         align={align}
         sideOffset={sideOffset}
         collisionPadding={12}
-        className={cn("z-50 w-64 rounded-xl border bg-popover p-2 text-popover-foreground shadow-lg outline-none", className)}
+        className={cn("z-50 w-64 rounded-xl border bg-popover p-2 text-popover-foreground shadow-lg outline-none", className, "max-w-[calc(100vw-1.5rem)]")}
         {...props}
       />
     </PopoverPrimitive.Portal>

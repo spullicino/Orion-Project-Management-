@@ -85,7 +85,7 @@ function TodoItem({ todo, onChange, onDelete }: { todo: PersonalTodo; onChange: 
             aria-label="Due date"
             value={todo.due_date ?? ""}
             onChange={(e) => onChange({ due_date: e.target.value || null })}
-            className="absolute inset-0 cursor-pointer opacity-0"
+            className="absolute inset-0 cursor-pointer text-base opacity-0"
           />
         </label>
       )}
