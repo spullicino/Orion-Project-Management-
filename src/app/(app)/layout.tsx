@@ -58,7 +58,7 @@ export default async function AppLayout({
             <OfflineBanner />
             <main
               id="main"
-              className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8"
+              className="mx-auto w-full min-w-0 max-w-6xl flex-1 overflow-x-clip px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8"
             >
               <OutboxPanel compact />
               {children}

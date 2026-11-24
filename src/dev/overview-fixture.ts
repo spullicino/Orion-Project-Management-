@@ -7,8 +7,8 @@ export function overviewFixture(): {
   feed: DailyUpdate[];
   requests: MaterialListItem[];
 } {
-  const solair = { id: "p1", name: "Solair", color: "#2563eb" };
-  const villa = { id: "p2", name: "Villa Mellieha", color: "#16a34a" };
+  const solair = { id: "p1", name: "OG5376 - Solair Apartments", color: "#2563eb" };
+  const villa = { id: "p2", name: "OG5545 - Embark - Qormi", color: "#16a34a" };
   const person = (first: string, last: string) => ({
     first_name: first,
     last_name: last,
@@ -20,7 +20,7 @@ export function overviewFixture(): {
       update_count: 2,
       people: [
         { ...person("Mark", "Borg"), user_id: "u1", posted: true },
-        { ...person("Luke", "Camilleri"), user_id: "u2", posted: false },
+        { first_name: null, last_name: null, email: "someone.with.a.long.address19@gmail.com", user_id: "u2", posted: false },
         { ...person("Anna", "Zammit"), user_id: "u3", posted: true },
       ],
     },

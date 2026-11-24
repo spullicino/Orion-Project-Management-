@@ -84,14 +84,15 @@ export function TeamOverviewCards({
           </div>
 
           {missing.length > 0 && (
-            <div>
+            <div className="min-w-0">
               <p className="mb-1 text-sm font-medium text-muted-foreground">Not posted yet</p>
-              <ul className="grid gap-1">
+              <ul className="grid grid-cols-1 gap-2">
                 {missing.slice(0, maxMissing).map((p) => (
-                  <li key={`${p.user_id}:${p.project.id}`} className="flex items-center gap-2 text-sm">
-                    <UserAvatar person={p} src={p.avatar_src} size={28} />
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="font-medium">{fullName(p)}</span> <span className="text-muted-foreground">· {p.project.name}</span>
+                  <li key={`${p.user_id}:${p.project.id}`} className="flex min-w-0 items-center gap-2 text-sm">
+                    <UserAvatar person={p} src={p.avatar_src} size={32} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{fullName(p)}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{p.project.name}</span>
                     </span>
                   </li>
                 ))}
@@ -101,7 +102,7 @@ export function TeamOverviewCards({
           )}
 
           {feed.length > 0 ? (
-            <div>
+            <div className="min-w-0">
               <p className="mb-1 text-sm font-medium text-muted-foreground">Latest</p>
               <ul className="divide-y">
                 {feed.map((u) => (
