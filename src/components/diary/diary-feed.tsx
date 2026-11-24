@@ -132,6 +132,7 @@ export function DiaryFeed({
             From
             <Input
               type="date"
+              placeholder="Any date"
               value={filters.from}
               onChange={(e) => apply({ ...filters, from: e.target.value })}
             />
@@ -140,6 +141,7 @@ export function DiaryFeed({
             To
             <Input
               type="date"
+              placeholder="Any date"
               value={filters.to}
               onChange={(e) => apply({ ...filters, to: e.target.value })}
             />

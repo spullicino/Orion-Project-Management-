@@ -139,7 +139,7 @@ function TodoList({ initial }: { initial: PersonalTodo[] }) {
         }}
       >
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a to-do… e.g. Call the supplier" aria-label="New to-do" maxLength={300} className="min-w-0 flex-1 basis-60" />
-        <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date (optional)" className="w-auto" />
+        <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date (optional)" placeholder="Due date" className="w-auto" />
         <Button type="submit" disabled={pending || !title.trim()}>
           <Plus aria-hidden /> Add
         </Button>

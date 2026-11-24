@@ -71,6 +71,7 @@ export function MaterialReport({
           From
           <Input
             type="date"
+            placeholder="Any date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
             className="w-full sm:w-44"
@@ -80,6 +81,7 @@ export function MaterialReport({
           To
           <Input
             type="date"
+            placeholder="Any date"
             value={to}
             min={from || undefined}
             onChange={(e) => setTo(e.target.value)}

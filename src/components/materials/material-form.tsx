@@ -218,7 +218,7 @@ export function MaterialForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1 text-sm font-medium">
               Needed by
-              <Input type="date" value={neededBy} min={editing ? undefined : todayISO()} onChange={(e) => setNeededBy(e.target.value)} />
+              <Input type="date" placeholder="Any time" value={neededBy} min={editing ? undefined : todayISO()} onChange={(e) => setNeededBy(e.target.value)} />
             </label>
             <label className="flex items-center gap-3 self-end rounded-lg border px-3 py-2">
               <Switch checked={urgent} onCheckedChange={setUrgent} />

@@ -1,7 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { DateInput } from "./date-input";
 
-export function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+export function Input({
+  className,
+  type,
+  ...props
+}: React.ComponentProps<"input">) {
+  // Date boxes are drawn by us so they look and fit the same on every phone.
+  if (type === "date") return <DateInput className={className} {...props} />;
   return (
     <input
       type={type}

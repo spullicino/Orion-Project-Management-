@@ -65,6 +65,7 @@ export function PhotoGallery({
           From
           <Input
             type="date"
+            placeholder="Any date"
             value={from}
             onChange={(e) => {
               setFrom(e.target.value);
@@ -77,6 +78,7 @@ export function PhotoGallery({
           To
           <Input
             type="date"
+            placeholder="Any date"
             value={to}
             onChange={(e) => {
               setTo(e.target.value);
