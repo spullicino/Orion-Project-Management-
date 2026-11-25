@@ -804,6 +804,27 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Find out who changed or deleted something (Audit log)",
+        minRole: "admin",
+        steps: [
+          "Open **Admin** and tap **Audit log**.",
+          "Every change is listed newest first, e.g. “Mark Borg deleted task ‘Partition walls’ · 14:32”.",
+          "Type part of a **task name**, project or person in the search box, or filter by **project**, **person**, **what** (tasks, groups, material requests…) and **dates**.",
+          "It records tasks (created, changed, people added/removed, deleted, restored), groups, projects, people on projects, general tasks, material requests, edited or deleted daily updates, deleted comments and changes to people's levels.",
+        ],
+        tip: "Each task also has a **History** section at the bottom of the task panel that anyone on the project can read.",
+      },
+      {
+        title: "Bring back a deleted task (Recycle bin)",
+        minRole: "admin",
+        steps: [
+          "Open **Admin → Audit log** and tap **Recycle bin**.",
+          "Find the task — it shows who deleted it and when — and tap **Restore**.",
+          "It goes back where it was with its checklist, comments, files and people (into the first group if its group was deleted too).",
+        ],
+        tip: "Deleted tasks stay in the recycle bin for 30 days. Tasks of a deleted project can't be restored this way.",
+      },
+      {
         title: "See who is (and isn't) using the app",
         minRole: "admin",
         steps: [

@@ -30,7 +30,7 @@ describe("table privileges", () => {
       await asUser(USERS.admin, async (db) => {
         names = (
           await db.query<{ tablename: string }>(
-            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets', 'user_activity') order by 1",
+            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets', 'user_activity', 'audit_log', 'deleted_tasks') order by 1",
           )
         ).map((r) => r.tablename);
       });
@@ -1690,6 +1690,77 @@ describe("important messages: when repeats are sent", () => {
   it("rejects a window that ends before it starts", async () => {
     await asUser(USERS.admin, async (db) => {
       expect(await db.fails("update public.app_settings set message_repeat_from = '18:00', message_repeat_to = '08:00' where id")).toMatch(/message_window/);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("audit trail and recycle bin", () => {
+  type Row = Record<string, unknown>;
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+  const T = TASKS.vallettaPartitions;
+  // tech1 is on the task; the manager adds a checklist step and comment, then deletes it.
+  const del = `${as(USERS.manager)}
+    insert into public.task_assignees (task_id, user_id) values ('${T}', '${USERS.tech1}') on conflict do nothing;
+    insert into public.task_checklist_items (task_id, title) values ('${T}', 'Measure');
+    insert into public.comments (task_id, author_id, body) values ('${T}', '${USERS.manager}', 'Keep this');
+    update public.tasks set progress = 40 where id = '${T}';
+    delete from public.tasks where id = '${T}';
+    reset role;`;
+
+  it("only administrators can read the audit log and recycle bin", async () => {
+    for (const u of [USERS.manager, USERS.tech1]) {
+      await withSetup(del, u, async (db) => {
+        expect(await db.query("select 1 from public.audit_log")).toHaveLength(0);
+        expect(await db.query("select 1 from public.deleted_tasks")).toHaveLength(0);
+        expect(await db.fails("insert into public.audit_log (action, entity) values ('x', 'y')")).toMatch(/permission denied/);
+      });
+    }
+  });
+
+  it("records who changed and deleted a task, with readable details", async () => {
+    await withSetup(del, USERS.admin, async (db) => {
+      const rows = await db.query<Row>(`select action, actor_name, title, changes from public.audit_log where entity = 'task' and entity_id = '${T}' order by id`);
+      const actions = rows.map((r) => r.action);
+      expect(actions).toEqual(expect.arrayContaining(["assigned", "updated", "deleted"]));
+      const upd = rows.find((r) => r.action === "updated")!;
+      expect(upd.changes).toEqual({ progress: [expect.anything(), 40] });
+      expect(rows.at(-1)).toMatchObject({ action: "deleted", actor_name: expect.stringMatching(/\S/) });
+      const [bin] = await db.query<Row>(`select title, deleted_by from public.deleted_tasks where task_id = '${T}'`);
+      expect(bin.deleted_by).toBe(USERS.manager);
+    });
+  });
+
+  it("an administrator can restore a deleted task with its checklist, comments and people", async () => {
+    await withSetup(`${del} ${as(USERS.admin)} select public.restore_task('${T}'); reset role;`, USERS.tech1, async (db) => {
+      expect(await db.query(`select title from public.tasks where id = '${T}'`)).toHaveLength(1);
+      expect(await db.query(`select 1 from public.task_checklist_items where task_id = '${T}' and title = 'Measure'`)).toHaveLength(1);
+      expect(await db.query(`select 1 from public.comments where task_id = '${T}' and body = 'Keep this'`)).toHaveLength(1);
+      expect(await db.query(`select 1 from public.task_assignees where task_id = '${T}' and user_id = '${USERS.tech1}'`)).toHaveLength(1);
+      expect((await db.query<Row>(`select action from public.activity_log where task_id = '${T}' order by id desc limit 1`))[0].action).toBe("task.restored");
+    });
+    await withSetup(del, USERS.manager, async (db) => {
+      expect(await db.fails(`select public.restore_task('${T}')`)).toMatch(/Only administrators/);
+    });
+  });
+
+  it("deleting a group keeps its tasks in the recycle bin; restoring puts them in another group", async () => {
+    await withSetup(`${as(USERS.manager)} delete from public.groups where id = '${GROUPS.vallettaInProgress}'; reset role;
+        ${as(USERS.admin)} select public.restore_task('${T}'); reset role;`, USERS.admin, async (db) => {
+      const [t] = await db.query<Row>(`select group_id from public.tasks where id = '${T}'`);
+      expect(t.group_id).not.toBe(GROUPS.vallettaInProgress);
+      expect(await db.query("select 1 from public.audit_log where entity = 'group' and action = 'deleted'")).toHaveLength(1);
+    });
+  });
+
+  it("records level changes and people added to projects", async () => {
+    await withSetup(`${as(USERS.admin)} update public.profiles set role = 'manager' where id = '${USERS.tech2}';
+        insert into public.project_members (project_id, user_id) values ('${PROJECTS.valletta}', '${USERS.tech2}'); reset role;`, USERS.admin, async (db) => {
+      const rows = await db.query<Row>("select entity, action, changes from public.audit_log where entity in ('user', 'project_member') and created_at = now() order by id");
+      expect(rows).toEqual([
+        { entity: "user", action: "updated", changes: { role: ["technician", "manager"] } },
+        { entity: "project_member", action: "added", changes: {} },
+      ]);
     });
   });
 });

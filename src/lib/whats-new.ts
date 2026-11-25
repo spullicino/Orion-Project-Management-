@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-audit-log",
+    date: "2026-11-25",
+    title: "Audit log and recycle bin",
+    body: "Admin → Audit log shows who created, changed or deleted what, and when — search by task name, project or person. Deleted tasks go to the Recycle bin for 30 days and can be restored with their checklist, comments, files and people. Each task also shows its History.",
+    help: "/help#admin",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-25-materials-by-project",
     date: "2026-11-25",
     title: "Material requests grouped by project",

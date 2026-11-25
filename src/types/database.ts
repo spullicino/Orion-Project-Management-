@@ -149,6 +149,31 @@ export type Database = {
       invites: Table<Invite, Partial<Invite> & { email: string }>;
       app_settings: Table<AppSettings>;
       job_secrets: Table<{ name: string; token: string }>;
+      audit_log: Table<{
+        id: number;
+        created_at: string;
+        actor_id: string | null;
+        actor_name: string;
+        action: string;
+        entity: string;
+        entity_id: string | null;
+        project_id: string | null;
+        project_name: string | null;
+        title: string | null;
+        changes: Json;
+      }>;
+      deleted_tasks: Table<{
+        task_id: string;
+        project_id: string;
+        project_name: string | null;
+        title: string;
+        deleted_at: string;
+        deleted_by: string | null;
+        deleted_by_name: string | null;
+        snapshot: Json;
+        restored_at: string | null;
+        restored_by: string | null;
+      }>;
       general_tasks: Table<
         {
           id: string;
@@ -350,6 +375,8 @@ export type Database = {
       create_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       touch_last_seen: { Args: Record<string, never>; Returns: undefined };
+      restore_task: { Args: { p_task: string }; Returns: string };
+      cleanup_audit: { Args: Record<string, never>; Returns: undefined };
       get_general_tasks: { Args: { p_all?: boolean }; Returns: Json };
       create_general_task_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_announcement_reminders: { Args: { p_now?: string }; Returns: number };

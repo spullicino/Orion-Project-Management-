@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
     report.push = await sendPendingPush();
     report.email = await sendDigests(site, todayISO());
     await admin.rpc("cleanup_old_data");
+    // Recycle bin (30 days) and audit log (2 years) — database update 0028; before it this just errors.
+    await admin.rpc("cleanup_audit");
     return NextResponse.json({ ok: true, ...report });
   } catch (e) {
     console.error("daily job failed", e);

@@ -472,17 +472,24 @@ function DrawerBody({ task }: { task: BoardTask }) {
               )}
             </Section>
 
-            {/* Activity */}
-            <Section title="Activity">
+            {/* History: who changed what (kept even if the task is deleted and restored) */}
+            <Section title="History">
               <ul className="grid gap-2 text-sm">
                 {detail.activity.map((a) => (
                   <li key={a.id} className="text-muted-foreground">
                     <span className="font-medium text-foreground">{a.actor_id ? fullName(a.actor) : "System"}</span>{" "}
                     {a.action === "task.created"
                       ? "created this task"
-                      : Object.entries(a.changes)
-                          .map(([field, change]) => describeChange(field, change, lookup))
-                          .join(", ")}{" "}
+                      : a.action === "task.restored"
+                        ? "restored this task from the recycle bin"
+                        : a.action === "task.assigned"
+                          ? `assigned ${String((a.changes as Record<string, unknown>).person ?? "someone")}`
+                          : a.action === "task.unassigned"
+                            ? `removed ${String((a.changes as Record<string, unknown>).person ?? "someone")}`
+                            : Object.entries(a.changes)
+                                .filter(([, change]) => Array.isArray(change))
+                                .map(([field, change]) => describeChange(field, change, lookup))
+                                .join(", ")}{" "}
                     · {timeAgo(a.created_at)}
                   </li>
                 ))}
