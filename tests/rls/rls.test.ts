@@ -1654,3 +1654,42 @@ describe("general tasks (not linked to a project)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("important messages: when repeats are sent", () => {
+  type Row = Record<string, unknown>;
+  const asAdmin = `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${USERS.admin}","role":"authenticated"}', true);`;
+  // 2030-01-09 is a Wednesday, 2030-01-12 a Saturday.
+  const at = (local: string) => `'${local}'::timestamp at time zone 'Europe/Malta'`;
+  const scenario = (sendArgs: string, runAt: string, extra = "") => `
+    ${extra}
+    ${asAdmin} select public.send_announcement('Site closed', 'Stay away.', array['${USERS.tech1}'::uuid], 2::smallint${sendArgs}); reset role;
+    update public.announcements set created_at = ${at("2030-01-09 06:00")};
+    update public.announcement_recipients set last_sent_at = ${at(runAt)} - interval '3 hours';
+    select public.queue_announcement_reminders(${at(runAt)});`;
+  const repeats = async (db: { query: (s: string) => Promise<Row[]> }) =>
+    (await db.query("select 1 from public.notifications where type = 'announcement' and title like 'Reminder%'")).length;
+
+  it("uses the default window from Admin → Settings (07:00–17:00)", async () => {
+    await withSetup(scenario("", "2030-01-09 16:45"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(1));
+    await withSetup(scenario("", "2030-01-09 17:30"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(0));
+    await withSetup(scenario("", "2030-01-09 17:30", "update public.app_settings set message_repeat_to = '18:00';"), USERS.tech1, async (db) =>
+      expect(await repeats(db)).toBe(1),
+    );
+  });
+
+  it("can be changed for one message, including weekdays only and how many days", async () => {
+    const evening = ", '18:00'::time, '21:00'::time";
+    await withSetup(scenario(evening, "2030-01-09 20:00"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(1));
+    await withSetup(scenario(evening, "2030-01-09 12:00"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(0));
+    await withSetup(scenario(", null, null, true, 7::smallint", "2030-01-12 10:00"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(0)); // Saturday, weekdays only
+    await withSetup(scenario(", null, null, false, 7::smallint", "2030-01-12 10:00"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(1)); // Saturday allowed
+    await withSetup(scenario(", null, null, null, 1::smallint", "2030-01-11 10:00"), USERS.tech1, async (db) => expect(await repeats(db)).toBe(0)); // after 1 day: stop
+  });
+
+  it("rejects a window that ends before it starts", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("update public.app_settings set message_repeat_from = '18:00', message_repeat_to = '08:00' where id")).toMatch(/message_window/);
+    });
+  });
+});

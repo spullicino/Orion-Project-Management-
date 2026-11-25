@@ -27,9 +27,10 @@ function Preview() {
           { id: "u3", name: "Mark Borg", role: "manager" },
         ]}
         projects={[{ id: "p1", name: "OG5376 - Solair Apartments" }, { id: "p2", name: "OG5698 - Central Bank" }]}
+        defaultRepeat={{ from: "07:00", to: "17:00", weekdaysOnly: false, days: 3 }}
         sent={[
           {
-            id: "s1", title: "Solair site closed tomorrow", body: "Because of the crane inspection, nobody is to go to Solair tomorrow.", remind_every_hours: 2, created_at: t, sender: "Sarah Pullicino",
+            id: "s1", title: "Solair site closed tomorrow", body: "Because of the crane inspection, nobody is to go to Solair tomorrow.", remind_every_hours: 2, created_at: t, sender: "Sarah Pullicino", repeat: { from: "07:00", to: "17:00", weekdaysOnly: true, days: 3 },
             recipients: [
               { user_id: "u2", name: "Alexander Hamburger", read_at: null, times_sent: 3 },
               { user_id: "u1", name: "Joe Vella", read_at: "2026-11-25T14:20:00Z", times_sent: 1 },

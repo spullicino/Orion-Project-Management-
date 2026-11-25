@@ -25,7 +25,7 @@ export default function AdminPreview() {
       <UsersList users={users} avatarUrls={{}} meId="u1" />
       <h2 className="mb-3 mt-8 text-xl font-bold">Settings</h2>
       <SettingsForm
-        settings={{ id: true, company_name: "Orion Group", basic_can_post_chat: false, daily_update_weekdays: [1, 2, 3, 4, 5], timezone: "Europe/Malta", updated_at: t, daily_reminder_enabled: true, daily_reminder_time: "16:30:00" }}
+        settings={{ id: true, company_name: "Orion Group", basic_can_post_chat: false, daily_update_weekdays: [1, 2, 3, 4, 5], timezone: "Europe/Malta", updated_at: t, daily_reminder_enabled: true, daily_reminder_time: "16:30:00", message_repeat_from: "07:00:00", message_repeat_to: "17:00:00", message_repeat_weekdays_only: false, message_repeat_days: 3 }}
       />
       <h2 className="mb-3 mt-8 text-xl font-bold">Setup</h2>
       <SetupCard status={{ push: true, cron: true, email: false }} reminder={{ siteUrl: "https://orion-projects.vercel.app", checkedAt: null, migrated: true, running: false }} />

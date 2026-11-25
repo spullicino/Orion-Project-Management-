@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { repeatWindowSchema } from "./announcements";
 import { emailSchema } from "./auth";
 
 export const roleSchema = z.enum(["admin", "manager", "technician", "basic"]);
@@ -22,6 +23,7 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^(0[6-9]|1\d|20):(00|15|30|45)$/, "Choose a time between 06:00 and 20:45")
     .optional(),
+  messageRepeat: repeatWindowSchema.optional(),
 });
 
 /** An administrator typing in someone else's name. */

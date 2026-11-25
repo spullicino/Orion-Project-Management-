@@ -143,7 +143,12 @@ export async function revokeInvite(input: { inviteId: string }): Promise<ActionR
   return done("Invitation cancelled");
 }
 
-export async function updateSettings(input: { basicCanPostChat?: boolean; reminderEnabled?: boolean; reminderTime?: string }): Promise<ActionResult> {
+export async function updateSettings(input: {
+  basicCanPostChat?: boolean;
+  reminderEnabled?: boolean;
+  reminderTime?: string;
+  messageRepeat?: { from: string; to: string; weekdaysOnly: boolean; days: number };
+}): Promise<ActionResult> {
   await requireRole("admin");
   const parsed = settingsSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid request" };
@@ -152,6 +157,12 @@ export async function updateSettings(input: { basicCanPostChat?: boolean; remind
   if (d.basicCanPostChat !== undefined) patch.basic_can_post_chat = d.basicCanPostChat;
   if (d.reminderEnabled !== undefined) patch.daily_reminder_enabled = d.reminderEnabled;
   if (d.reminderTime !== undefined) patch.daily_reminder_time = d.reminderTime;
+  if (d.messageRepeat) {
+    patch.message_repeat_from = d.messageRepeat.from;
+    patch.message_repeat_to = d.messageRepeat.to;
+    patch.message_repeat_weekdays_only = d.messageRepeat.weekdaysOnly;
+    patch.message_repeat_days = d.messageRepeat.days;
+  }
   if (!Object.keys(patch).length) return { error: "Nothing to save" };
   const supabase = await createClient();
   const { error } = await supabase.from("app_settings").update(patch).eq("id", true);

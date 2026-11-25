@@ -775,11 +775,22 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Open **Admin** and tap **Important messages**.",
           "Write a short **Title** and the **Message**.",
           "Choose who gets it: **By level** (e.g. Technician), **By project**, **Chosen people** or **Everyone**.",
-          "Choose **If not read, send again** (e.g. every 2 hours, 7am–7pm, for up to 3 days), then tap **Send important message**.",
+          "Choose **If not read, send again** (e.g. every 2 hours). It's sent again only inside the default window (7am–5pm, for 3 days) — tap **Change for this message** to pick other times, weekdays only, or more days.",
+          "Tap **Send important message**.",
           "They get a phone notification straight away (on Android and computers it stays on screen until tapped), and when they open the app the message covers the screen until they tap **I've read this**.",
           "Under **Sent messages**, see **3 of 8 read** — tap **Show who has read it** for names and times. Delete a message to stop it.",
         ],
         tip: "Repeat sends need the Supabase snippet from **Admin → Setup** (the same one as the daily reminder). People with notifications switched off still see the message when they next open the app.",
+      },
+      {
+        title: "Change when important messages are sent again",
+        minRole: "admin",
+        steps: [
+          "Open **Admin → Settings** and find **Important messages: when to send again**.",
+          "Choose **From** and **Until** (Malta time), **Keep sending for** (1–14 days) and whether it's **Weekdays only**. It saves straight away.",
+          "This is the default for new messages. You can still change it for one message when you send it.",
+          "The first notification always goes out the moment you send — only the repeats wait for this window.",
+        ],
       },
       {
         title: "See who is (and isn't) using the app",

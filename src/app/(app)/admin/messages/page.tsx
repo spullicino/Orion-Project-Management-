@@ -17,8 +17,15 @@ export default async function MessagesPage() {
   const [{ data: people }, { data: projects }, sentRes] = await Promise.all([
     supabase.from("profiles").select("id, first_name, last_name, email, role").eq("status", "active").order("first_name"),
     supabase.from("projects").select("id, name").eq("status", "active").eq("is_template", false).order("name"),
-    supabase.from("announcements").select("id, title, body, remind_every_hours, created_at, created_by").order("created_at", { ascending: false }).limit(50),
+    // "*" so the page still works before database update 0027 (which adds the repeat window).
+    supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(50),
   ]);
+  const { data: settings } = await supabase.from("app_settings").select("*").eq("id", true).maybeSingle();
+  const hhmm = (t?: string) => (t ?? "").slice(0, 5);
+  const defaultRepeat =
+    settings?.message_repeat_from !== undefined
+      ? { from: hhmm(settings.message_repeat_from), to: hhmm(settings.message_repeat_to), weekdaysOnly: !!settings.message_repeat_weekdays_only, days: settings.message_repeat_days ?? 3 }
+      : null;
   if (sentRes.error) {
     return (
       <>
@@ -39,7 +46,12 @@ export default async function MessagesPage() {
   }
   const name = (id: string | null) => (id && everyone.get(id) ? fullName(everyone.get(id)!) : "Someone");
   const list: SentMessage[] = sent.map((s) => ({
-    ...s,
+    id: s.id,
+    title: s.title,
+    body: s.body,
+    remind_every_hours: s.remind_every_hours,
+    created_at: s.created_at,
+    repeat: s.repeat_from ? { from: hhmm(s.repeat_from), to: hhmm(s.repeat_to), weekdaysOnly: !!s.repeat_weekdays_only, days: s.repeat_days ?? 3 } : null,
     sender: name(s.created_by),
     recipients: (recipients ?? [])
       .filter((r) => r.announcement_id === s.id)
@@ -53,7 +65,7 @@ export default async function MessagesPage() {
         <ArrowLeft className="size-4" aria-hidden /> Admin
       </Link>
       <PageHeader title="Important messages" description="Messages people can't miss: a phone notification that stays on screen and a full-screen message they must confirm." />
-      <MessagesView people={(people ?? []).map((p) => ({ id: p.id, name: fullName(p), role: p.role }))} projects={projects ?? []} sent={list} />
+      <MessagesView people={(people ?? []).map((p) => ({ id: p.id, name: fullName(p), role: p.role }))} projects={projects ?? []} sent={list} defaultRepeat={defaultRepeat} />
     </>
   );
 }

@@ -55,6 +55,11 @@ export type AppSettings = {
   daily_reminder_time?: string; // "16:30:00"
   daily_reminder_sent_on?: string | null;
   reminder_checked_at?: string | null;
+  /** When unread important messages are sent again (database update 0027). */
+  message_repeat_from?: string; // "07:00:00"
+  message_repeat_to?: string;
+  message_repeat_weekdays_only?: boolean;
+  message_repeat_days?: number;
 };
 
 import type { Client, ColumnKind, CustomColumn, Priority, StatusLabel } from "./board";
@@ -163,7 +168,18 @@ export type Database = {
       >;
       general_task_assignees: Table<{ task_id: string; user_id: string; added_at: string }, { task_id: string; user_id: string }>;
       general_task_comments: Table<{ id: string; task_id: string; author_id: string | null; body: string; created_at: string }, { task_id: string; body: string; author_id?: string }>;
-      announcements: Table<{ id: string; title: string; body: string; remind_every_hours: number | null; created_by: string | null; created_at: string }>;
+      announcements: Table<{
+        id: string;
+        title: string;
+        body: string;
+        remind_every_hours: number | null;
+        created_by: string | null;
+        created_at: string;
+        repeat_from?: string;
+        repeat_to?: string;
+        repeat_weekdays_only?: boolean;
+        repeat_days?: number;
+      }>;
       announcement_recipients: Table<{ announcement_id: string; user_id: string; read_at: string | null; last_sent_at: string; times_sent: number }>;
       projects: Table<ProjectRow, Partial<ProjectRow> & { name: string }>;
       project_members: Table<{ project_id: string; user_id: string; added_by: string | null; added_at: string }>;
@@ -337,7 +353,19 @@ export type Database = {
       get_general_tasks: { Args: { p_all?: boolean }; Returns: Json };
       create_general_task_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_announcement_reminders: { Args: { p_now?: string }; Returns: number };
-      send_announcement: { Args: { p_title: string; p_body: string; p_user_ids: string[]; p_remind_every_hours?: number | null }; Returns: string };
+      send_announcement: {
+        Args: {
+          p_title: string;
+          p_body: string;
+          p_user_ids: string[];
+          p_remind_every_hours?: number | null;
+          p_repeat_from?: string | null;
+          p_repeat_to?: string | null;
+          p_weekdays_only?: boolean | null;
+          p_repeat_days?: number | null;
+        };
+        Returns: string;
+      };
       mark_announcement_read: { Args: { p_id: string }; Returns: undefined };
       get_user_activity: { Args: Record<string, never>; Returns: Json };
       claim_push_batch: { Args: { p_limit?: number }; Returns: Json };

@@ -13,7 +13,7 @@ export async function sendAnnouncement(input: AnnouncementInput): Promise<Result
   await requireRole("admin");
   const parsed = announcementSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the message" };
-  const { title, body, audience, remindEveryHours } = parsed.data;
+  const { title, body, audience, remindEveryHours, repeat } = parsed.data;
   const supabase = await createClient();
 
   let userIds: string[] = [];
@@ -37,8 +37,10 @@ export async function sendAnnouncement(input: AnnouncementInput): Promise<Result
     p_body: body,
     p_user_ids: userIds,
     p_remind_every_hours: remindEveryHours,
+    // Before database update 0027 these extra settings don't exist: only send them when given.
+    ...(repeat ? { p_repeat_from: repeat.from, p_repeat_to: repeat.to, p_weekdays_only: repeat.weekdaysOnly, p_repeat_days: repeat.days } : {}),
   });
-  if (error) return { ok: false, error: /does not exist|schema cache/.test(error.message) ? "Run database update 0025 first." : error.message };
+  if (error) return { ok: false, error: /does not exist|schema cache/.test(error.message) ? repeat ? "Run database update 0027 first." : "Run database update 0025 first." : error.message };
   queuePush(); // phone notifications go out straight away
   revalidatePath("/admin/messages");
   return { ok: true, sentTo: userIds.length };

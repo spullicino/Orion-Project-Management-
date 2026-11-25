@@ -11,6 +11,7 @@ import { useConfirm } from "@/components/ui/confirm";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { describeRepeat, RepeatWindowFields, type RepeatWindow } from "./repeat-window-fields";
 import { ROLE_LABEL } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/database";
@@ -20,6 +21,7 @@ export type SentMessage = {
   title: string;
   body: string;
   remind_every_hours: number | null;
+  repeat?: RepeatWindow | null;
   created_at: string;
   sender: string;
   recipients: { user_id: string; name: string; read_at: string | null; times_sent: number }[];
@@ -45,7 +47,18 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   );
 }
 
-export function MessagesView({ people, projects, sent }: { people: Person[]; projects: { id: string; name: string }[]; sent: SentMessage[] }) {
+export function MessagesView({
+  people,
+  projects,
+  sent,
+  defaultRepeat,
+}: {
+  people: Person[];
+  projects: { id: string; name: string }[];
+  sent: SentMessage[];
+  /** null before database update 0027 */
+  defaultRepeat: RepeatWindow | null;
+}) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const [title, setTitle] = useState("");
@@ -57,6 +70,8 @@ export function MessagesView({ people, projects, sent }: { people: Person[]; pro
   const [q, setQ] = useState("");
   const [remind, setRemind] = useState<"" | "1" | "2" | "4" | "8">("2");
   const [busy, setBusy] = useState(false);
+  const [customWindow, setCustomWindow] = useState(false);
+  const [win, setWin] = useState<RepeatWindow | null>(defaultRepeat);
 
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const count =
@@ -144,8 +159,29 @@ export function MessagesView({ people, projects, sent }: { people: Person[]; pro
               <option value="8">Every 8 hours</option>
               <option value="">Don&apos;t send again</option>
             </NativeSelect>
-            <span className="text-xs font-normal text-muted-foreground">Between 7am and 7pm, for up to 3 days, until they tap &ldquo;I&apos;ve read this&rdquo;.</span>
+            <span className="text-xs font-normal text-muted-foreground">Until they tap &ldquo;I&apos;ve read this&rdquo;.</span>
           </label>
+
+          {remind && win && (
+            <div className="grid gap-2 rounded-xl border p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm">
+                  <span className="font-medium">Send again only:</span> {describeRepeat(win)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (customWindow && defaultRepeat) setWin(defaultRepeat);
+                    setCustomWindow((v) => !v);
+                  }}
+                >
+                  {customWindow ? "Use the default" : "Change for this message"}
+                </Button>
+              </div>
+              {customWindow && <RepeatWindowFields value={win} onChange={setWin} />}
+            </div>
+          )}
 
           <Button
             size="lg"
@@ -154,12 +190,20 @@ export function MessagesView({ people, projects, sent }: { people: Person[]; pro
               const who = count === null ? "everyone on the chosen projects" : `${count} ${count === 1 ? "person" : "people"}`;
               if (!(await confirm(`Send this important message to ${who}?`, { body: "They get a phone notification and must confirm they've read it when they open the app.", confirmLabel: "Send" }))) return;
               setBusy(true);
-              const res = await sendAnnouncement({ title, body, audience, remindEveryHours: remind ? (Number(remind) as 1 | 2 | 4 | 8) : null });
+              const res = await sendAnnouncement({
+                title,
+                body,
+                audience,
+                remindEveryHours: remind ? (Number(remind) as 1 | 2 | 4 | 8) : null,
+                ...(customWindow && win ? { repeat: win } : {}),
+              });
               setBusy(false);
               if (!res.ok) return void toast.error(res.error);
               toast.success(`Sent to ${res.sentTo} ${res.sentTo === 1 ? "person" : "people"}`);
               setTitle("");
               setBody("");
+              setCustomWindow(false);
+              setWin(defaultRepeat);
               router.refresh();
             }}
           >
@@ -205,7 +249,7 @@ function SentCard({ m, onDelete }: { m: SentMessage; onDelete: () => void }) {
             <p className="break-words font-semibold">{m.title}</p>
             <p className="text-xs text-muted-foreground">
               {when(m.created_at)} · by {m.sender}
-              {m.remind_every_hours ? ` · resent every ${m.remind_every_hours} h until read` : ""}
+              {m.remind_every_hours ? ` · resent every ${m.remind_every_hours} h until read${m.repeat ? ` (${describeRepeat(m.repeat)})` : ""}` : ""}
             </p>
           </div>
           <Button variant="ghost" size="icon" aria-label={`Delete “${m.title}”`} onClick={onDelete}>

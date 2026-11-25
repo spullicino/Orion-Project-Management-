@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-message-window",
+    date: "2026-11-25",
+    title: "Choose when important messages are sent again",
+    body: "Unread important messages are now sent again only between 7am and 5pm by default. Change the default in Admin → Settings (times, weekdays only, how many days), or change it for a single message when you send it.",
+    help: "/help#admin",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-25-quick-project-task",
     date: "2026-11-25",
     title: "Add project tasks straight from My Tasks",

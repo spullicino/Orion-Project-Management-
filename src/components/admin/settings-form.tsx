@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import type { AppSettings } from "@/types/database";
+import { DEFAULT_REPEAT, RepeatWindowFields, type RepeatWindow } from "./repeat-window-fields";
 import { useAction } from "./use-action";
 
 // Quarter hours from 06:00 to 20:45 — the reminder job checks every 15 minutes.
@@ -23,6 +24,17 @@ export function SettingsForm({ settings }: { settings: AppSettings }) {
   const hasReminder = settings.daily_reminder_enabled !== undefined; // database update 0023
   const [reminderOn, setReminderOn] = useState(settings.daily_reminder_enabled ?? true);
   const [time, setTime] = useState((settings.daily_reminder_time ?? "16:30").slice(0, 5));
+  const hasWindow = settings.message_repeat_from !== undefined; // database update 0027
+  const [win, setWin] = useState<RepeatWindow>(
+    hasWindow
+      ? {
+          from: settings.message_repeat_from!.slice(0, 5),
+          to: settings.message_repeat_to!.slice(0, 5),
+          weekdaysOnly: !!settings.message_repeat_weekdays_only,
+          days: settings.message_repeat_days ?? 3,
+        }
+      : DEFAULT_REPEAT,
+  );
   const { pending, run } = useAction();
   return (
     <div className="grid gap-6">
@@ -84,6 +96,27 @@ export function SettingsForm({ settings }: { settings: AppSettings }) {
           </label>
         ) : (
           <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">Run database update 0023 (daily reminder) to turn this on.</p>
+        )}
+      </div>
+
+      <div className="grid gap-3 border-t pt-5">
+        <div>
+          <p className="text-base font-medium">Important messages: when to send again</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            If someone hasn&apos;t read an important message, it&apos;s sent again only between these times (Malta time). The first notification always goes out straight away. You can change this for a single message when you send it.
+          </p>
+        </div>
+        {hasWindow ? (
+          <RepeatWindowFields
+            value={win}
+            disabled={pending}
+            onChange={(v) => {
+              setWin(v);
+              run(() => updateSettings({ messageRepeat: v }));
+            }}
+          />
+        ) : (
+          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">Run database update 0027 to change this.</p>
         )}
       </div>
     </div>
