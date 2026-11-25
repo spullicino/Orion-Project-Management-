@@ -7,6 +7,7 @@ import { getDailyFeed, getDailyStatus } from "@/lib/data/diary";
 import { getMaterialRequests } from "@/lib/data/materials";
 import { cn, formatDate, fullName } from "@/lib/utils";
 import type { DailyStatus, DailyUpdate } from "@/types/diary";
+import { groupByProject } from "@/lib/materials/group";
 import { MATERIAL_STATUS, OPEN_STATUSES, type MaterialListItem } from "@/types/materials";
 
 const time = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" }).format(new Date(iso));
@@ -62,7 +63,10 @@ export function TeamOverviewCards({
   const fresh = open.filter((r) => r.status === "requested").length;
   const late = open.filter((r) => r.late).length;
   const maxMissing = full ? 20 : 4;
-  const maxRequests = full ? 20 : 4;
+  // Grouped by project: urgent/late projects first.
+  const groups = groupByProject(open);
+  const maxProjects = full ? 50 : 4;
+  const perProject = full ? 10 : 2;
 
   return (
     <section aria-labelledby="team-overview" className={cn("mb-4 grid grid-cols-1 gap-3", full ? "lg:grid-cols-2" : "md:grid-cols-2")}>
@@ -146,31 +150,50 @@ export function TeamOverviewCards({
             <Stat value={late} label="Late" tone={late ? "alert" : undefined} />
           </div>
           {open.length > 0 ? (
-            <ul className="divide-y">
-              {open.slice(0, maxRequests).map((r) => (
-                <li key={r.id}>
-                  <Link href={`/materials?request=${r.id}`} className="flex items-start gap-2 py-2 hover:bg-accent/40">
-                    <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: r.project.color }} aria-hidden />
-                    <span className="min-w-0 flex-1 text-sm">
-                      <span className="line-clamp-2 break-words">
-                        <span className="font-medium">#{r.number}</span> {r.summary}
-                      </span>
-                      <span className="block truncate text-muted-foreground">
-                        {[r.project.name, r.requested_by ? fullName(r.requested_by) : null, r.needed_by ? `needed ${formatDate(r.needed_by)}` : null].filter(Boolean).join(" · ")}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end gap-1">
-                      <span className={cn("inline-flex h-6 items-center rounded-full px-2 text-xs font-semibold", MATERIAL_STATUS[r.status].tone)}>{MATERIAL_STATUS[r.status].label}</span>
-                      {(r.urgent || r.late) && <span className="text-xs font-semibold text-destructive">{r.urgent ? "Urgent" : "Late"}</span>}
+            <div className="grid gap-3">
+              {groups.slice(0, maxProjects).map((g) => (
+                <section key={g.project.id} aria-label={g.project.name} className="grid gap-1">
+                  <Link href={`/projects/${g.project.id}/materials`} className="flex min-h-11 items-center gap-2 rounded-lg bg-muted/50 px-2 hover:bg-accent">
+                    <span className="size-3 shrink-0 rounded-full" style={{ background: g.project.color }} aria-hidden />
+                    <span className="line-clamp-2 min-w-0 flex-1 break-words py-1 text-sm font-semibold">{g.project.name}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium">
+                      <span className="rounded-full bg-card px-2 py-0.5">{g.items.length} open</span>
+                      {g.urgent > 0 && <span className="rounded-full bg-red-600 px-2 py-0.5 text-white">{g.urgent} urgent</span>}
+                      {g.late > 0 && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">{g.late} late</span>}
                     </span>
                   </Link>
-                </li>
+                  <ul className="divide-y pl-2">
+                    {g.items.slice(0, perProject).map((r) => (
+                      <li key={r.id}>
+                        <Link href={`/materials?request=${r.id}`} className="flex items-start gap-2 py-2 hover:bg-accent/40">
+                          <span className="min-w-0 flex-1 text-sm">
+                            <span className="line-clamp-2 break-words">
+                              <span className="font-medium">#{r.number}</span> {r.summary}
+                            </span>
+                            <span className="block truncate text-muted-foreground">
+                              {[r.requested_by ? fullName(r.requested_by) : null, r.needed_by ? `needed ${formatDate(r.needed_by)}` : null].filter(Boolean).join(" · ")}
+                            </span>
+                          </span>
+                          <span className="flex shrink-0 flex-col items-end gap-1">
+                            <span className={cn("inline-flex h-6 items-center rounded-full px-2 text-xs font-semibold", MATERIAL_STATUS[r.status].tone)}>{MATERIAL_STATUS[r.status].label}</span>
+                            {(r.urgent || r.late) && <span className="text-xs font-semibold text-destructive">{r.urgent ? "Urgent" : "Late"}</span>}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {g.items.length > perProject && (
+                    <Link href={`/projects/${g.project.id}/materials`} className="pl-2 text-sm font-medium text-primary hover:underline">
+                      +{g.items.length - perProject} more on this project
+                    </Link>
+                  )}
+                </section>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">No open requests — everything has been delivered.</p>
           )}
-          {open.length > maxRequests && <p className="-mt-2 text-sm text-muted-foreground">and {open.length - maxRequests} more</p>}
+          {groups.length > maxProjects && <p className="-mt-1 text-sm text-muted-foreground">and {groups.length - maxProjects} more projects</p>}
           <Link href="/materials" className="flex h-11 items-center justify-center gap-1 rounded-lg border text-sm font-medium hover:bg-accent">
             See all requests <ArrowRight className="size-4" aria-hidden />
           </Link>

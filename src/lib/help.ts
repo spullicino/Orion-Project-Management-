@@ -501,6 +501,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         minRole: "manager",
         steps: [
           "You're notified of every new request on your projects. Open it from the bell or from **Materials**.",
+          "In **Materials** (and on Home / Overview) requests are grouped by project, with how many are open, urgent and late — projects needing attention come first. Tap a project's name to fold it away; switch **Group by project** off for one plain list.",
           "Tap **Mark ordered** and add the supplier, PO number and expected delivery date. The worker is told it's on its way.",
           "Tap **PDF for supplier** for a clean list to email to the supplier.",
           "When it arrives, tap **Record delivery**. Change any quantity that came short — it's then marked **Partly delivered** until the rest arrives.",

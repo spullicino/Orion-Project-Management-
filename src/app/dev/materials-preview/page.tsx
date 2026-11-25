@@ -1,6 +1,7 @@
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { OutboxProvider } from "@/components/diary/outbox-provider";
 import { MaterialsView } from "@/components/materials/materials-view";
 import { addDays, todayISO } from "@/lib/board";
@@ -129,17 +130,34 @@ const detail: MaterialRequestDetail = {
   events: [{ kind: "created", detail: null, created_at: now, actor: tina }],
 };
 
+const P2 = { id: "p2", name: "OG5698 - Central Bank", color: "#16a34a" };
+const P3 = { id: "p3", name: "OG5376 - Solair Apartments", color: "#f59e0b" };
+// ?all=1: across all projects (grouped by project).
+const spread = (l: MaterialListItem[]) => [
+  ...l,
+  ...l.map((r, i) => ({ ...r, id: `${r.id}-b`, number: r.number + 10, project: i % 2 ? P2 : P3, urgent: false })),
+];
+
 /** Development-only preview of material requests (no database). */
 export default function MaterialsPreview() {
   if (process.env.NODE_ENV !== "development") notFound();
+  return (
+    <Suspense>
+      <Preview />
+    </Suspense>
+  );
+}
+
+function Preview() {
+  const all = useSearchParams().get("all") === "1";
   return (
     <OutboxProvider userId="preview">
       <main className="mx-auto max-w-3xl px-4 py-6 md:px-8">
         <h1 className="mb-4 text-2xl font-bold">Materials</h1>
         <MaterialsView
           meId="u2"
-          projectId="p1"
-          initial={list}
+          projectId={all ? undefined : "p1"}
+          initial={all ? spread(list) : list}
           editable={[{ id: "p1", name: P.name }]}
           manageable={["p1"]}
           detailLoader={async () => ({ ok: true as const, data: detail })}

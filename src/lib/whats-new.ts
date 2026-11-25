@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-materials-by-project",
+    date: "2026-11-25",
+    title: "Material requests grouped by project",
+    body: "Material requests (and the card on Home / Overview) are now grouped under each project with how many are open, urgent and late — projects needing attention first. Tap a project to fold it; switch “Group by project” off for the plain list.",
+    help: "/help#materials",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-25-message-window",
     date: "2026-11-25",
     title: "Choose when important messages are sent again",
