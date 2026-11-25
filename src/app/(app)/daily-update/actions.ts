@@ -9,7 +9,7 @@ import { getDailyFeed, getDailyStatus, getProjectPhotos } from "@/lib/data/diary
 import { rateLimit } from "@/lib/rate-limit";
 import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
-import { dailyUpdateEditSchema, dailyUpdateSchema, photoRegisterSchema, photoTicketSchema, reportSchema } from "@/lib/validation/diary";
+import { dailyUpdateEditSchema, dailyUpdateSchema, photoRegisterSchema, photoTicketSchema, exportSchema, reportSchema } from "@/lib/validation/diary";
 import { thumbPath, type DailyStatus, type DailyUpdate, type FeedQuery, type GalleryPhoto } from "@/types/diary";
 
 const uuid = z.string().uuid();
@@ -233,6 +233,36 @@ export async function getReportData(input: unknown): Promise<Result<DailyUpdate[
       const page = await getDailyFeed({ project: project_id, from, to, author: author ?? null, before, limit: 50 });
       updates.push(...page);
       if (page.length < 50) break;
+      const last = page[page.length - 1];
+      before = { date: last.work_date, created: last.created_at };
+    }
+    return { ok: true, data: updates };
+  } catch (e) {
+    return fail((e as Error).message);
+  }
+}
+
+/**
+ * Managers and administrators: every daily update in a period (all their projects,
+ * or one), for the Excel / PDF export. Text only unless photos are wanted.
+ */
+export async function getExportData(input: unknown): Promise<Result<DailyUpdate[]>> {
+  await requireRole("manager");
+  const parsed = exportSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the dates");
+  const { project_id, from, to, author, photos } = parsed.data;
+  const days = (Date.parse(to) - Date.parse(from)) / 86_400_000;
+  if (days > 366) return fail("Please choose a period of a year or less.");
+  if (photos && days > 186) return fail("With photos, please choose a period of 6 months or less.");
+  const maxPages = photos ? 10 : 60; // 500 updates with photos, 3,000 without
+  try {
+    const updates: DailyUpdate[] = [];
+    let before: FeedQuery["before"] = null;
+    for (let i = 0; i < maxPages; i++) {
+      const page = await getDailyFeed({ project: project_id ?? null, from, to, author: author ?? null, before, limit: 50 }, { textOnly: !photos, fullPhotos: false });
+      updates.push(...page);
+      if (page.length < 50) break;
+      if (i === maxPages - 1) return fail(photos ? "Too many updates with photos — choose a shorter period or turn photos off." : "Too many updates — choose a shorter period.");
       const last = page[page.length - 1];
       before = { date: last.work_date, created: last.created_at };
     }

@@ -2,6 +2,7 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DiaryFeed } from "@/components/diary/diary-feed";
+import { ExportUpdatesButton } from "@/components/diary/export-dialog";
 import { ReportButton } from "@/components/diary/report-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -44,16 +45,23 @@ export default async function TeamDiaryPage({ searchParams }: { searchParams: Pr
       </Link>
       <PageHeader
         title="Team daily updates"
-        description="Who has posted, what was done, and PDF reports for clients."
+        description="Who has posted, what was done, exports (Excel / PDF) and reports for clients."
         actions={
-          <ReportButton
-            projects={projects.map((p) => ({
-              id: p.id,
-              name: p.name,
-              client: p.client?.name ?? null,
-              people: rows.find((r) => r.project.id === p.id)?.people ?? [],
-            }))}
-          />
+          <>
+            <ExportUpdatesButton
+              today={today}
+              projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+              people={people.filter((p) => p.role !== "basic").map((p) => ({ id: p.id, name: fullName(p) }))}
+            />
+            <ReportButton
+              projects={projects.map((p) => ({
+                id: p.id,
+                name: p.name,
+                client: p.client?.name ?? null,
+                people: rows.find((r) => r.project.id === p.id)?.people ?? [],
+              }))}
+            />
+          </>
         }
       />
 

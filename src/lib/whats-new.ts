@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-export-updates",
+    date: "2026-11-25",
+    title: "Export daily updates to Excel or PDF",
+    body: "On Team daily updates (and Overview), tap “Export updates”: pick today, this week, last month or any dates, all projects or one, everyone or one person — and download Excel (with hours per person) or a PDF.",
+    help: "/help#daily-update",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-25-important-messages",
     date: "2026-11-25",
     title: "Important messages people can't miss",

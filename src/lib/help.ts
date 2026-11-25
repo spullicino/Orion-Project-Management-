@@ -417,6 +417,18 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Export updates to Excel or PDF",
+        minRole: "manager",
+        steps: [
+          "Open **Daily Update → Team overview & reports** (or **Overview**) and tap **Export updates**.",
+          "Choose the period: **Today**, **Yesterday**, **This week**, **Last week**, **This month**, **Last month**, or **Choose dates**.",
+          "Leave **All my projects** and **Everyone**, or pick one project or one person.",
+          "Choose **Excel** — one row per update plus a **Hours per person** sheet — or **PDF**, grouped by day, to print or email. For PDF you can include photos.",
+          "Tap **Download**.",
+        ],
+        tip: "Managers only see their own projects; administrators see all of them.",
+      },
+      {
         title: "Make a PDF report for a client",
         minRole: "manager",
         steps: [

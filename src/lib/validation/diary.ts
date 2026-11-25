@@ -47,3 +47,14 @@ export const photoRegisterSchema = z.object({
 export const reportSchema = z
   .object({ project_id: uuid, from: isoDate, to: isoDate, author: uuid.nullable().optional() })
   .refine((v) => v.to >= v.from, { path: ["to"], message: "The end date must be after the start date" });
+
+/** Export of daily updates (Team daily updates → Export updates). */
+export const exportSchema = z
+  .object({
+    from: isoDate,
+    to: isoDate,
+    project_id: uuid.nullable().optional(),
+    author: uuid.nullable().optional(),
+    photos: z.boolean().default(false),
+  })
+  .refine((v) => v.to >= v.from, { path: ["to"], message: "The end date must be after the start date" });

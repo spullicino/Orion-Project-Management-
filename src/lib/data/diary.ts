@@ -20,7 +20,7 @@ export async function signPhotos<T extends DiaryPhoto>(supabase: Supa, photos: T
   }));
 }
 
-export async function getDailyFeed(q: FeedQuery, opts: { fullPhotos?: boolean } = {}): Promise<DailyUpdate[]> {
+export async function getDailyFeed(q: FeedQuery, opts: { fullPhotos?: boolean; /** skip photo links and avatars (spreadsheet exports) */ textOnly?: boolean } = {}): Promise<DailyUpdate[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_daily_feed", {
     p_project: q.project ?? null,
@@ -33,6 +33,7 @@ export async function getDailyFeed(q: FeedQuery, opts: { fullPhotos?: boolean } 
   });
   if (error) throw dbError("Could not load daily updates", error);
   const updates = (data ?? []) as unknown as DailyUpdate[];
+  if (opts.textOnly) return updates;
   const allPhotos = await signPhotos(supabase, updates.flatMap((u) => u.photos), { full: opts.fullPhotos ?? true });
   const byId = new Map(allPhotos.map((p) => [p.id, p]));
   const avatars = await resolveAvatarUrls(supabase, updates.map((u) => u.author.avatar_url));

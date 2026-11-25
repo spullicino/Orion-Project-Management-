@@ -1,6 +1,7 @@
 "use client";
 
 import { imageToPngDataUrl } from "@/lib/gantt/export";
+import { sortUpdates } from "@/lib/diary/export-rows";
 import { formatDate, fullName } from "@/lib/utils";
 import type { DailyUpdate } from "@/types/diary";
 
@@ -11,6 +12,11 @@ export type ReportOptions = {
   to: string;
   personName?: string | null;
   quality: "standard" | "high";
+  /** Exports (Team daily updates → Export updates): */
+  title?: string; // default "Daily site report"
+  showProject?: boolean; // show the project next to each person (several projects)
+  includePhotos?: boolean; // default true
+  fileName?: string;
 };
 
 /** Loads a JPEG and returns it as a data URL with its size (for jsPDF). */
@@ -94,7 +100,9 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
     doc.addImage(logo, "PNG", M, y, (props.width / props.height) * lh, lh);
     y += lh + 16;
   }
-  text("Daily site report", 20, { bold: true });
+  const title = opts.title ?? "Daily site report";
+  const withPhotos = opts.includePhotos !== false;
+  text(title, 20, { bold: true });
   text(opts.projectName, 13, { bold: true, color: [45, 87, 163] });
   const sub = [
     opts.clientName ? `Client: ${opts.clientName}` : null,
@@ -104,8 +112,9 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
   ].filter(Boolean);
   text(sub.join("   ·   "), 9.5, { color: [100, 116, 139], gap: 6 });
   const totalHours = updates.reduce((n, u) => n + (u.hours ? Number(u.hours) : 0), 0);
-  const photoCount = updates.reduce((n, u) => n + u.photos.length, 0);
-  text(`${updates.length} updates · ${photoCount} photos${totalHours ? ` · ${totalHours} hours recorded` : ""}`, 9.5, { color: [100, 116, 139], gap: 10 });
+  const photoCount = withPhotos ? updates.reduce((n, u) => n + u.photos.length, 0) : 0;
+  const people = new Set(updates.map((u) => u.author_id)).size;
+  text(`${updates.length} updates${opts.showProject ? ` · ${people} ${people === 1 ? "person" : "people"}` : ""}${withPhotos ? ` · ${photoCount} photos` : ""}${totalHours ? ` · ${Math.round(totalHours * 10) / 10} hours recorded` : ""}`, 9.5, { color: [100, 116, 139], gap: 10 });
   doc.setDrawColor(2, 181, 239);
   doc.setLineWidth(2);
   doc.line(M, y, W - M, y);
@@ -114,7 +123,7 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
   if (!updates.length) text("No daily updates were posted in this period.", 11);
 
   // ---- Days (oldest first reads naturally in a report)
-  const ordered = [...updates].sort((a, b) => (a.work_date + a.created_at).localeCompare(b.work_date + b.created_at));
+  const ordered = opts.showProject ? sortUpdates(updates) : [...updates].sort((a, b) => (a.work_date + a.created_at).localeCompare(b.work_date + b.created_at));
   let photosDone = 0;
   let currentDay = "";
   for (const u of ordered) {
@@ -133,7 +142,7 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
     }
 
     ensure(50);
-    text(`${fullName(u.author)}${u.hours !== null ? `  ·  ${Number(u.hours)} hours` : ""}`, 10.5, { bold: true });
+    text(`${fullName(u.author)}${opts.showProject ? `  ·  ${u.project.name}` : ""}${u.hours !== null ? `  ·  ${Number(u.hours)} hours` : ""}`, 10.5, { bold: true });
     text(u.work_done, 10, { gap: 4 });
     if (u.issues) text(`Issues / delays: ${u.issues}`, 10, { color: [180, 83, 9], gap: 4 });
 
@@ -142,7 +151,7 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
     const gap = 8;
     const cellW = (contentW - gap * (cols - 1)) / cols;
     const cellH = cellW * 0.75;
-    for (let i = 0; i < u.photos.length; i += cols) {
+    for (let i = 0; withPhotos && i < u.photos.length; i += cols) {
       ensure(cellH + gap);
       const row = u.photos.slice(i, i + cols);
       const imgs = await Promise.all(
@@ -175,10 +184,10 @@ export async function buildDailyReport(updates: DailyUpdate[], opts: ReportOptio
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(148, 163, 184);
-    doc.text(`${opts.projectName} · Daily site report`, M, H - 22);
+    doc.text(`${opts.projectName} · ${title}`, M, H - 22);
     doc.text(`Page ${p} of ${pages}`, W - M, H - 22, { align: "right" });
   }
 
   const slug = opts.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  doc.save(`${slug}-daily-report-${opts.from}-to-${opts.to}.pdf`);
+  doc.save(opts.fileName ?? `${slug}-daily-report-${opts.from}-to-${opts.to}.pdf`);
 }
