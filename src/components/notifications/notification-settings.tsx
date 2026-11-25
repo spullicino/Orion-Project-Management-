@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { PushProblemNote } from "./push-problem";
 import { usePushDevice } from "./use-push-device";
 
 const TYPES: { key: string; label: string }[] = [
@@ -37,7 +38,7 @@ export function NotificationSettings({ initial, pushAvailable }: { initial: Noti
     });
   };
 
-  const { push, busy, enable: enablePush, disable: disablePush } = usePushDevice({
+  const { push, busy, enable: enablePush, disable: disablePush, problem } = usePushDevice({
     onEnabled: () => !prefs.push_enabled && save({ ...prefs, push_enabled: true }),
   });
 
@@ -87,9 +88,13 @@ export function NotificationSettings({ initial, pushAvailable }: { initial: Noti
               </Button>
             </div>
           ) : (
-            <Button onClick={enablePush} disabled={busy} className="justify-self-start">
-              {busy ? <Loader2 className="animate-spin" aria-hidden /> : <BellRing aria-hidden />} Turn on notifications
-            </Button>
+            <>
+              <Button onClick={enablePush} disabled={busy} className="justify-self-start">
+                {busy ? <Loader2 className="animate-spin" aria-hidden /> : <BellRing aria-hidden />} {busy ? "Turning on…" : "Turn on notifications"}
+              </Button>
+              {busy && <p className="text-sm text-muted-foreground">If your phone asks, tap <strong>Allow</strong>.</p>}
+              <PushProblemNote problem={problem} />
+            </>
           )}
         </div>
 

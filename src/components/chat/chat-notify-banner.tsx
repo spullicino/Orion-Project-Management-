@@ -2,6 +2,7 @@
 
 import { BellRing, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PushProblemNote } from "@/components/notifications/push-problem";
 import { usePushDevice } from "@/components/notifications/use-push-device";
 import { Button } from "@/components/ui/button";
 
@@ -9,7 +10,7 @@ const KEY = "orion:chat-notify-dismissed";
 
 /** Top of Chats: "turn on notifications so you don't miss messages", until this device has them on. */
 export function ChatNotifyBanner() {
-  const { push, busy, enable } = usePushDevice();
+  const { push, busy, enable, problem } = usePushDevice();
   const [dismissed, setDismissed] = useState(true);
   useEffect(() => {
     try {
@@ -43,6 +44,7 @@ export function ChatNotifyBanner() {
           <Button size="sm" onClick={enable} disabled={busy} className="justify-self-start">
             {busy && <Loader2 className="animate-spin" aria-hidden />} Turn on notifications
           </Button>
+          <PushProblemNote problem={problem} />
         </>
       )}
       {push === "ios-install" && (

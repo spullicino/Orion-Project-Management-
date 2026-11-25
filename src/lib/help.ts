@@ -643,6 +643,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "On iPhone this only works when the app is installed on your Home Screen (iOS 16.4 or newer).",
       },
       {
+        title: "Notifications won't turn on (Android)",
+        steps: [
+          "After tapping **Turn on notifications**, a yellow note explains what went wrong if it doesn't work within about 30 seconds.",
+          "**No permission box appeared?** Look for a small bell 🔔 in Chrome's address bar and tap **Allow** — or open the phone's **Settings → Apps → Chrome → Notifications** and switch them on.",
+          "**Couldn't reach the notification service?** Turn off any VPN or data saver, update **Chrome** and **Google Play services** (Play Store), then try again. Phones without Google services (some Huawei models) can't get notifications.",
+          "**Background helper didn't start?** Swipe the app away to close it completely, open it again and try again.",
+          "Still stuck? Screenshot the yellow note (it includes a line for your administrator) and send it to them.",
+        ],
+      },
+      {
         title: "Choose what you're told about",
         steps: [
           "In **Profile → Notifications**, under **Tell me when…**, switch each type on or off.",
