@@ -1,11 +1,13 @@
 "use client";
 
-import { Briefcase, Check, Loader2, MessageSquare, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { Briefcase, Check, FolderKanban, Loader2, MessageSquare, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   addGeneralTaskComment,
   createGeneralTask,
+  createProjectTaskQuick,
   deleteGeneralTask,
   loadGeneralTaskComments,
   setGeneralTaskAssignees,
@@ -26,6 +28,7 @@ import { GENERAL_STATUSES, type ChecklistItem, type GeneralStatus, type GeneralT
 
 export type PickPerson = { id: string; name: string; role: AppRole };
 export type PickClient = { id: string; name: string };
+export type PickProject = { id: string; name: string; groups: { id: string; name: string }[]; memberIds: string[] };
 
 const timeOf = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" }).format(new Date(iso));
@@ -72,6 +75,7 @@ export function GeneralTaskSheet({
   me,
   people,
   clients,
+  projects = [],
 }: {
   task: GeneralTask | null;
   open: boolean;
@@ -80,7 +84,9 @@ export function GeneralTaskSheet({
   me: { id: string; role: AppRole };
   people: PickPerson[];
   clients: PickClient[];
+  projects?: PickProject[];
 }) {
+  const router = useRouter();
   const creating = !task;
   const isManagerPlus = me.role === "admin" || me.role === "manager";
   const canManage = creating ? isManagerPlus : me.role === "admin" || (task.created_by === me.id && isManagerPlus);
@@ -99,6 +105,17 @@ export function GeneralTaskSheet({
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [editingPeople, setEditingPeople] = useState(creating);
+  // New task only: put it in a project (a normal project task) or keep it General.
+  const [projectId, setProjectId] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const project = projects.find((p) => p.id === projectId) ?? null;
+  const pickable = project ? people.filter((p) => project.memberIds.includes(p.id)) : people;
+  const chooseProject = (id: string) => {
+    const next = projects.find((p) => p.id === id) ?? null;
+    setProjectId(id);
+    setGroupId(next?.groups[0]?.id ?? "");
+    if (next) setAssignees((a) => a.filter((x) => next.memberIds.includes(x)));
+  };
 
   useEffect(() => {
     if (!task || !open) return;
@@ -144,7 +161,12 @@ export function GeneralTaskSheet({
   const submit = async () => {
     setBusy(true);
     try {
-      if (creating) {
+      if (creating && project) {
+        const res = await createProjectTaskQuick({ project_id: project.id, group_id: groupId, title, description: description || null, due_date: due || null, priority, assignee_ids: assignees });
+        if (!res.ok) return void toast.error(res.error);
+        const opened = res.data!;
+        toast.success(`Task added to ${project.name}`, { action: { label: "Open", onClick: () => router.push(`/projects/${opened.project_id}/board?task=${opened.id}`) } });
+      } else if (creating) {
         const res = await createGeneralTask({ title, description: description || null, client_id: clientId || null, due_date: due || null, priority, assignee_ids: assignees });
         if (!res.ok) return void toast.error(res.error);
         toast.success(`Task given to ${assignees.length} ${assignees.length === 1 ? "person" : "people"}`);
@@ -172,12 +194,12 @@ export function GeneralTaskSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent title={creating ? "New general task" : task.title} description="A task not linked to any project">
+      <SheetContent title={creating ? "New task" : task.title} description={creating ? "Add a task to a project, or a general task not linked to one" : "A task not linked to any project"}>
         {dialog}
         <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto px-5 pb-6 pt-4 md:pt-6">
           <div className="flex flex-wrap items-center gap-2 pr-10 text-xs font-semibold">
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
-              <Briefcase className="size-3.5" aria-hidden /> General task
+              {project ? <FolderKanban className="size-3.5" aria-hidden /> : <Briefcase className="size-3.5" aria-hidden />} {creating ? (project ? "New project task" : "New general task") : "General task"}
             </span>
             {task?.client && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">Client: {task.client.name}</span>}
           </div>
@@ -189,6 +211,34 @@ export function GeneralTaskSheet({
             </label>
           ) : (
             <h2 className="text-xl font-semibold leading-snug">{task?.title}</h2>
+          )}
+
+          {creating && projects.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid min-w-0 gap-1 text-sm font-medium">
+                Project
+                <NativeSelect value={projectId} onChange={(e) => chooseProject(e.target.value)}>
+                  <option value="">No project — general task</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+              {project && (
+                <label className="grid min-w-0 gap-1 text-sm font-medium">
+                  Group
+                  <NativeSelect value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                    {project.groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </label>
+              )}
+            </div>
           )}
 
           {!creating && (
@@ -222,7 +272,10 @@ export function GeneralTaskSheet({
               )}
             </div>
             {editingPeople && canManage ? (
-              <PeoplePicker people={people} value={assignees} onChange={setAssignees} />
+              <>
+                {project && <p className="text-xs text-muted-foreground">Only people on {project.name} are listed{assignees.length ? "" : " — you can also leave it unassigned"}. Add people in the project&apos;s Settings.</p>}
+                <PeoplePicker people={pickable} value={assignees} onChange={setAssignees} />
+              </>
             ) : (
               <p className="text-sm">{assignees.map(nameOf).filter(Boolean).join(", ") || "Nobody yet"}</p>
             )}
@@ -249,7 +302,7 @@ export function GeneralTaskSheet({
             </label>
           </div>
 
-          {canManage ? (
+          {canManage && !project ? (
             <label className="grid gap-1 text-sm font-medium">
               Client (optional)
               <NativeSelect value={clientId} onChange={(e) => setClientId(e.target.value)}>
@@ -273,8 +326,9 @@ export function GeneralTaskSheet({
           )}
 
           {canManage && (creating || detailsChanged) && (
-            <Button size="lg" disabled={busy || !title.trim() || !assignees.length} onClick={() => void submit()}>
-              {busy ? <Loader2 className="animate-spin" aria-hidden /> : creating ? <Send aria-hidden /> : <Check aria-hidden />} {creating ? "Create and assign" : "Save changes"}
+            <Button size="lg" disabled={busy || !title.trim() || (project ? !groupId : !assignees.length)} onClick={() => void submit()}>
+              {busy ? <Loader2 className="animate-spin" aria-hidden /> : creating ? <Send aria-hidden /> : <Check aria-hidden />}{" "}
+              {creating ? (project ? "Add to project" : "Create and assign") : "Save changes"}
             </Button>
           )}
 

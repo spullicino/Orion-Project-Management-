@@ -31,6 +31,10 @@ export default function GeneralTasksPreview() {
         canEditProjectTasks
         people={[{ id: "j", name: "Joe Vella", role: "technician" }, { id: "a", name: "Alexander Hamburger", role: "technician" }, { id: "me", name: "Mark Borg", role: "manager" }]}
         clients={[{ id: "c1", name: "ABC Ltd" }, { id: "c2", name: "Central Bank" }]}
+        projects={[
+          { id: "p1", name: "OG5376 - Solair Apartments", groups: [{ id: "g1", name: "Fit-out" }, { id: "g2", name: "Snagging" }], memberIds: ["j", "me"] },
+          { id: "p2", name: "OG5698 - Central Bank", groups: [{ id: "g3", name: "General" }], memberIds: ["a"] },
+        ]}
         openId={null}
       />
     </main>

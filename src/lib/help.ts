@@ -270,11 +270,22 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Open **My Tasks** and tap **New task**.",
           "Write **What needs doing?** — e.g. “Chase ABC Ltd for an update on the tender”.",
+          "Leave **Project** on **No project — general task**. (Or pick a project to add a normal task to it — see the next guide.)",
           "Tick who should do it under **Assigned to**, and add a **Due date**, **Priority**, **Client** and details if useful.",
           "Tap **Create and assign**. They get a notification and see it in their My Tasks, with reminders when it's due.",
           "Follow progress under **Tasks I gave**: status, checklist and comments. You get a notification when they change the status or comment.",
         ],
         tip: "Only you, the people you gave it to, and administrators can see a general task.",
+      },
+      {
+        title: "Add a task to a project from My Tasks",
+        minRole: "manager",
+        steps: [
+          "In **My Tasks** tap **New task** and write what needs doing.",
+          "Choose the **Project** and the **Group** it belongs in (e.g. Fit-out).",
+          "Tick who should do it — only people on that project are listed — and set a due date and priority if you like.",
+          "Tap **Add to project**. It appears on the project's Board and Gantt like any other task; tap **Open** in the message to go to it.",
+        ],
       },
       {
         title: "Work on a general task you were given",

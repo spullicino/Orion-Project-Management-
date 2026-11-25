@@ -11,7 +11,7 @@ import { cn, fullName, readableTextOn } from "@/lib/utils";
 import type { MyTask } from "@/types/board";
 import type { AppRole } from "@/types/database";
 import { GENERAL_STATUSES, type GeneralTask } from "@/types/general-tasks";
-import { GeneralTaskSheet, type PickClient, type PickPerson } from "./general-task-sheet";
+import { GeneralTaskSheet, type PickClient, type PickPerson, type PickProject } from "./general-task-sheet";
 import { TaskItem } from "./my-tasks-list";
 
 type Item = { kind: "project"; task: MyTask; completed_at: string | null; due_date: string | null } | { kind: "general"; task: GeneralTask; completed_at: string | null; due_date: string | null };
@@ -80,6 +80,7 @@ export function MyTasksView({
   canEditProjectTasks,
   people,
   clients,
+  projects = [],
   openId,
 }: {
   projectTasks: MyTask[];
@@ -88,6 +89,7 @@ export function MyTasksView({
   canEditProjectTasks: boolean;
   people: PickPerson[];
   clients: PickClient[];
+  projects?: PickProject[];
   openId: string | null;
 }) {
   const router = useRouter();
@@ -197,6 +199,7 @@ export function MyTasksView({
           me={me}
           people={people}
           clients={clients}
+          projects={projects}
         />
       )}
     </div>

@@ -27,3 +27,14 @@ export const generalTaskPatchSchema = z
   .partial();
 
 export const generalCommentSchema = z.object({ task_id: uuid, body: z.string().trim().min(1, "Write a comment").max(4000) });
+
+/** My Tasks → New task, with a project chosen: creates a normal project task. */
+export const quickProjectTaskSchema = z.object({
+  project_id: uuid,
+  group_id: uuid,
+  title: z.string().trim().min(1, "Write what needs doing").max(300),
+  description: z.string().trim().max(20000).nullable().optional(),
+  due_date: isoDate.nullable().optional(),
+  priority: priority.default("medium"),
+  assignee_ids: z.array(uuid).max(50).default([]),
+});

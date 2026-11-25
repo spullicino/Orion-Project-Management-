@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-quick-project-task",
+    date: "2026-11-25",
+    title: "Add project tasks straight from My Tasks",
+    body: "My Tasks → New task now has a Project choice: pick a project and group to add a normal project task (with people, due date and priority) without opening the project — or leave it on “No project” for a general task.",
+    help: "/help#my-tasks",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-25-general-tasks",
     date: "2026-11-25",
     title: "General tasks — not linked to a project",

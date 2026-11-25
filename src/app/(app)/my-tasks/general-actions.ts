@@ -5,7 +5,7 @@ import { requireActiveProfile, requireRole } from "@/lib/auth/session";
 import { queuePush } from "@/lib/notify/queue";
 import { createClient } from "@/lib/supabase/server";
 import { fullName } from "@/lib/utils";
-import { generalCommentSchema, generalTaskCreateSchema, generalTaskPatchSchema } from "@/lib/validation/general-tasks";
+import { generalCommentSchema, generalTaskCreateSchema, generalTaskPatchSchema, quickProjectTaskSchema } from "@/lib/validation/general-tasks";
 import type { GeneralTask, GeneralTaskComment } from "@/types/general-tasks";
 import type { Json } from "@/types/database";
 
@@ -114,4 +114,48 @@ export async function addGeneralTaskComment(input: unknown): Promise<Result> {
   if (error) return fail(error.message);
   queuePush();
   return { ok: true };
+}
+
+/**
+ * Managers and administrators: add a task to a project straight from My Tasks
+ * (same as adding it on the project's Board), with due date, priority and people.
+ */
+export async function createProjectTaskQuick(input: unknown): Promise<Result<{ id: string; project_id: string }>> {
+  const me = await requireRole("manager");
+  const parsed = quickProjectTaskSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the task");
+  const d = parsed.data;
+  const supabase = await createClient();
+  const { data: group } = await supabase.from("groups").select("id").eq("id", d.group_id).eq("project_id", d.project_id).maybeSingle();
+  if (!group) return fail("Choose a group in that project.");
+  const [{ data: last }, { data: firstLabel }] = await Promise.all([
+    supabase.from("tasks").select("position").eq("group_id", d.group_id).order("position", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("status_labels").select("id").eq("project_id", d.project_id).order("position").limit(1).maybeSingle(),
+  ]);
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert({
+      project_id: d.project_id,
+      group_id: d.group_id,
+      title: d.title,
+      description: d.description || null,
+      due_date: d.due_date || null,
+      priority: d.priority,
+      created_by: me.id,
+      position: (last?.position ?? 0) + 1,
+      status_id: firstLabel?.id ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return fail(error?.message ?? "Couldn't add the task");
+  if (d.assignee_ids.length) {
+    const { error: aErr } = await supabase
+      .from("task_assignees")
+      .insert([...new Set(d.assignee_ids)].map((user_id) => ({ task_id: data.id, user_id, assigned_by: me.id })));
+    if (aErr) return fail(aErr.message);
+    queuePush();
+  }
+  revalidatePath(`/projects/${d.project_id}`, "layout");
+  revalidatePath("/my-tasks");
+  return { ok: true, data: { id: data.id, project_id: d.project_id } };
 }
