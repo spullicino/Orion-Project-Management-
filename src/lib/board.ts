@@ -101,12 +101,12 @@ export function filterTasks<T extends Pick<BoardTask, "title" | "assignees" | "s
   });
 }
 
-export type Bucket = { key: string; label: string; tasks: MyTask[] };
+export type Bucket<T = MyTask> = { key: string; label: string; tasks: T[] };
 
 /** Groups "My Tasks" into Overdue / Today / This week / Later / No date / Done recently. */
-export function bucketMyTasks(tasks: MyTask[], today = todayISO()): Bucket[] {
+export function bucketMyTasks<T extends { completed_at: string | null; due_date: string | null } = MyTask>(tasks: T[], today = todayISO()): Bucket<T>[] {
   const weekEnd = addDays(today, 7);
-  const buckets: Bucket[] = [
+  const buckets: Bucket<T>[] = [
     { key: "overdue", label: "Overdue", tasks: [] },
     { key: "today", label: "Due today", tasks: [] },
     { key: "week", label: "Next 7 days", tasks: [] },

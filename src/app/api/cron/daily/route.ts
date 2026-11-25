@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
     const { data: due, error } = await admin.rpc("create_due_notifications");
     if (error) throw error;
     report.reminders = due;
+    // General tasks (database update 0026; before it this simply errors and is skipped).
+    const { data: general } = await admin.rpc("create_general_task_due_notifications");
+    report.generalReminders = general ?? 0;
     report.push = await sendPendingPush();
     report.email = await sendDigests(site, todayISO());
     await admin.rpc("cleanup_old_data");

@@ -15,6 +15,7 @@ import { getMyTasks, listProjects } from "@/lib/data/projects";
 import { HealthBadge } from "@/components/health-badge";
 import { healthSummary } from "@/lib/health";
 import { createClient } from "@/lib/supabase/server";
+import type { GeneralTask } from "@/types/general-tasks";
 import { TeamOverview } from "@/components/overview/team-overview";
 
 export const metadata: Metadata = { title: "Home" };
@@ -28,7 +29,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
 
   // Everything Home needs, fetched at the same time (not one after another).
-  const [allMyTasks, { count: projectCount }, projects, pendingCount] = await Promise.all([
+  const [allMyTasks, { count: projectCount }, projects, pendingCount, generalRes] = await Promise.all([
     // If the latest database update hasn't been run yet, show Home without the task summary.
     getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>),
     supabase.from("projects").select("id", { count: "exact", head: true }).eq("is_template", false).neq("status", "archived"),
@@ -36,8 +37,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     can.manageUsers(profile.role)
       ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending").then((r) => r.count ?? 0)
       : Promise.resolve(0),
+    // General tasks (database update 0026); before it this returns an error and is ignored.
+    supabase.rpc("get_general_tasks", { p_all: false }),
   ]);
-  const myTasks = allMyTasks.filter((t) => !t.completed_at);
+  const myGeneral = (generalRes.error ? [] : ((generalRes.data ?? []) as unknown as GeneralTask[])).filter(
+    (t) => !t.completed_at && t.assignees.some((a) => a.id === profile.id),
+  );
+  const myTasks = [...allMyTasks.filter((t) => !t.completed_at), ...myGeneral];
   const today = todayISO();
   const overdue = myTasks.filter((t) => t.due_date && t.due_date < today).length;
   const dueToday = myTasks.filter((t) => t.due_date === today).length;

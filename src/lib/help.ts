@@ -265,6 +265,25 @@ export const HELP_TOPICS: HelpTopic[] = [
     where: "My Tasks (left menu, or Profile on a phone)",
     guides: [
       {
+        title: "Give a colleague a general task (not linked to a project)",
+        minRole: "manager",
+        steps: [
+          "Open **My Tasks** and tap **New task**.",
+          "Write **What needs doing?** — e.g. “Chase ABC Ltd for an update on the tender”.",
+          "Tick who should do it under **Assigned to**, and add a **Due date**, **Priority**, **Client** and details if useful.",
+          "Tap **Create and assign**. They get a notification and see it in their My Tasks, with reminders when it's due.",
+          "Follow progress under **Tasks I gave**: status, checklist and comments. You get a notification when they change the status or comment.",
+        ],
+        tip: "Only you, the people you gave it to, and administrators can see a general task.",
+      },
+      {
+        title: "Work on a general task you were given",
+        steps: [
+          "General tasks show in **My Tasks** with a 💼 **General** label (and the client, if there is one).",
+          "Tap the circle to mark it done, or tap the task to set **Working on it** / **Waiting**, tick the checklist and write a comment (e.g. “Called — they'll reply Monday”).",
+        ],
+      },
+      {
         title: "Work through your tasks",
         steps: [
           "Open **My Tasks**.",

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { readableTextOn } from "@/lib/utils";
 import type { MyTask } from "@/types/board";
 
-function TaskItem({ task, canEdit }: { task: MyTask; canEdit: boolean }) {
+export function TaskItem({ task, canEdit }: { task: MyTask; canEdit: boolean }) {
   const [done, setDone] = useState(!!task.completed_at);
   const [pending, start] = useTransition();
   const state = dueState(task.due_date, done);

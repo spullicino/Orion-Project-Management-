@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-general-tasks",
+    date: "2026-11-25",
+    title: "General tasks — not linked to a project",
+    body: "Managers and administrators can give a colleague a task that isn't part of a project — e.g. chase a client about a tender. Tap “New task” in My Tasks, choose who, a due date and (optionally) the client. It shows in their My Tasks with reminders; follow it under “Tasks I gave”.",
+    help: "/help#my-tasks",
+    minRole: "technician",
+  },
+  {
     id: "2026-11-25-export-updates",
     date: "2026-11-25",
     title: "Export daily updates to Excel or PDF",

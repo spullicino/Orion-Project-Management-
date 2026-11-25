@@ -1572,3 +1572,85 @@ describe("important messages (administrators only)", () => {
     await withSetup(setup("23:30"), USERS.tech1, async (db) => expect(await count(db)).toBe(1));
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("general tasks (not linked to a project)", () => {
+  type Row = Record<string, unknown>;
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+  const ID = "60000000-0000-4000-8000-000000000001";
+  // The manager creates a task and gives it to tech1.
+  const create = `${as(USERS.manager)}
+    insert into public.general_tasks (id, title, created_by) values ('${ID}', 'Chase ABC Ltd for tender update', '${USERS.manager}');
+    insert into public.general_task_assignees (task_id, user_id) values ('${ID}', '${USERS.tech1}');
+    reset role;`;
+
+  it("only managers and administrators can create them", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(`insert into public.general_tasks (title, created_by) values ('x', '${USERS.tech1}')`)).toMatch(/row-level security/);
+    });
+    await asUser(USERS.manager, async (db) => {
+      expect(await db.query(`insert into public.general_tasks (title, created_by) values ('x', '${USERS.manager}') returning id`)).toHaveLength(1);
+    });
+  });
+
+  it("the person assigned is notified and sees it; others don't", async () => {
+    await withSetup(create, USERS.tech1, async (db) => {
+      expect(await db.query("select title from public.general_tasks")).toEqual([{ title: "Chase ABC Ltd for tender update" }]);
+      const notes = await db.query<Row>("select type, title from public.notifications where link like '/my-tasks?general=%'");
+      expect(notes).toEqual([{ type: "task.assigned", title: expect.stringMatching(/gave you a task: Chase ABC Ltd/) }]);
+      const [{ list }] = await db.query<{ list: Row[] }>("select public.get_general_tasks() as list");
+      expect(list).toHaveLength(1);
+    });
+    for (const u of [USERS.tech2, USERS.basic]) {
+      await withSetup(create, u, async (db) => {
+        expect(await db.query("select 1 from public.general_tasks")).toHaveLength(0);
+        expect(await db.query("select 1 from public.general_task_assignees")).toHaveLength(0);
+        const [{ list }] = await db.query<{ list: Row[] }>("select public.get_general_tasks(true) as list");
+        expect(list).toHaveLength(0);
+      });
+    }
+    await withSetup(create, USERS.admin, async (db) => {
+      const [{ list }] = await db.query<{ list: Row[] }>("select public.get_general_tasks(true) as list");
+      expect(list).toHaveLength(1);
+    });
+  });
+
+  it("an assignee can change the status, tick the checklist and comment — but not the details", async () => {
+    await withSetup(create, USERS.tech1, async (db) => {
+      await db.query(`update public.general_tasks set status = 'done', checklist = '[{"text":"Call","done":true}]' where id = '${ID}'`);
+      const [t] = await db.query<Row>(`select status, completed_at from public.general_tasks where id = '${ID}'`);
+      expect(t.status).toBe("done");
+      expect(t.completed_at).not.toBeNull();
+      expect(await db.fails(`update public.general_tasks set title = 'Other' where id = '${ID}'`)).toMatch(/Only the person who created/);
+      expect(await db.fails(`insert into public.general_task_assignees (task_id, user_id) values ('${ID}', '${USERS.tech2}')`)).toMatch(/row-level security/);
+      expect(await db.query(`delete from public.general_tasks where id = '${ID}' returning id`)).toHaveLength(0);
+      await db.query(`insert into public.general_task_comments (task_id, author_id, body) values ('${ID}', '${USERS.tech1}', 'Called — reply Monday')`);
+    });
+    // The creator hears about it.
+    await withSetup(`${create} ${as(USERS.tech1)} update public.general_tasks set status = 'done' where id = '${ID}';
+      insert into public.general_task_comments (task_id, author_id, body) values ('${ID}', '${USERS.tech1}', 'Done'); reset role;`, USERS.manager, async (db) => {
+      const types = (await db.query<Row>("select type from public.notifications where link like '/my-tasks?general=%' order by created_at")).map((r) => r.type);
+      expect(types.sort()).toEqual(["task.comment", "task.status"]);
+    });
+  });
+
+  it("other people can't comment, and the creator can edit and delete", async () => {
+    await withSetup(create, USERS.tech2, async (db) => {
+      expect(await db.fails(`insert into public.general_task_comments (task_id, author_id, body) values ('${ID}', '${USERS.tech2}', 'x')`)).toMatch(/row-level security/);
+    });
+    await withSetup(create, USERS.manager, async (db) => {
+      await db.query(`update public.general_tasks set title = 'Chase ABC Ltd (urgent)', due_date = '2030-01-09' where id = '${ID}'`);
+      expect(await db.query(`delete from public.general_tasks where id = '${ID}' returning id`)).toHaveLength(1);
+    });
+  });
+
+  it("due reminders go to the people assigned, once, and only the server may run them", async () => {
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.create_general_task_due_notifications()")).toMatch(/permission denied/);
+    });
+    await withSetup(`${create} update public.general_tasks set due_date = public.malta_today() + 1;
+      select public.create_general_task_due_notifications(); select public.create_general_task_due_notifications();`, USERS.tech1, async (db) => {
+      expect(await db.query("select title from public.notifications where type = 'task.due_soon'")).toEqual([{ title: "Due tomorrow: Chase ABC Ltd for tender update" }]);
+    });
+  });
+});

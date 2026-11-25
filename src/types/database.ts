@@ -144,6 +144,25 @@ export type Database = {
       invites: Table<Invite, Partial<Invite> & { email: string }>;
       app_settings: Table<AppSettings>;
       job_secrets: Table<{ name: string; token: string }>;
+      general_tasks: Table<
+        {
+          id: string;
+          title: string;
+          description: string | null;
+          client_id: string | null;
+          status: "not_started" | "working" | "waiting" | "done";
+          priority: Priority;
+          due_date: string | null;
+          checklist: Json;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+        },
+        { title: string; description?: string | null; client_id?: string | null; due_date?: string | null; priority?: Priority; created_by?: string; checklist?: Json }
+      >;
+      general_task_assignees: Table<{ task_id: string; user_id: string; added_at: string }, { task_id: string; user_id: string }>;
+      general_task_comments: Table<{ id: string; task_id: string; author_id: string | null; body: string; created_at: string }, { task_id: string; body: string; author_id?: string }>;
       announcements: Table<{ id: string; title: string; body: string; remind_every_hours: number | null; created_by: string | null; created_at: string }>;
       announcement_recipients: Table<{ announcement_id: string; user_id: string; read_at: string | null; last_sent_at: string; times_sent: number }>;
       projects: Table<ProjectRow, Partial<ProjectRow> & { name: string }>;
@@ -315,6 +334,8 @@ export type Database = {
       create_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       touch_last_seen: { Args: Record<string, never>; Returns: undefined };
+      get_general_tasks: { Args: { p_all?: boolean }; Returns: Json };
+      create_general_task_due_notifications: { Args: Record<string, never>; Returns: number };
       queue_announcement_reminders: { Args: { p_now?: string }; Returns: number };
       send_announcement: { Args: { p_title: string; p_body: string; p_user_ids: string[]; p_remind_every_hours?: number | null }; Returns: string };
       mark_announcement_read: { Args: { p_id: string }; Returns: undefined };
