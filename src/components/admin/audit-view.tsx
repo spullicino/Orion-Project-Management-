@@ -201,7 +201,7 @@ export function AuditView({
                     variant="outline"
                     disabled={restoring === b.task_id}
                     onClick={async () => {
-                      if (!(await confirm(`Restore “${b.title}”?`, { body: `It goes back into ${b.project_name ?? "its project"}.`, confirmLabel: "Restore" }))) return;
+                      if (!(await confirm(`Restore “${b.title}”?`, { body: `It goes back into ${b.project_name ?? "its project"}.`, confirmLabel: "Restore", tone: "safe" }))) return;
                       setRestoring(b.task_id);
                       const res = await restoreTask(b.task_id);
                       setRestoring(null);

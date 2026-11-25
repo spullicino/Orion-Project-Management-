@@ -155,6 +155,7 @@ function TodoList({ initial }: { initial: PersonalTodo[] }) {
               todo={t}
               onChange={(p) => change(t, p)}
               onDelete={async () => {
+                if (!(await confirm(`Delete “${t.title}”?`, { body: "This to-do will be gone for good." }))) return;
                 setTodos((ts) => ts.filter((x) => x.id !== t.id));
                 const r = await deleteTodo(t.id);
                 if (!r.ok) toast.error(r.error);
@@ -193,6 +194,7 @@ function TodoList({ initial }: { initial: PersonalTodo[] }) {
                   todo={t}
                   onChange={(p) => change(t, p)}
                   onDelete={async () => {
+                    if (!(await confirm(`Delete “${t.title}”?`, { body: "This to-do will be gone for good." }))) return;
                     setTodos((ts) => ts.filter((x) => x.id !== t.id));
                     const r = await deleteTodo(t.id);
                     if (!r.ok) toast.error(r.error);

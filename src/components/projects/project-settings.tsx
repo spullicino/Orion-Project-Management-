@@ -297,7 +297,11 @@ export function TemplateAndDangerCard({ board, isAdmin }: { board: Board; isAdmi
               variant="destructive"
               disabled={pending}
               onClick={async () => {
-                if (await confirm(`Delete “${board.project.name}” forever?`, { body: "This cannot be undone.", confirmLabel: "Delete forever" }))
+                if (await confirm(`Delete “${board.project.name}” forever?`, {
+                    body: "All its tasks, comments, files, daily updates, materials and chat are deleted. This cannot be undone and can't be restored from the Recycle bin.",
+                    confirmLabel: "Delete forever",
+                    typeToConfirm: board.project.name,
+                  }))
                   run(() => deleteProject(board.project.id), () => router.push("/projects"));
               }}
             >

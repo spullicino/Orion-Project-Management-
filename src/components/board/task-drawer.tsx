@@ -295,7 +295,12 @@ function DrawerBody({ task }: { task: BoardTask }) {
                     </button>
                     <span className="text-xs text-muted-foreground">{d.completed_at ? "Done" : d.due_date ? `Due ${shortDate(d.due_date)}` : "Open"}</span>
                     {perms.canManage && (
-                      <Button variant="ghost" size="icon" aria-label={`Stop waiting for ${d.title}`} onClick={() => run(() => setDependency(task.id, d.id, false))}>
+                      <Button variant="ghost" size="icon" aria-label={`Stop waiting for ${d.title}`}
+                        onClick={async () => {
+                          if (await confirm(`Stop waiting for “${d.title}”?`, { body: "The link between the two tasks is removed (the tasks stay).", confirmLabel: "Remove link" }))
+                            run(() => setDependency(task.id, d.id, false));
+                        }}
+                      >
                         <X />
                       </Button>
                     )}
@@ -339,7 +344,10 @@ function DrawerBody({ task }: { task: BoardTask }) {
                       <span className={cn("text-sm", c.is_done && "text-muted-foreground line-through")}>{c.title}</span>
                     </label>
                     {perms.canEdit && (
-                      <Button variant="ghost" size="icon" aria-label={`Remove ${c.title}`} onClick={() => run(() => deleteChecklistItem(c.id))}>
+                      <Button variant="ghost" size="icon" aria-label={`Remove ${c.title}`} onClick={async () => {
+                          if (await confirm(`Remove the step “${c.title}”?`, { confirmLabel: "Remove" })) run(() => deleteChecklistItem(c.id));
+                        }}
+                      >
                         <X />
                       </Button>
                     )}
@@ -532,7 +540,9 @@ function DrawerBody({ task }: { task: BoardTask }) {
                 variant="outline"
                 className="justify-self-start text-destructive"
                 onClick={async () => {
-                  if (!(await confirm(`Delete “${task.title}”?`, { body: "Its checklist, comments and files are deleted too." }))) return;
+                  if (!(await confirm(`Delete “${task.title}”?`, {
+                      body: "Its checklist, comments and files go too. An administrator can restore it from the Recycle bin for 30 days.",
+                    }))) return;
                   const res = await deleteTask(task.id);
                   if (!res.ok) toast.error(res.error);
                   else {

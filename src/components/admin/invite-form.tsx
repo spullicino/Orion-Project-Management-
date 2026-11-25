@@ -5,6 +5,7 @@ import { useState } from "react";
 import { inviteUser, revokeInvite } from "@/app/(app)/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROLE_LABEL } from "@/lib/auth/roles";
@@ -43,9 +44,11 @@ export function InviteForm() {
 
 export function OpenInvites({ invites }: { invites: Invite[] }) {
   const { pending, run } = useAction();
+  const { confirm, dialog } = useConfirm();
   if (!invites.length) return null;
   return (
     <div className="mt-5">
+      {dialog}
       <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Waiting to be accepted</h3>
       <ul className="divide-y rounded-lg border">
         {invites.map((i) => (
@@ -55,7 +58,11 @@ export function OpenInvites({ invites }: { invites: Invite[] }) {
               <p className="text-xs text-muted-foreground">Expires {formatDate(i.expires_at)}</p>
             </div>
             <Badge variant="secondary">{ROLE_LABEL[i.role]}</Badge>
-            <Button variant="ghost" size="icon" aria-label={`Cancel invitation for ${i.email}`} disabled={pending} onClick={() => run(() => revokeInvite({ inviteId: i.id }))}>
+            <Button variant="ghost" size="icon" aria-label={`Cancel invitation for ${i.email}`} disabled={pending} onClick={async () => {
+                if (await confirm(`Cancel the invitation for ${i.email}?`, { body: "The link in their email stops working.", confirmLabel: "Cancel invitation", cancelLabel: "Keep it" }))
+                  run(() => revokeInvite({ inviteId: i.id }));
+              }}
+            >
               <X aria-hidden />
             </Button>
           </li>

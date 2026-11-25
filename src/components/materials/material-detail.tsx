@@ -263,7 +263,7 @@ export function MaterialDetail({
                     className="text-destructive"
                     disabled={busy}
                     onClick={async () => {
-                      if (await confirm("Cancel this request?", { confirmLabel: "Cancel request" })) await change({ status: "cancelled" }, "Request cancelled");
+                      if (await confirm("Cancel this request?", { body: "The request stays in the list as Cancelled.", confirmLabel: "Cancel request", cancelLabel: "Keep it" })) await change({ status: "cancelled" }, "Request cancelled");
                     }}
                   >
                     <Ban aria-hidden /> Cancel request

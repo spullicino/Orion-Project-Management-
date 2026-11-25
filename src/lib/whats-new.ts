@@ -17,6 +17,12 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-25-confirm-deletes",
+    date: "2026-11-25",
+    title: "No more deleting by mistake",
+    body: "Everything that deletes or removes something now asks “Are you sure?” first — including to-dos and checklist steps. Deleting a whole project needs its name typed in.",
+  },
+  {
     id: "2026-11-25-audit-log",
     date: "2026-11-25",
     title: "Audit log and recycle bin",

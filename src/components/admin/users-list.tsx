@@ -6,6 +6,7 @@ import { changeRole, setUserStatus } from "@/app/(app)/admin/actions";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { Input } from "@/components/ui/input";
 import { fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
@@ -16,8 +17,10 @@ import { useAction } from "./use-action";
 function UserRow({ user, avatarUrl, isMe }: { user: Profile; avatarUrl: string | null; isMe: boolean }) {
   const { pending, run } = useAction();
   const deactivated = user.status === "deactivated";
+  const { confirm, dialog } = useConfirm();
   return (
     <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
+      {dialog}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <UserAvatar person={user} src={avatarUrl} size={40} className={deactivated ? "opacity-50" : undefined} />
         <div className="min-w-0">
@@ -48,10 +51,9 @@ function UserRow({ user, avatarUrl, isMe }: { user: Profile; avatarUrl: string |
             <Button
               variant="outline"
               disabled={pending}
-              onClick={() => {
-                if (confirm(`Deactivate ${fullName(user)}? They will no longer be able to sign in.`)) {
+              onClick={async () => {
+                if (await confirm(`Deactivate ${fullName(user)}?`, { body: "They will no longer be able to sign in. You can reactivate them at any time.", confirmLabel: "Deactivate" }))
                   run(() => setUserStatus({ userId: user.id, status: "deactivated" }));
-                }
               }}
             >
               <UserMinus aria-hidden />

@@ -188,7 +188,7 @@ export function MessagesView({
             disabled={busy || !ready}
             onClick={async () => {
               const who = count === null ? "everyone on the chosen projects" : `${count} ${count === 1 ? "person" : "people"}`;
-              if (!(await confirm(`Send this important message to ${who}?`, { body: "They get a phone notification and must confirm they've read it when they open the app.", confirmLabel: "Send" }))) return;
+              if (!(await confirm(`Send this important message to ${who}?`, { body: "They get a phone notification and must confirm they've read it when they open the app.", confirmLabel: "Send", tone: "safe" }))) return;
               setBusy(true);
               const res = await sendAnnouncement({
                 title,

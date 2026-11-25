@@ -5,6 +5,7 @@ import { useState } from "react";
 import { approveUser, setUserStatus } from "@/app/(app)/admin/actions";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { formatDate, fullName } from "@/lib/utils";
 import type { AppRole, Profile } from "@/types/database";
 import { EditNameButton } from "./edit-name";
@@ -14,8 +15,10 @@ import { useAction } from "./use-action";
 function PendingRow({ user, avatarUrl }: { user: Profile; avatarUrl: string | null }) {
   const [role, setRole] = useState<AppRole>("technician");
   const { pending, run } = useAction();
+  const { confirm, dialog } = useConfirm();
   return (
     <li className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
+      {dialog}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <UserAvatar person={user} src={avatarUrl} size={44} />
         <div className="min-w-0">
@@ -36,7 +39,10 @@ function PendingRow({ user, avatarUrl }: { user: Profile; avatarUrl: string | nu
           size="icon"
           aria-label={`Decline ${fullName(user)}`}
           title="Decline"
-          onClick={() => run(() => setUserStatus({ userId: user.id, status: "deactivated" }))}
+          onClick={async () => {
+            if (await confirm(`Decline ${fullName(user)}?`, { body: "They won't be able to use the app. You can reactivate them later in the list of people.", confirmLabel: "Decline" }))
+              run(() => setUserStatus({ userId: user.id, status: "deactivated" }));
+          }}
           disabled={pending}
         >
           <X aria-hidden />

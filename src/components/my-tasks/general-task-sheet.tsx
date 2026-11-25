@@ -345,7 +345,10 @@ export function GeneralTaskSheet({
                         <input type="checkbox" className="size-5 accent-[var(--primary)]" checked={c.done} onChange={() => void saveChecklist(checklist.map((x, j) => (j === i ? { ...x, done: !x.done } : x)))} />
                         <span className={cn("min-w-0 break-words text-sm", c.done && "text-muted-foreground line-through")}>{c.text}</span>
                       </label>
-                      <Button variant="ghost" size="icon" aria-label={`Remove “${c.text}”`} onClick={() => void saveChecklist(checklist.filter((_, j) => j !== i))}>
+                      <Button variant="ghost" size="icon" aria-label={`Remove “${c.text}”`} onClick={async () => {
+                          if (await confirm(`Remove the step “${c.text}”?`, { confirmLabel: "Remove" })) void saveChecklist(checklist.filter((_, j) => j !== i));
+                        }}
+                      >
                         <X />
                       </Button>
                     </li>
