@@ -4,7 +4,7 @@
 --
 -- Use this ONLY for a brand-new, empty Supabase project. For an existing
 -- installation, run just the new files from supabase/migrations instead.
--- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql, 20261130000019_chat_media.sql, 20261201000020_material_requests.sql, 20261202000021_products.sql, 20261203000022_task_order.sql, 20261204000023_daily_reminder.sql, 20261205000024_user_activity.sql, 20261206000025_announcements.sql, 20261207000026_general_tasks.sql, 20261208000027_message_repeat_window.sql, 20261209000028_audit_trail.sql, 20261210000029_material_documents.sql, 20261211000030_variations.sql
+-- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql, 20261130000019_chat_media.sql, 20261201000020_material_requests.sql, 20261202000021_products.sql, 20261203000022_task_order.sql, 20261204000023_daily_reminder.sql, 20261205000024_user_activity.sql, 20261206000025_announcements.sql, 20261207000026_general_tasks.sql, 20261208000027_message_repeat_window.sql, 20261209000028_audit_trail.sql, 20261210000029_material_documents.sql, 20261211000030_variations.sql, 20261212000031_daily_summary_for_all.sql
 -- =====================================================================
 
 -- >>>>>>>>>>>>>>>>>>>> 20261119000001_foundation.sql
@@ -5803,3 +5803,44 @@ end;
 $$;
 revoke all on function public.create_variation(uuid, uuid, text, text, text, date) from public, anon;
 grant execute on function public.create_variation(uuid, uuid, text, text, text, date) to authenticated, service_role;
+
+
+-- >>>>>>>>>>>>>>>>>>>> 20261212000031_daily_summary_for_all.sql
+-- =====================================================================
+-- Orion Projects — 0031 Daily email summary on for everyone
+--
+-- The morning email (tasks due soon + what happened since yesterday) was
+-- opt-in. It's now on for everyone, including people who join later.
+-- Anyone can still switch it off in Profile → Notifications.
+-- =====================================================================
+
+alter table public.notification_preferences alter column email_digest set default true;
+update public.notification_preferences set email_digest = true where not email_digest;
+
+-- Everyone active gets it unless they switched it off (no saved settings = on).
+create or replace function public.get_digest_recipients()
+returns jsonb
+language sql stable security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'user_id', pr.id, 'email', pr.email, 'first_name', pr.first_name,
+    'notifications', coalesce((
+      select jsonb_agg(jsonb_build_object('title', n.title, 'body', n.body, 'link', n.link, 'created_at', n.created_at) order by n.created_at desc)
+      from (select * from public.notifications n where n.user_id = pr.id and n.read_at is null and n.created_at > now() - interval '24 hours'
+            order by n.created_at desc limit 30) n
+    ), '[]'),
+    'tasks', coalesce((
+      select jsonb_agg(jsonb_build_object('title', t.title, 'due_date', t.due_date, 'project', p.name,
+                                          'link', '/projects/' || t.project_id || '/board?task=' || t.id) order by t.due_date)
+      from public.tasks t join public.task_assignees a on a.task_id = t.id and a.user_id = pr.id
+      join public.projects p on p.id = t.project_id
+      where t.completed_at is null and p.status = 'active' and t.due_date <= public.malta_today() + 1
+    ), '[]')
+  )), '[]')
+  from public.profiles pr
+  left join public.notification_preferences np on np.user_id = pr.id
+  where pr.status = 'active' and pr.email is not null and coalesce(np.email_digest, true)
+$$;
+revoke all on function public.get_digest_recipients() from public, anon, authenticated;
+grant execute on function public.get_digest_recipients() to service_role;

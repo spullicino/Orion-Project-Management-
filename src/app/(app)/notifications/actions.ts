@@ -76,7 +76,7 @@ export async function loadPrefs(): Promise<Result<NotificationPrefs & { pushAvai
     ok: true,
     data: {
       push_enabled: data?.push_enabled ?? true,
-      email_digest: data?.email_digest ?? false,
+      email_digest: data?.email_digest ?? true,
       types: (data?.types as Record<string, boolean>) ?? {},
       quiet_hours_from: data?.quiet_hours_from?.slice(0, 5) ?? null,
       quiet_hours_to: data?.quiet_hours_to?.slice(0, 5) ?? null,

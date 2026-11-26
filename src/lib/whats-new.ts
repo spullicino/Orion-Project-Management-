@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-26-daily-summary-for-all",
+    date: "2026-11-26",
+    title: "Daily email summary is now on for everyone",
+    body: "Each morning you get one email with your tasks due soon and what happened since yesterday — only on days there's something to tell you. Don't want it? Switch it off in Profile → Notifications.",
+    help: "/help#notifications",
+  },
+  {
     id: "2026-11-26-variations",
     date: "2026-11-26",
     title: "Variations (VO-001) for client changes",

@@ -693,7 +693,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "In **Profile → Notifications**, under **Tell me when…**, switch each type on or off.",
           "Set **Quiet hours** so your phone stays silent at night.",
-          "Switch on **Daily email summary** if you'd like one email each morning.",
+          "The **Daily email summary** (one email each morning with your tasks due soon and what happened since yesterday) is on for everyone. Switch it off here if you don't want it.",
         ],
       },
       {

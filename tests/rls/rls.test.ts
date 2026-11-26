@@ -406,6 +406,23 @@ describe("notifications & server-only functions", () => {
     );
   });
 
+  it("the daily email summary goes to everyone unless they switched it off", async () => {
+    const setup = `
+      insert into public.notification_preferences (user_id, email_digest) values ('${USERS.tech2}', false)
+        on conflict (user_id) do update set email_digest = false;
+      delete from public.notification_preferences where user_id = '${USERS.tech1}';
+      create temp table digest_out as select jsonb_array_elements(public.get_digest_recipients()) ->> 'user_id' as id;
+      grant select on digest_out to authenticated;`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      const ids = (await db.query<{ id: string }>("select id from digest_out")).map((r) => r.id);
+      expect(ids).toContain(USERS.tech1);
+      expect(ids).not.toContain(USERS.tech2);
+    });
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.get_digest_recipients()")).toMatch(/permission denied/);
+    });
+  });
+
   it("the rate limiter cannot be called from the browser", async () => {
     await asUser(USERS.admin, async (db) => {
       expect(await db.fails("select public.check_rate_limit('k', 1, 60)")).toMatch(/permission denied/);
