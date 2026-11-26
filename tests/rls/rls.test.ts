@@ -1764,3 +1764,29 @@ describe("audit trail and recycle bin", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("duplicate a task in the same project", () => {
+  it("a technician on the project can copy a task into the same project, with its checklist unticked", async () => {
+    const T = TASKS.vallettaPartitions;
+    await withSetup(
+      `insert into public.task_checklist_items (task_id, title, is_done) values ('${T}', 'Measure', true);`,
+      USERS.tech1,
+      async (db) => {
+        const [{ r }] = await db.query<{ r: { project_id: string; task_id: string }[] }>(
+          `select public.copy_task_to_projects('${T}', '[{"project_id":"${PROJECTS.valletta}","group_id":"${GROUPS.vallettaInProgress}"}]'::jsonb) as r`,
+        );
+        expect(r[0].project_id).toBe(PROJECTS.valletta);
+        const [copy] = await db.query<{ title: string; group_id: string }>(`select title, group_id from public.tasks where id = '${r[0].task_id}'`);
+        const [orig] = await db.query<{ title: string }>(`select title from public.tasks where id = '${T}'`);
+        expect(copy.title).toBe(orig.title);
+        expect(await db.query(`select is_done from public.task_checklist_items where task_id = '${r[0].task_id}'`)).toEqual([{ is_done: false }]);
+      },
+    );
+  });
+  it("someone not on the project can't", async () => {
+    await asUser(USERS.tech2, async (db) => {
+      expect(await db.fails(`select public.copy_task_to_projects('${TASKS.vallettaPartitions}', '[{"project_id":"${PROJECTS.valletta}"}]'::jsonb)`)).toMatch(/Task not found|can't add/);
+    });
+  });
+});

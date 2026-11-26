@@ -200,6 +200,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Duplicate a task in the same project",
+        minRole: "technician",
+        steps: [
+          "Open the task and tap **Duplicate** at the bottom.",
+          "Choose where the copy goes — the same group puts it **right below** the original — and whether to **keep the same dates**.",
+          "Tap **Duplicate**. The copy opens straight away, called “… (copy)”, so you can rename it and change what's different.",
+        ],
+        tip: "The copy has the description, checklist (unticked), people, priority and internal setting. Status and progress start fresh; comments and files aren't copied.",
+      },
+      {
         title: "Copy a task to other projects",
         minRole: "technician",
         steps: [

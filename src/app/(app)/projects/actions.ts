@@ -764,3 +764,54 @@ export async function moveGroup(groupId: string, to: "up" | "down" | "top" | "bo
   refreshProject(g.project_id);
   return { ok: true };
 }
+
+const duplicateSchema = z.object({ group_id: uuid, keep_dates: z.boolean().default(true) });
+
+/**
+ * Duplicate a task in the same project: same details, checklist (unticked), people,
+ * priority, internal and repeat settings; status and progress start fresh; comments and
+ * files aren't copied. Placed right below the original (or at the end of another group).
+ */
+export async function duplicateTask(taskId: string, input: unknown): Promise<Result<{ id: string }>> {
+  const me = await requireActiveProfile();
+  if (!hasRole(me.role, "technician")) return fail("You don't have permission to do that.");
+  if (!uuid.safeParse(taskId).success) return fail("Invalid task");
+  const parsed = duplicateSchema.safeParse(input);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const supabase = await createClient();
+  const { data: src } = await supabase.from("tasks").select("id, project_id, group_id, title, position").eq("id", taskId).maybeSingle();
+  if (!src) return fail("Task not found");
+  const { data, error } = await supabase.rpc("copy_task_to_projects", {
+    p_task: taskId,
+    p_targets: [{ project_id: src.project_id, group_id: parsed.data.group_id }],
+  });
+  if (error) {
+    if (/function .* does not exist|schema cache/i.test(error.message)) return fail("Duplicating tasks needs the latest database update (ask your administrator).");
+    return fail(friendly(error.message));
+  }
+  const newId = ((data ?? []) as { task_id: string }[])[0]?.task_id;
+  if (!newId) return fail("Couldn't duplicate the task");
+
+  const title = `${src.title} (copy)`.slice(0, 300);
+  await supabase
+    .from("tasks")
+    .update(parsed.data.keep_dates ? { title } : { title, start_date: null, due_date: null, repeat_rule: null, repeat_until: null })
+    .eq("id", newId);
+
+  // Same group: put the copy straight below the original.
+  if (parsed.data.group_id === src.group_id) {
+    const { data: next } = await supabase
+      .from("tasks")
+      .select("id")
+      .eq("group_id", src.group_id)
+      .gt("position", src.position)
+      .neq("id", newId)
+      .order("position")
+      .limit(1)
+      .maybeSingle();
+    await supabase.rpc("move_task", { p_task: newId, p_group: src.group_id, p_before: next?.id ?? null });
+  }
+  refreshProject(src.project_id);
+  queuePush();
+  return { ok: true, data: { id: newId } };
+}

@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-26-duplicate-task",
+    date: "2026-11-26",
+    title: "Duplicate a task",
+    body: "Open a task and tap “Duplicate” to copy it within the same project — right below the original or into another group — with its description, checklist, people and priority.",
+    help: "/help#tasks",
+    minRole: "technician",
+  },
+  {
     id: "2026-11-25-confirm-deletes",
     date: "2026-11-25",
     title: "No more deleting by mistake",

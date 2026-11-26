@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X, CopyPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,7 @@ import { ATTACHMENT_MAX_BYTES } from "@/lib/validation/projects";
 import type { BoardTask, TaskDetail } from "@/types/board";
 import { useBoard } from "./board-context";
 import { CopyTaskDialog } from "./copy-task-dialog";
+import { DuplicateTaskDialog } from "./duplicate-task-dialog";
 import { InsertTaskDialog } from "./insert-task-dialog";
 import { DateCell, InternalSwitch, OwnerPicker, PriorityPicker, ProgressCell, RepeatPicker, StatusPicker } from "./cells";
 
@@ -121,6 +122,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [copyOpen, setCopyOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [insert, setInsert] = useState<"above" | "below" | null>(null);
   const [checkItem, setCheckItem] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
@@ -531,9 +533,14 @@ function DrawerBody({ task }: { task: BoardTask }) {
               </>
             )}
             {perms.canEdit && (
-              <Button variant="outline" onClick={() => setCopyOpen(true)}>
-                <Copy aria-hidden /> Copy to other projects
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setDuplicateOpen(true)}>
+                  <CopyPlus aria-hidden /> Duplicate
+                </Button>
+                <Button variant="outline" onClick={() => setCopyOpen(true)}>
+                  <Copy aria-hidden /> Copy to other projects
+                </Button>
+              </>
             )}
             {perms.canManage && (
               <Button
@@ -559,6 +566,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
         )}
       </div>
       {insert && <InsertTaskDialog anchor={task} where={insert} onClose={() => setInsert(null)} />}
+      {perms.canEdit && duplicateOpen && <DuplicateTaskDialog task={task} open onClose={() => setDuplicateOpen(false)} />}
       {perms.canEdit && (
         <CopyTaskDialog task={task} groupName={board.groups.find((g) => g.id === task.group_id)?.name ?? ""} open={copyOpen} onClose={() => setCopyOpen(false)} />
       )}
