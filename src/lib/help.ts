@@ -830,6 +830,20 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Repeat sends need the Supabase snippet from **Admin → Setup** (the same one as the daily reminder). People with notifications switched off still see the message when they next open the app.",
       },
       {
+        title: "Put an announcement or reminder in the banner",
+        minRole: "admin",
+        steps: [
+          "Open **Admin** and tap **Banner**.",
+          "Write a short **Message** (up to 200 characters) and pick the **Type**: **Info** (blue), **Reminder** (amber) or **Urgent** (red).",
+          "Optionally add a **Link** — a web address or a page in the app (e.g. /projects). Tapping the banner opens it.",
+          "Choose **How long it shows**: **Today only**, **3 days**, **1 week**, **2 weeks**, **Until a date and time**, **From – to** (to schedule it for later) or **Until I remove it**.",
+          "Choose **Who sees it**: everyone, by level, people on chosen projects, or chosen people. Check the **Preview** and tap **Add to banner**.",
+          "It shows at the top of every screen. With more than one message they take turns every 7 seconds — people can also swipe or tap the arrows. They can't close it.",
+          "In the list you can change the order (arrows), **Edit**, **Pause**, **End now** or **Delete**. It disappears by itself when its time is up.",
+        ],
+        tip: "For something people must confirm they've read, use **Important messages** instead.",
+      },
+      {
         title: "Change when important messages are sent again",
         minRole: "admin",
         steps: [

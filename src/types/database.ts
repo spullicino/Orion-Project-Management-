@@ -344,6 +344,39 @@ export type Database = {
         },
         { user_id: string; type: string; title: string; body?: string | null; link?: string | null; project_id?: string | null; task_id?: string | null; actor_id?: string | null }
       >;
+      banner_messages: Table<
+        {
+          id: string;
+          body: string;
+          link: string | null;
+          tone: "info" | "reminder" | "urgent";
+          starts_at: string;
+          ends_at: string | null;
+          paused: boolean;
+          audience_type: "everyone" | "levels" | "projects" | "people";
+          audience_roles: AppRole[];
+          audience_projects: string[];
+          audience_people: string[];
+          position: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          body: string;
+          link?: string | null;
+          tone?: "info" | "reminder" | "urgent";
+          starts_at?: string;
+          ends_at?: string | null;
+          paused?: boolean;
+          audience_type?: "everyone" | "levels" | "projects" | "people";
+          audience_roles?: AppRole[];
+          audience_projects?: string[];
+          audience_people?: string[];
+          position?: number;
+          created_by?: string;
+        }
+      >;
       notification_preferences: Table<
         { user_id: string; push_enabled: boolean; email_digest: boolean; types: Json; quiet_hours_from: string | null; quiet_hours_to: string | null; updated_at: string },
         { user_id?: string; push_enabled?: boolean; email_digest?: boolean; types?: Json; quiet_hours_from?: string | null; quiet_hours_to?: string | null }
@@ -432,6 +465,7 @@ export type Database = {
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
+      my_banner_messages: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["banner_messages"]["Row"][] };
       get_channel_messages: { Args: { p_channel: string; p_before?: string | null; p_limit?: number }; Returns: Json };
       get_channel_messages_since: { Args: { p_channel: string; p_since: string }; Returns: Json };
       get_message: { Args: { p_message: string }; Returns: Json };

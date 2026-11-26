@@ -4,6 +4,7 @@ import { UnreadProvider } from "@/components/chat/unread-provider";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { PullToRefresh, UpdateBanner } from "@/components/pwa/refresh";
 import { MobileHeader } from "@/components/layout/mobile-header";
+import { TopBanner } from "@/components/layout/top-banner";
 import { PageHeader } from "@/components/layout/page-header";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { TeamOverviewCards } from "@/components/overview/team-overview";
@@ -46,6 +47,13 @@ export default async function ShellPreview({
         <div className="flex min-h-dvh">
           <div className="flex min-w-0 flex-1 flex-col">
             <MobileHeader profile={profile} avatarUrl={null} />
+            <TopBanner
+              initial={[
+                { id: "b1", body: "Toolbox talk on Monday at 7:30 in the yard — attendance is required", link: "/help", tone: "reminder", ends_at: null },
+                { id: "b2", body: "Site closed Friday for the public holiday", link: null, tone: "info", ends_at: null },
+                { id: "b3", body: "Wear hard hats on the Mosta site at all times", link: null, tone: "urgent", ends_at: null },
+              ]}
+            />
             <main
               id="main"
               className="mx-auto w-full min-w-0 max-w-6xl flex-1 overflow-x-clip px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8"

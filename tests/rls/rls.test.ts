@@ -1896,3 +1896,55 @@ describe("variations (VO-001 …)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("banner at the top of the app (administrators only)", () => {
+  type Row = Record<string, unknown>;
+  const seen = async (db: { query: <T = Row>(s: string) => Promise<T[]> }) =>
+    (await db.query<{ body: string }>("select body from public.my_banner_messages()")).map((r) => r.body).sort();
+
+  it("each person sees only live messages meant for them", async () => {
+    const sql = `
+      insert into public.banner_messages (body, created_by) values ('for everyone', '${USERS.admin}');
+      insert into public.banner_messages (body, created_by, audience_type, audience_roles) values ('technicians', '${USERS.admin}', 'levels', '{technician}');
+      insert into public.banner_messages (body, created_by, audience_type, audience_projects) values ('valletta team', '${USERS.admin}', 'projects', '{${PROJECTS.valletta}}');
+      insert into public.banner_messages (body, created_by, audience_type, audience_people) values ('just tech2', '${USERS.admin}', 'people', '{${USERS.tech2}}');
+      insert into public.banner_messages (body, created_by, paused) values ('paused', '${USERS.admin}', true);
+      insert into public.banner_messages (body, created_by, starts_at) values ('later', '${USERS.admin}', now() + interval '1 day');
+      insert into public.banner_messages (body, created_by, starts_at, ends_at) values ('over', '${USERS.admin}', now() - interval '2 days', now() - interval '1 day');`;
+    await withSetup(sql, USERS.tech1, async (db) => {
+      expect(await seen(db)).toEqual(["for everyone", "technicians", "valletta team"]);
+      // Reading the table directly gives the same: nothing that isn't meant for them.
+      expect(await count(db, "select 1 from public.banner_messages")).toBe(3);
+    });
+    await withSetup(sql, USERS.tech2, async (db) => expect(await seen(db)).toEqual(["for everyone", "just tech2", "technicians"]));
+    await withSetup(sql, USERS.manager, async (db) => expect(await seen(db)).toEqual(["for everyone", "valletta team"])); // the manager is on Valletta
+    await withSetup(sql, USERS.pending, async (db) => expect(await seen(db)).toEqual([]));
+    await withSetup(sql, USERS.admin, async (db) => {
+      // Administrators manage all of them, but their own banner only shows what's meant for them.
+      expect(await count(db, "select 1 from public.banner_messages")).toBe(7);
+      expect(await seen(db)).toEqual(["for everyone"]);
+    });
+  });
+
+  it("only administrators add, change or remove messages — and it's in the audit log", async () => {
+    const sql = `insert into public.banner_messages (id, body, created_by) values ('50000000-0000-4000-8000-0000000000b1', 'site closed Friday', '${USERS.admin}');`;
+    for (const u of [USERS.manager, USERS.tech1]) {
+      await withSetup(sql, u, async (db) => {
+        expect(await db.fails(`insert into public.banner_messages (body, created_by) values ('x', '${u}')`)).toMatch(/row-level security/);
+        await db.query("update public.banner_messages set body = 'hacked'");
+        await db.query("delete from public.banner_messages");
+        expect((await db.query<Row>("select body from public.my_banner_messages()")).map((r) => r.body)).toEqual(["site closed Friday"]);
+      });
+    }
+    await asUser(USERS.admin, async (db) => {
+      await db.query(`insert into public.banner_messages (body, tone, ends_at) values ('Toolbox talk', 'reminder', now() + interval '3 days')`);
+      await db.query("update public.banner_messages set paused = true where body = 'Toolbox talk'");
+      await db.query("delete from public.banner_messages where body = 'Toolbox talk'");
+      const log = await db.query<Row>("select action from public.audit_log where entity = 'banner' and created_at = now() order by id");
+      expect(log.map((r) => r.action)).toEqual(["created", "updated", "deleted"]);
+      expect(await db.fails(`insert into public.banner_messages (body, starts_at, ends_at) values ('bad', now(), now() - interval '1 hour')`)).toMatch(/check/);
+      expect(await db.fails(`insert into public.banner_messages (body, link) values ('bad link', 'javascript:alert(1)')`)).toMatch(/check/);
+    });
+  });
+});

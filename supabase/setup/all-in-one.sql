@@ -4,7 +4,7 @@
 --
 -- Use this ONLY for a brand-new, empty Supabase project. For an existing
 -- installation, run just the new files from supabase/migrations instead.
--- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql, 20261130000019_chat_media.sql, 20261201000020_material_requests.sql, 20261202000021_products.sql, 20261203000022_task_order.sql, 20261204000023_daily_reminder.sql, 20261205000024_user_activity.sql, 20261206000025_announcements.sql, 20261207000026_general_tasks.sql, 20261208000027_message_repeat_window.sql, 20261209000028_audit_trail.sql, 20261210000029_material_documents.sql, 20261211000030_variations.sql, 20261212000031_daily_summary_for_all.sql
+-- Contains: 20261119000001_foundation.sql, 20261119000002_projects.sql, 20261119000003_daily_updates.sql, 20261119000004_chat.sql, 20261119000005_notifications.sql, 20261119000006_storage.sql, 20261120000007_table_grants.sql, 20261120000008_boards.sql, 20261121000009_share_links.sql, 20261121000010_daily_diary.sql, 20261122000011_chat.sql, 20261123000012_notifications_health.sql, 20261124000013_personal.sql, 20261125000014_chat_push.sql, 20261126000015_repeating_tasks.sql, 20261127000016_internal_tasks.sql, 20261128000017_project_visibility.sql, 20261129000018_copy_task.sql, 20261130000019_chat_media.sql, 20261201000020_material_requests.sql, 20261202000021_products.sql, 20261203000022_task_order.sql, 20261204000023_daily_reminder.sql, 20261205000024_user_activity.sql, 20261206000025_announcements.sql, 20261207000026_general_tasks.sql, 20261208000027_message_repeat_window.sql, 20261209000028_audit_trail.sql, 20261210000029_material_documents.sql, 20261211000030_variations.sql, 20261212000031_daily_summary_for_all.sql, 20261213000032_banner_messages.sql
 -- =====================================================================
 
 -- >>>>>>>>>>>>>>>>>>>> 20261119000001_foundation.sql
@@ -5844,3 +5844,104 @@ as $$
 $$;
 revoke all on function public.get_digest_recipients() from public, anon, authenticated;
 grant execute on function public.get_digest_recipients() to service_role;
+
+
+-- >>>>>>>>>>>>>>>>>>>> 20261213000032_banner_messages.sql
+-- =====================================================================
+-- Orion Projects — 0032 Banner across the top of the app
+--
+-- Administrators post short announcements or reminders that show in a
+-- strip at the top of every screen, one after another (every 7 seconds).
+-- Each has a tone (Info / Reminder / Urgent), an optional link, who sees
+-- it (everyone, some levels, people on some projects, or chosen people)
+-- and how long it shows (from … until …, or until removed). It can be
+-- paused. People can't close it (for now).
+-- =====================================================================
+
+create table public.banner_messages (
+  id                uuid primary key default gen_random_uuid(),
+  body              text not null check (char_length(trim(body)) between 1 and 200),
+  link              text check (link is null or (char_length(link) <= 500 and (link like '/%' or link ~* '^https?://'))),
+  tone              text not null default 'info' check (tone in ('info', 'reminder', 'urgent')),
+  starts_at         timestamptz not null default now(),
+  ends_at           timestamptz,
+  paused            boolean not null default false,
+  audience_type     text not null default 'everyone' check (audience_type in ('everyone', 'levels', 'projects', 'people')),
+  audience_roles    public.app_role[] not null default '{}',
+  audience_projects uuid[] not null default '{}',
+  audience_people   uuid[] not null default '{}',
+  position          integer not null default 0,
+  created_by        uuid references public.profiles (id) on delete set null default auth.uid(),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  check (ends_at is null or ends_at > starts_at)
+);
+create index banner_messages_live_idx on public.banner_messages (position) where not paused;
+create trigger banner_messages_touch before update on public.banner_messages
+  for each row execute function app.touch_updated_at();
+
+-- Is this banner meant for the signed-in person right now?
+create or replace function app.banner_for_me(b public.banner_messages)
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select app.is_active()
+     and not b.paused and b.starts_at <= now() and (b.ends_at is null or b.ends_at > now())
+     and case b.audience_type
+           when 'everyone' then true
+           when 'levels'   then app.current_role() = any (b.audience_roles)
+           when 'projects' then exists (select 1 from public.project_members m where m.user_id = auth.uid() and m.project_id = any (b.audience_projects))
+           when 'people'   then auth.uid() = any (b.audience_people)
+           else false
+         end
+$$;
+
+alter table public.banner_messages enable row level security;
+create policy "banner: admins read all" on public.banner_messages
+  for select to authenticated using (app.is_admin());
+create policy "banner: people read what's meant for them" on public.banner_messages
+  for select to authenticated using (app.banner_for_me(banner_messages));
+create policy "banner: admins add" on public.banner_messages
+  for insert to authenticated with check (app.is_admin() and created_by = auth.uid());
+create policy "banner: admins edit" on public.banner_messages
+  for update to authenticated using (app.is_admin()) with check (app.is_admin());
+create policy "banner: admins delete" on public.banner_messages
+  for delete to authenticated using (app.is_admin());
+revoke all on public.banner_messages from public, anon;
+grant select, insert, update, delete on public.banner_messages to authenticated;
+grant all on public.banner_messages to service_role;
+
+-- Audit log: who added, changed or removed a banner message.
+create or replace function app.audit_banner_messages()
+returns trigger
+language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  d jsonb;
+begin
+  if tg_op = 'INSERT' then
+    perform app.audit('created', 'banner', new.id, null, new.body);
+  elsif tg_op = 'DELETE' then
+    perform app.audit('deleted', 'banner', old.id, null, old.body);
+  else
+    d := app.diff(to_jsonb(old), to_jsonb(new), array['body', 'tone', 'link', 'starts_at', 'ends_at', 'paused', 'audience_type']);
+    if d <> '{}'::jsonb then perform app.audit('updated', 'banner', new.id, null, new.body, d); end if;
+  end if;
+  return null;
+end;
+$$;
+create trigger banner_messages_audit after insert or update or delete on public.banner_messages
+  for each row execute function app.audit_banner_messages();
+
+-- The banner messages showing for me now, in order (administrators too only see their own).
+create or replace function public.my_banner_messages()
+returns setof public.banner_messages
+language sql stable security invoker
+set search_path = ''
+as $$
+  select b.* from public.banner_messages b where app.banner_for_me(b) order by b.position, b.created_at
+$$;
+revoke all on function public.my_banner_messages() from public, anon;
+grant execute on function public.my_banner_messages() to authenticated;

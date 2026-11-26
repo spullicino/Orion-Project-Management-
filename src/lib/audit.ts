@@ -23,6 +23,7 @@ export const AUDIT_ENTITIES: { value: string; label: string }[] = [
   { value: "daily_update", label: "Daily updates" },
   { value: "comment", label: "Comments" },
   { value: "user", label: "People's details and levels" },
+  { value: "banner", label: "Banner messages" },
 ];
 
 const FIELD: Record<string, string> = {
@@ -42,6 +43,13 @@ const FIELD: Record<string, string> = {
   last_name: "surname",
   work_done: "text",
   hours: "hours",
+  body: "message",
+  tone: "type",
+  link: "link",
+  starts_at: "start",
+  ends_at: "end",
+  paused: "paused",
+  audience_type: "who sees it",
   issues: "issues",
 };
 
@@ -66,12 +74,21 @@ const LABELS: Record<string, string> = {
   manager: "Manager",
   technician: "Technician",
   basic: "Basic",
+  info: "Info",
+  reminder: "Reminder",
+  urgent: "Urgent",
+  everyone: "Everyone",
+  levels: "By level",
+  projects: "By project",
+  people: "Chosen people",
 };
 
 function value(field: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "none";
   if (typeof v === "boolean") return v ? "yes" : "no";
   const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s))
+    return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" }).format(new Date(s));
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
   if (field === "progress") return `${s}%`;
   if (LABELS[s]) return LABELS[s];
@@ -118,6 +135,8 @@ export function describeAudit(e: Pick<AuditEntry, "action" | "entity" | "title" 
       return e.action === "updated" ? `edited ${e.title}: ${changed}` : `deleted ${e.title}${c.text ? `: “${value("text", c.text)}”` : ""}`;
     case "comment":
       return `deleted a comment by ${c.written_by ?? "someone"} on task ${t}${c.comment ? `: “${value("comment", c.comment)}”` : ""}`;
+    case "banner":
+      return e.action === "updated" ? `changed banner message ${t}: ${changed}` : `${e.action === "created" ? "added" : e.action} banner message ${t}`;
     case "user":
       return `changed ${e.title}'s details: ${changed}`;
     default:

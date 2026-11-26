@@ -6,6 +6,8 @@ import { AnnouncementGate } from "@/components/announcement-gate";
 import { PullToRefresh, UpdateBanner } from "@/components/pwa/refresh";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
+import { TopBanner } from "@/components/layout/top-banner";
+import { loadMyBanner } from "@/lib/data/banner";
 import { Sidebar } from "@/components/layout/sidebar";
 import {
   OutboxPanel,
@@ -25,7 +27,7 @@ export default async function AppLayout({
   const profile = await requireActiveProfile();
   const supabase = await createClient();
   const isManager = hasRole(profile.role, "manager");
-  const [[avatarUrl], unread, notifCount, newRequests] = await Promise.all([
+  const [[avatarUrl], unread, notifCount, newRequests, banner] = await Promise.all([
     resolveAvatarUrls(supabase, [profile.avatar_url]),
     // Badges work once the related database updates have been run; until then they show nothing.
     supabase.rpc("get_unread_total").then((r) => (r.error ? 0 : Number(r.data ?? 0))),
@@ -42,6 +44,7 @@ export default async function AppLayout({
           .eq("status", "requested")
           .then((r) => (r.error ? 0 : (r.count ?? 0)))
       : Promise.resolve(0),
+    loadMyBanner(supabase),
   ]);
 
   return (
@@ -58,6 +61,7 @@ export default async function AppLayout({
           <Sidebar profile={profile} avatarUrl={avatarUrl} newRequests={newRequests} />
           <div className="flex min-w-0 flex-1 flex-col">
             <MobileHeader profile={profile} avatarUrl={avatarUrl} />
+            <TopBanner initial={banner} />
             <OfflineBanner />
             <main
               id="main"
