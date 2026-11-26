@@ -1841,3 +1841,41 @@ describe("material requests: delivery documents and received on site", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("variations (VO-001 …)", () => {
+  type Row = Record<string, unknown>;
+  const T = TASKS.vallettaPartitions;
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+  const make = (title = "null") =>
+    `select public.create_variation('${PROJECTS.valletta}', '${T}', ${title}, 'Client wants 2 extra doors', 'Mr Borg (client)', '2030-01-09')`;
+
+  it("a manager creates VO-001 from a task: the original stays as it was; numbers go up", async () => {
+    await withSetup(`${as(USERS.manager)} ${make()}; ${make("'Extra socket in kitchen'")}; reset role;`, USERS.manager, async (db) => {
+      const vos = await db.query<Row>(`select title, variation_no, variation_of, variation_approval, variation_requested_by from public.tasks where variation_no is not null order by variation_no`);
+      expect(vos).toHaveLength(2);
+      expect(vos[0]).toMatchObject({ variation_no: 1, variation_of: T, variation_approval: "pending", variation_requested_by: "Mr Borg (client)" });
+      expect(String(vos[0].title)).toMatch(/^VO-001 · /);
+      expect(vos[1].title).toBe("VO-002 · Extra socket in kitchen");
+      const [g] = await db.query<Row>(`select g.name from public.tasks t join public.groups g on g.id = t.group_id where t.variation_no = 1`);
+      expect(g.name).toBe("Variations");
+      expect(await db.query("select 1 from public.groups where project_id = '" + PROJECTS.valletta + "' and name = 'Variations'")).toHaveLength(1);
+      const [orig] = await db.query<Row>(`select variation_no from public.tasks where id = '${T}'`);
+      expect(orig.variation_no).toBeNull();
+    });
+  });
+
+  it("technicians can't create variations or change their details, but can work on the task", async () => {
+    await asUser(USERS.tech1, async (db) => {
+      expect(await db.fails(make())).toMatch(/Only managers/);
+    });
+    await withSetup(`${as(USERS.manager)} ${make()}; reset role;`, USERS.tech1, async (db) => {
+      expect(await db.fails("update public.tasks set variation_approval = 'approved' where variation_no = 1")).toMatch(/Only managers/);
+      await db.query("update public.tasks set progress = 50 where variation_no = 1");
+      expect((await db.query<Row>("select progress from public.tasks where variation_no = 1"))[0].progress).toBe(50);
+    });
+    await withSetup(`${as(USERS.manager)} ${make()}; update public.tasks set variation_approval = 'approved' where variation_no = 1; reset role;`, USERS.manager, async (db) => {
+      expect((await db.query<Row>("select variation_approval from public.tasks where variation_no = 1"))[0].variation_approval).toBe("approved");
+    });
+  });
+});

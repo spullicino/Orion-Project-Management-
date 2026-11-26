@@ -1,6 +1,14 @@
 import type { AppRole, RepeatRule } from "./database";
 
 export type Priority = "low" | "medium" | "high" | "critical";
+export type VariationApproval = "pending" | "approved" | "rejected";
+export const VARIATION_APPROVAL: Record<VariationApproval, { label: string; tone: string }> = {
+  pending: { label: "Awaiting client approval", tone: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" },
+  approved: { label: "Approved by client", tone: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" },
+  rejected: { label: "Rejected by client", tone: "bg-destructive/10 text-destructive" },
+};
+/** "VO-001" */
+export const voNumber = (n: number) => `VO-${String(n).padStart(3, "0")}`;
 export type ProjectStatus = "active" | "on_hold" | "completed" | "archived";
 export type ColumnKind = "text" | "number" | "file";
 
@@ -32,6 +40,13 @@ export type BoardTask = {
   repeat_until?: string | null;
   /** Internal (team-only) task: hidden from clients, Gantt exports and progress (database update 0016). */
   is_internal?: boolean;
+  /** Variation (client change) — database update 0030; missing before that. */
+  variation_no?: number | null;
+  variation_of?: string | null;
+  variation_reason?: string | null;
+  variation_requested_by?: string | null;
+  variation_requested_on?: string | null;
+  variation_approval?: VariationApproval | null;
   has_description: boolean;
   assignees: string[];
   blocked_by: string[];

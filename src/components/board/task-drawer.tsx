@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X, CopyPlus } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Copy, Download, FileText, Link2, Loader2, Lock, Paperclip, Plus, Send, Trash2, X, CopyPlus, FileDiff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,7 @@ import type { BoardTask, TaskDetail } from "@/types/board";
 import { useBoard } from "./board-context";
 import { CopyTaskDialog } from "./copy-task-dialog";
 import { DuplicateTaskDialog } from "./duplicate-task-dialog";
+import { VariationDialog, VariationSection } from "./variations";
 import { InsertTaskDialog } from "./insert-task-dialog";
 import { DateCell, InternalSwitch, OwnerPicker, PriorityPicker, ProgressCell, RepeatPicker, StatusPicker } from "./cells";
 
@@ -122,6 +123,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
   const [comment, setComment] = useState("");
   const [copyOpen, setCopyOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [variationOpen, setVariationOpen] = useState(false);
   const [insert, setInsert] = useState<"above" | "below" | null>(null);
   const [checkItem, setCheckItem] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
@@ -269,6 +271,8 @@ function DrawerBody({ task }: { task: BoardTask }) {
 
         {detail && (
           <>
+            <VariationSection task={task} />
+
             <Section title="Description">
               {perms.canEdit ? (
                 <AutoSaveText
@@ -487,6 +491,8 @@ function DrawerBody({ task }: { task: BoardTask }) {
                       ? "created this task"
                       : a.action === "task.restored"
                         ? "restored this task from the recycle bin"
+                        : a.action === "task.variation"
+                          ? `created variation ${String((a.changes as Record<string, unknown>).variation ?? "")} (client change)`
                         : a.action === "task.assigned"
                           ? `assigned ${String((a.changes as Record<string, unknown>).person ?? "someone")}`
                           : a.action === "task.unassigned"
@@ -527,6 +533,11 @@ function DrawerBody({ task }: { task: BoardTask }) {
                 })()}
               </>
             )}
+            {perms.canManage && (
+              <Button variant="outline" onClick={() => setVariationOpen(true)}>
+                <FileDiff aria-hidden /> Client change → Variation
+              </Button>
+            )}
             {perms.canEdit && (
               <>
                 <Button variant="outline" onClick={() => setDuplicateOpen(true)}>
@@ -561,6 +572,7 @@ function DrawerBody({ task }: { task: BoardTask }) {
         )}
       </div>
       {insert && <InsertTaskDialog anchor={task} where={insert} onClose={() => setInsert(null)} />}
+      {perms.canManage && variationOpen && <VariationDialog source={task} onClose={() => setVariationOpen(false)} />}
       {perms.canEdit && duplicateOpen && <DuplicateTaskDialog task={task} open onClose={() => setDuplicateOpen(false)} />}
       {perms.canEdit && (
         <CopyTaskDialog task={task} groupName={board.groups.find((g) => g.id === task.group_id)?.name ?? ""} open={copyOpen} onClose={() => setCopyOpen(false)} />

@@ -75,6 +75,14 @@ export const previewBoard: Board = {
     t("t6", "g3", "Painting & finishes", "l1", { start_date: d(15), due_date: d(35), priority: "low", blocked_by: ["t3"] }),
     t("t8", "g2", "Issue monthly invoice to client", "l1", { due_date: d(9), assignees: ["u2"], repeat_rule: "monthly", is_internal: true }),
     t("t7", "g2", "Weekly site safety check", "l1", { due_date: d(2), assignees: ["u3"], repeat_rule: "weekly", checklist_total: 5 }),
+    // Variations (client changes)
+    t("t9", "g3", "VO-001 · Layout approval with client", "l2", {
+      progress: 30, assignees: ["u2"], variation_no: 1, variation_of: "t2", variation_reason: "Client wants the meeting room moved next to reception — revised layout drawing needed.",
+      variation_requested_by: "Ms Vella (Harbour Holdings)", variation_requested_on: d(-2), variation_approval: "approved",
+    }),
+    t("t10", "g3", "VO-002 · Extra double socket in kitchen", "l1", {
+      variation_no: 2, variation_of: null, variation_reason: "Add one extra double socket above the worktop.", variation_requested_by: "Ms Vella", variation_requested_on: d(-1), variation_approval: "pending",
+    }),
   ],
   members: [
     { user_id: "u2", first_name: "Mark", last_name: "Borg", email: "manager@orion.test", avatar_url: null, role: "manager", avatar_src: null },

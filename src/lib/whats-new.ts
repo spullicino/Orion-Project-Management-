@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-26-variations",
+    date: "2026-11-26",
+    title: "Variations (VO-001) for client changes",
+    body: "When a client changes work that's already done, open the task and tap “Client change → Variation”. The original stays Done and the extra work becomes VO-001 in a Variations group, with what changed, who asked and the client's approval. The project's Variations tab lists them all, with Excel export.",
+    help: "/help#tasks",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-26-material-documents",
     date: "2026-11-26",
     title: "Delivery notes and “Received on site” for material requests",

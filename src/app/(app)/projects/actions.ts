@@ -815,3 +815,56 @@ export async function duplicateTask(taskId: string, input: unknown): Promise<Res
   queuePush();
   return { ok: true, data: { id: newId } };
 }
+
+const variationSchema = z.object({
+  project_id: uuid,
+  source_id: uuid.nullable(),
+  title: z.string().trim().max(250).optional(),
+  reason: z.string().trim().min(1, "Say what the client wants changed").max(4000),
+  requested_by: z.string().trim().max(160).optional(),
+  requested_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+});
+
+/** Managers: client change → a new linked VO-00n task in the "Variations" group (the original isn't touched). */
+export async function createVariation(input: unknown): Promise<Result<{ id: string }>> {
+  await requireRole("manager");
+  const parsed = variationSchema.safeParse(input);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_variation", {
+    p_project: v.project_id,
+    p_source: v.source_id,
+    p_title: v.title || null,
+    p_reason: v.reason,
+    p_requested_by: v.requested_by || null,
+    p_requested_on: v.requested_on || null,
+  });
+  if (error) return fail(/function .* does not exist|schema cache|variation_/i.test(error.message) ? "Variations need database update 0030 (ask your administrator)." : friendly(error.message));
+  refreshProject(v.project_id);
+  queuePush();
+  return { ok: true, data: { id: String(data) } };
+}
+
+const variationPatchSchema = z
+  .object({
+    variation_reason: z.string().trim().max(4000).nullable(),
+    variation_requested_by: z.string().trim().max(160).nullable(),
+    variation_requested_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    variation_approval: z.enum(["pending", "approved", "rejected"]),
+  })
+  .partial();
+
+/** Managers: what changed, who asked, when, and the client's approval. */
+export async function updateVariation(taskId: string, patch: unknown): Promise<Result> {
+  await requireRole("manager");
+  if (!uuid.safeParse(taskId).success) return fail("Invalid task");
+  const parsed = variationPatchSchema.safeParse(patch);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("tasks").update(parsed.data).eq("id", taskId).not("variation_no", "is", null).select("project_id");
+  if (error) return fail(friendly(error.message));
+  if (!data?.length) return fail("You can't change this variation.");
+  refreshProject(data[0].project_id);
+  return { ok: true };
+}

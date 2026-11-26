@@ -391,6 +391,10 @@ export type Database = {
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       touch_last_seen: { Args: Record<string, never>; Returns: undefined };
       restore_task: { Args: { p_task: string }; Returns: string };
+      create_variation: {
+        Args: { p_project: string; p_source: string | null; p_title: string | null; p_reason: string | null; p_requested_by?: string | null; p_requested_on?: string | null };
+        Returns: string;
+      };
       receive_material_request: { Args: { p_id: string; p_deliveries: Json; p_note?: string | null }; Returns: string };
       cleanup_audit: { Args: Record<string, never>; Returns: undefined };
       get_general_tasks: { Args: { p_all?: boolean }; Returns: Json };

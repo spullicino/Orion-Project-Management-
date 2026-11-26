@@ -202,6 +202,18 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Client changed finished work: create a variation (VO)",
+        minRole: "manager",
+        steps: [
+          "Open the task the client wants changed (it can already be Done) and tap **Client change → Variation**.",
+          "Write **what the client wants changed**, who asked and when, then tap **Create variation**.",
+          "The original task **stays as it is**. A new task **VO-001 · …** is added to the project's **Variations** group (made automatically), with the same people, starting as **Awaiting client approval**.",
+          "When the client agrees, open the variation and tap **Approved** (or **Rejected**). Then work on it like any task.",
+          "See them all in the project's **Variations** tab — filter by approval and **Export to Excel** for billing. **New variation** there adds extra work that isn't linked to an existing task.",
+        ],
+        tip: "The original task shows “Variations of this task”, and its History says when a variation was created.",
+      },
+      {
         title: "Duplicate a task in the same project",
         minRole: "technician",
         steps: [
