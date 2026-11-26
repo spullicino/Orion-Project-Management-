@@ -66,9 +66,9 @@ function BannerForm({
   const end = editing?.ends_at ? new Date(editing.ends_at) : null;
   const future = !!start && start > new Date();
   const [body, setBody] = useState(editing?.body ?? "");
-  const [tap, setTap] = useState<"link" | "notify">(isNotifyBanner(editing?.link) ? "notify" : "link");
+  const [tap, setTap] = useState<"none" | "link" | "notify">(isNotifyBanner(editing?.link) ? "notify" : editing?.link ? "link" : "none");
   const [link, setLink] = useState(isNotifyBanner(editing?.link) ? "" : (editing?.link ?? ""));
-  const savedLink = tap === "notify" ? NOTIFY_LINK : link;
+  const savedLink = tap === "notify" ? NOTIFY_LINK : tap === "link" ? link : "";
   const [tone, setTone] = useState<BannerTone>(editing?.tone ?? "info");
   const [duration, setDuration] = useState<BannerDuration>(editing ? (future ? "range" : end ? "until" : "forever") : "1w");
   const [fromDate, setFromDate] = useState(start && future ? dateOf(start) : dateOf(new Date()));
@@ -94,7 +94,7 @@ function BannerForm({
     return w ? people.filter((p) => p.name.toLowerCase().includes(w)) : people;
   }, [people, q]);
   const audienceOk = type === "everyone" || (type === "levels" ? roles.length : type === "projects" ? projectIds.length : userIds.length);
-  const ready = body.trim() && !("error" in range) && audienceOk;
+  const ready = body.trim() && !("error" in range) && audienceOk && (tap !== "link" || link.trim());
 
   async function submit() {
     if ("error" in range) return void toast.error(range.error);
@@ -142,6 +142,9 @@ function BannerForm({
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium">When tapped</legend>
           <div className="flex flex-wrap gap-2">
+            <Chip on={tap === "none"} onClick={() => setTap("none")}>
+              Nothing (information only)
+            </Chip>
             <Chip on={tap === "link"} onClick={() => setTap("link")}>
               Open a link
             </Chip>
@@ -155,11 +158,13 @@ function BannerForm({
               Turn on notifications
             </Chip>
           </div>
-          {tap === "link" ? (
+          {tap === "none" ? (
+            <p className="text-sm text-muted-foreground">People just read it — tapping it does nothing.</p>
+          ) : tap === "link" ? (
             <label className="grid gap-1 text-sm font-medium">
               <span className="sr-only">Link</span>
-              <Input value={link} onChange={(e) => setLink(e.target.value)} maxLength={500} placeholder="Optional: https://… or a page in the app, e.g. /projects" inputMode="url" aria-label="Link" />
-              <span className="text-xs font-normal text-muted-foreground">Tapping the banner opens it. Leave empty for a message only.</span>
+              <Input value={link} onChange={(e) => setLink(e.target.value)} maxLength={500} placeholder="https://… or a page in the app, e.g. /projects" inputMode="url" aria-label="Link" />
+              <span className="text-xs font-normal text-muted-foreground">Tapping the banner opens it.</span>
             </label>
           ) : (
             <p className="text-sm text-muted-foreground">
