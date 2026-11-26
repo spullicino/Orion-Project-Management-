@@ -11,7 +11,6 @@ import {
   deleteChecklistItem,
   deleteComment,
   deleteTask,
-  getAttachmentUrl,
   saveAttachment,
   setDependency,
   updateChecklistItem,
@@ -392,19 +391,15 @@ function DrawerBody({ task }: { task: BoardTask }) {
                 {detail.attachments.map((a) => (
                   <li key={a.id} className="flex items-center gap-2 rounded-lg border px-3 py-1">
                     <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-sm">{a.file_name}</span>
+                    <a href={`/api/attachments/${a.id}`} target="_blank" rel="noopener" className="min-w-0 flex-1 truncate py-2 text-sm text-primary hover:underline">
+                      {a.file_name}
+                    </a>
                     <span className="hidden text-xs text-muted-foreground sm:inline">{a.size_bytes ? `${Math.max(1, Math.round(a.size_bytes / 1024))} KB` : ""}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Download ${a.file_name}`}
-                      onClick={async () => {
-                        const res = await getAttachmentUrl(a.id);
-                        if (res.ok && res.data) window.open(res.data.url, "_blank", "noopener");
-                        else if (!res.ok) toast.error(res.error);
-                      }}
-                    >
-                      <Download />
+                    {/* A real link, opened straight from the tap: iPhones block windows opened after a wait. */}
+                    <Button asChild variant="ghost" size="icon">
+                      <a href={`/api/attachments/${a.id}?download=1`} target="_blank" rel="noopener" aria-label={`Download ${a.file_name}`}>
+                        <Download />
+                      </a>
                     </Button>
                     {(perms.canManage || a.uploaded_by === perms.meId) && (
                       <Button
