@@ -3,6 +3,7 @@ import { InstallPrompt, OfflineBanner, OfflineWarmup } from "@/components/pwa/ap
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { ActivityPing } from "@/components/activity-ping";
 import { AnnouncementGate } from "@/components/announcement-gate";
+import { PullToRefresh, UpdateBanner } from "@/components/pwa/refresh";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -71,6 +72,8 @@ export default async function AppLayout({
           <OfflineWarmup />
           <ActivityPing />
           <AnnouncementGate />
+          <PullToRefresh />
+          <UpdateBanner />
         </div>
       </NotificationsProvider>
       </UnreadProvider>

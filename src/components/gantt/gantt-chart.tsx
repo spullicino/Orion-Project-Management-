@@ -94,7 +94,7 @@ export function GanttChart({ input, options, canEdit, onOpenTask, onChangeDates,
   const isMouse = (e: React.PointerEvent) => e.pointerType === "mouse" || e.pointerType === "pen";
 
   return (
-    <div className="flex overflow-hidden rounded-xl border bg-card" style={{ userSelect: drag ? "none" : undefined }}>
+    <div data-no-pull className="flex overflow-hidden rounded-xl border bg-card" style={{ userSelect: drag ? "none" : undefined }}>
       <svg width={labelW} height={layout.height} className="shrink-0 border-r" role="presentation">
         <GanttLabels layout={layout} width={labelW} showOwners={options.showOwners} onRowClick={onOpenTask} dark={dark} />
       </svg>

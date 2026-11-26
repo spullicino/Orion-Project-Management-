@@ -2,6 +2,7 @@ import { ClipboardPenLine, ListChecks, Package } from "lucide-react";
 import { notFound } from "next/navigation";
 import { UnreadProvider } from "@/components/chat/unread-provider";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
+import { PullToRefresh, UpdateBanner } from "@/components/pwa/refresh";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { PageHeader } from "@/components/layout/page-header";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
@@ -98,6 +99,8 @@ export default async function ShellPreview({
             </main>
           </div>
           <BottomTabs isManager newRequests={2} />
+          <PullToRefresh />
+          <UpdateBanner />
         </div>
       </NotificationsProvider>
     </UnreadProvider>

@@ -11,6 +11,7 @@ import { cn, fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 import { SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
 import { CountBadge } from "./bottom-tabs";
+import { RefreshButton } from "@/components/pwa/refresh";
 
 function NavLink({ item, pathname, newRequests }: { item: NavItem; pathname: string; newRequests?: number }) {
   const active = isActive(pathname, item.href);
@@ -47,6 +48,7 @@ export function Sidebar({ profile, avatarUrl, newRequests = 0 }: { profile: Prof
           <NavLink key={item.href} item={item} pathname={pathname} newRequests={newRequests} />
         ))}
         <NotificationBell withLabel />
+        <RefreshButton withLabel />
         {secondary.length > 0 && <div className="my-3 h-px bg-border" />}
         {secondary.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />

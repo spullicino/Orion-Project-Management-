@@ -17,6 +17,12 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-26-refresh",
+    date: "2026-11-26",
+    title: "Refresh without closing the app",
+    body: "Tap ⟳ at the top (or pull the page down on your phone) to see the latest. When there's a new version of the app, a bar offers “Update” — no more closing and reopening.",
+  },
+  {
     id: "2026-11-26-duplicate-task",
     date: "2026-11-26",
     title: "Duplicate a task",

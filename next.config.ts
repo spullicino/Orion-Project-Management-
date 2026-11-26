@@ -31,6 +31,8 @@ function contentSecurityPolicy() {
 // Cache Components is intentionally OFF: every screen in this app is personal
 // (it depends on who is signed in and their level), so pages render per request.
 const nextConfig: NextConfig = {
+  // Identifies this build, so open apps can notice a newer version ("tap to update").
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || String(Date.now()) },
   turbopack: {
     rules: {
       "*.css": {

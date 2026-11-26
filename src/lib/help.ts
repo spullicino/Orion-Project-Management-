@@ -57,6 +57,8 @@ export const HELP_TOPICS: HelpTopic[] = [
           "**On a computer:** use the menu on the left.",
           "My Tasks, Personal and Help are in the left menu on a computer, or under **Profile** on a phone.",
           "The 🔔 bell at the top shows your notifications.",
+          "To see the latest, tap **⟳ Refresh** at the top (or in the left menu on a computer), or **pull the page down** from the top on a phone.",
+          "When a new version of the app is out, a bar says **A new version of the app is ready** — tap **Update**.",
         ],
       },
     ],

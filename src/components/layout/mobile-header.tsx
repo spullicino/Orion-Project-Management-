@@ -2,6 +2,7 @@ import { CircleHelp } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/notifications/notifications-provider";
+import { RefreshButton } from "@/components/pwa/refresh";
 import { UserAvatar } from "@/components/ui/avatar";
 import type { Profile } from "@/types/database";
 
@@ -12,6 +13,7 @@ export function MobileHeader({ profile, avatarUrl }: { profile: Profile; avatarU
         <Logo showText={false} />
       </Link>
       <div className="flex items-center">
+      <RefreshButton />
       <Link href="/help" aria-label="Help" className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
         <CircleHelp className="size-5" aria-hidden />
       </Link>
