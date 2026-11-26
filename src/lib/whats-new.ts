@@ -20,7 +20,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
     id: "2026-11-26-banner",
     date: "2026-11-26",
     title: "Banner for announcements and reminders",
-    body: "Admin → Banner: put short announcements or reminders in a strip at the top of every screen. Pick Info, Reminder or Urgent, add a link, choose who sees it and how long it shows (today, 3 days, 1 or 2 weeks, until a date, from–to, or until removed). Several messages take turns every 7 seconds.",
+    body: "Admin → Banner: put short announcements or reminders in a strip at the top of every screen. Pick Info, Reminder or Urgent, add a link — or make it a one-tap “Turn on notifications” button that only shows for people who haven't turned them on — choose who sees it and how long it shows (today, 3 days, 1 or 2 weeks, until a date, from–to, or until removed). Several messages take turns every 7 seconds.",
     help: "/help#admin",
     minRole: "admin",
   },

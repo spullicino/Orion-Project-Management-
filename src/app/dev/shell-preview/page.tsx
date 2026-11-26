@@ -50,6 +50,7 @@ export default async function ShellPreview({
             <TopBanner
               initial={[
                 { id: "b1", body: "Toolbox talk on Monday at 7:30 in the yard — attendance is required", link: "/help", tone: "reminder", ends_at: null },
+                { id: "b4", body: "Turn on notifications so you don't miss tasks and messages — tap here", link: "/profile#notifications", tone: "reminder", ends_at: null },
                 { id: "b2", body: "Site closed Friday for the public holiday", link: null, tone: "info", ends_at: null },
                 { id: "b3", body: "Wear hard hats on the Mosta site at all times", link: null, tone: "urgent", ends_at: null },
               ]}

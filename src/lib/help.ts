@@ -835,7 +835,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Open **Admin** and tap **Banner**.",
           "Write a short **Message** (up to 200 characters) and pick the **Type**: **Info** (blue), **Reminder** (amber) or **Urgent** (red).",
-          "Optionally add a **Link** — a web address or a page in the app (e.g. /projects). Tapping the banner opens it.",
+          "Choose **When tapped**: **Open a link** (a web address or a page in the app, e.g. /projects — or leave it empty) or **Turn on notifications**. With **Turn on notifications**, tapping the banner switches them on for that phone (it asks **Allow**) and saves it — and people who already have notifications on don't see the message.",
           "Choose **How long it shows**: **Today only**, **3 days**, **1 week**, **2 weeks**, **Until a date and time**, **From – to** (to schedule it for later) or **Until I remove it**.",
           "Choose **Who sees it**: everyone, by level, people on chosen projects, or chosen people. Check the **Preview** and tap **Add to banner**.",
           "It shows at the top of every screen. With more than one message they take turns every 7 seconds — people can also swipe or tap the arrows. They can't close it.",

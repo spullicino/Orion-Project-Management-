@@ -16,6 +16,7 @@ export default function BannerPreview() {
   const banners = [
     b("1", "Toolbox talk on Monday at 7:30 in the yard — attendance is required", "reminder", -5, 70, { link: "/help" }),
     b("2", "Wear hard hats on the Mosta site at all times", "urgent", -48, null, { audience_type: "levels", audience_roles: ["technician"] }),
+    b("6", "Turn on notifications so you don't miss tasks and messages — tap here", "reminder", -2, 150, { link: "/profile#notifications" }),
     b("3", "Office closed on 8 December", "info", 100, 140),
     b("4", "New PPE available from stores", "info", -24, 48, { paused: true, audience_type: "projects", audience_projects: ["p1"] }),
     b("5", "Christmas lunch sign-up closes today", "info", -100, -2),

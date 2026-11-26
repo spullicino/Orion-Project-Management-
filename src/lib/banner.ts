@@ -8,6 +8,14 @@ export const BANNER_TONES: Record<BannerTone, { label: string; className: string
   urgent: { label: "Urgent", className: "bg-red-600 text-white" },
 };
 
+/**
+ * A banner with this link turns notifications on for the device when tapped (the
+ * phone still asks "Allow?"). People who already have them on don't see it. Older
+ * app versions simply open the notification settings.
+ */
+export const NOTIFY_LINK = "/profile#notifications";
+export const isNotifyBanner = (link: string | null | undefined) => link === NOTIFY_LINK;
+
 /** Seconds each message stays before the next one. */
 export const BANNER_ROTATE_SECONDS = 7;
 

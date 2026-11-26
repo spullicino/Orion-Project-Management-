@@ -113,6 +113,8 @@ export async function savePushSubscription(sub: unknown, userAgent: string): Pro
     { onConflict: "endpoint" },
   );
   if (error) return fail(error.message);
+  // Turning on a device means they want notifications: make sure the master switch is on too.
+  await supabase.from("notification_preferences").upsert({ user_id: me.id, push_enabled: true }, { onConflict: "user_id" });
   return { ok: true };
 }
 

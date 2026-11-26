@@ -1,9 +1,10 @@
 "use client";
 
-import { BellRing, ChevronLeft, ChevronRight, Info, TriangleAlert, ExternalLink } from "lucide-react";
+import { BellRing, ChevronLeft, ChevronRight, ExternalLink, Info, Loader2, TriangleAlert } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { BANNER_ROTATE_SECONDS, BANNER_TONES, type BannerItem, type BannerTone } from "@/lib/banner";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePushDevice } from "@/components/notifications/use-push-device";
+import { BANNER_ROTATE_SECONDS, BANNER_TONES, isNotifyBanner, type BannerItem, type BannerTone } from "@/lib/banner";
 import { cn } from "@/lib/utils";
 import { getMyBanner } from "./top-banner-actions";
 
@@ -20,9 +21,14 @@ export function BannerStrip({
   onDot,
   preview,
   fadeKey,
+  onActivate,
+  busy,
 }: {
   item: Pick<BannerItem, "body" | "link" | "tone">;
   fadeKey?: string;
+  /** Tapping does this instead of opening the link (e.g. turn on notifications). */
+  onActivate?: () => void;
+  busy?: boolean;
   count?: number;
   index?: number;
   onPrev?: () => void;
@@ -30,17 +36,21 @@ export function BannerStrip({
   onDot?: (i: number) => void;
   preview?: boolean;
 }) {
-  const Icon = ICON[item.tone];
+  const Icon = busy ? Loader2 : ICON[item.tone];
   const external = !!item.link && /^https?:\/\//i.test(item.link);
   const text = (
     <span className="flex min-w-0 items-center gap-2">
-      <Icon className="size-4 shrink-0" aria-hidden />
+      <Icon className={cn("size-4 shrink-0", busy && "animate-spin")} aria-hidden />
       <span className="line-clamp-2 min-w-0 break-words text-sm font-medium leading-snug sm:line-clamp-none">{item.body || "Your message"}</span>
       {item.link && (external ? <ExternalLink className="size-3.5 shrink-0 opacity-80" aria-hidden /> : <ChevronRight className="size-4 shrink-0 opacity-80" aria-hidden />)}
     </span>
   );
   const content =
-    item.link && !preview ? (
+    onActivate && !preview ? (
+      <button type="button" onClick={onActivate} disabled={busy} className="flex min-h-11 min-w-0 flex-1 items-center py-1.5 text-left underline-offset-2 hover:underline">
+        {text}
+      </button>
+    ) : item.link && !preview ? (
       external ? (
         <a href={item.link} target="_blank" rel="noopener noreferrer" className="flex min-h-11 min-w-0 flex-1 items-center py-1.5 underline-offset-2 hover:underline">
           {text}
@@ -97,6 +107,8 @@ export function TopBanner({ initial }: { initial: BannerItem[] }) {
   const [now, setNow] = useState(() => Date.now());
   const [index, setIndex] = useState(0);
   const [hold, setHold] = useState(false);
+  // After a "turn on notifications" tap, stay on that message a while so the result can be read.
+  const pauseUntil = useRef(0);
   const touchX = useRef<number | null>(null);
 
   // New or changed messages: when the app comes back to the front, and every 5 minutes.
@@ -117,21 +129,36 @@ export function TopBanner({ initial }: { initial: BannerItem[] }) {
     };
   }, [initial]);
 
-  const shown = items.filter((b) => live(b, now));
+  // "Turn on notifications" banners: only for people who don't have them on this device yet.
+  const { push, busy, enable, problem } = usePushDevice();
+  const tapNotify = useCallback(() => {
+    pauseUntil.current = Date.now() + 60_000;
+    void enable().finally(() => (pauseUntil.current = Date.now() + 15_000));
+  }, [enable]);
+  const shown = items.filter((b) => live(b, now) && (!isNotifyBanner(b.link) || (push !== "on" && push !== "checking")));
   const count = shown.length;
   const i = count ? index % count : 0;
 
   useEffect(() => {
     const t = window.setInterval(() => {
       setNow(Date.now());
-      if (!hold) setIndex((x) => x + 1);
+      if (!hold && !busy && Date.now() > pauseUntil.current) setIndex((x) => x + 1);
     }, BANNER_ROTATE_SECONDS * 1000);
     return () => window.clearInterval(t);
-  }, [hold]);
+  }, [hold, busy]);
 
   if (!count) return null;
   const go = (d: number) => setIndex((x) => (((x % count) + d) % count + count) % count);
-  const item = shown[i];
+  let item = shown[i];
+  const tappable = isNotifyBanner(item.link) && push === "off" && !problem;
+  if (isNotifyBanner(item.link)) {
+    if (tappable) {
+      if (busy) item = { ...item, body: "Turning on… if your phone asks, tap Allow" };
+    } else {
+      // Can't be done with one tap here (blocked, iPhone not installed, or it failed): show how.
+      item = { ...item, link: "/help#notifications", body: problem ? "Couldn't turn on notifications — tap to see how to fix it" : item.body };
+    }
+  }
 
   return (
     <div
@@ -152,7 +179,7 @@ export function TopBanner({ initial }: { initial: BannerItem[] }) {
         if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
       }}
     >
-      <BannerStrip item={item} fadeKey={item.id} count={count} index={i} onPrev={() => go(-1)} onNext={() => go(1)} onDot={(n) => setIndex(n)} />
+      <BannerStrip item={item} fadeKey={item.id} onActivate={tappable ? tapNotify : undefined} busy={busy && tappable} count={count} index={i} onPrev={() => go(-1)} onNext={() => go(1)} onDot={(n) => setIndex(n)} />
     </div>
   );
 }

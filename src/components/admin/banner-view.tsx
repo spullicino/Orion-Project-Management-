@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { ROLE_LABEL } from "@/lib/auth/roles";
-import { BANNER_DURATIONS, BANNER_TONES, bannerRange, bannerState, type BannerDuration, type BannerState, type BannerTone } from "@/lib/banner";
+import { BANNER_DURATIONS, BANNER_TONES, bannerRange, bannerState, isNotifyBanner, NOTIFY_LINK, type BannerDuration, type BannerState, type BannerTone } from "@/lib/banner";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/database";
 import { Chip } from "./messages-view";
@@ -66,7 +66,9 @@ function BannerForm({
   const end = editing?.ends_at ? new Date(editing.ends_at) : null;
   const future = !!start && start > new Date();
   const [body, setBody] = useState(editing?.body ?? "");
-  const [link, setLink] = useState(editing?.link ?? "");
+  const [tap, setTap] = useState<"link" | "notify">(isNotifyBanner(editing?.link) ? "notify" : "link");
+  const [link, setLink] = useState(isNotifyBanner(editing?.link) ? "" : (editing?.link ?? ""));
+  const savedLink = tap === "notify" ? NOTIFY_LINK : link;
   const [tone, setTone] = useState<BannerTone>(editing?.tone ?? "info");
   const [duration, setDuration] = useState<BannerDuration>(editing ? (future ? "range" : end ? "until" : "forever") : "1w");
   const [fromDate, setFromDate] = useState(start && future ? dateOf(start) : dateOf(new Date()));
@@ -103,7 +105,7 @@ function BannerForm({
     setBusy(true);
     const res = await saveBanner(editing?.id ?? null, {
       body,
-      link,
+      link: savedLink,
       tone,
       startsAt: startsAt.toISOString(),
       endsAt: range.endsAt?.toISOString() ?? null,
@@ -137,11 +139,34 @@ function BannerForm({
           </div>
         </fieldset>
 
-        <label className="grid gap-1 text-sm font-medium">
-          Link (optional)
-          <Input value={link} onChange={(e) => setLink(e.target.value)} maxLength={500} placeholder="https://… or a page in the app, e.g. /projects" inputMode="url" />
-          <span className="text-xs font-normal text-muted-foreground">Tapping the banner opens it.</span>
-        </label>
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium">When tapped</legend>
+          <div className="flex flex-wrap gap-2">
+            <Chip on={tap === "link"} onClick={() => setTap("link")}>
+              Open a link
+            </Chip>
+            <Chip
+              on={tap === "notify"}
+              onClick={() => {
+                setTap("notify");
+                if (!body.trim()) setBody("Turn on notifications so you don't miss tasks and messages — tap here");
+              }}
+            >
+              Turn on notifications
+            </Chip>
+          </div>
+          {tap === "link" ? (
+            <label className="grid gap-1 text-sm font-medium">
+              <span className="sr-only">Link</span>
+              <Input value={link} onChange={(e) => setLink(e.target.value)} maxLength={500} placeholder="Optional: https://… or a page in the app, e.g. /projects" inputMode="url" aria-label="Link" />
+              <span className="text-xs font-normal text-muted-foreground">Tapping the banner opens it. Leave empty for a message only.</span>
+            </label>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Tapping it turns on notifications for that phone or computer — the phone asks <strong>Allow</strong>, and it&apos;s saved. People who already have notifications on don&apos;t see this message (that may include you). On iPhones not added to the Home Screen it shows them how instead.
+            </p>
+          )}
+        </fieldset>
 
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium">How long it shows</legend>
@@ -234,7 +259,7 @@ function BannerForm({
         <div className="grid gap-1">
           <span className="text-sm font-medium">Preview</span>
           <div className="overflow-hidden rounded-xl border">
-            <BannerStrip item={{ body, link: link || null, tone }} preview />
+            <BannerStrip item={{ body, link: savedLink || null, tone }} preview />
           </div>
           <p className="text-xs text-muted-foreground">With more than one message, they take turns every 7 seconds. People can&apos;t close it.</p>
         </div>
@@ -306,7 +331,7 @@ export function BannerView({ banners, people, projects }: { banners: AdminBanner
         <span className={cn("inline-flex h-6 items-center rounded-full px-2 text-xs font-semibold", STATE_LABEL[b.state].tone)}>{STATE_LABEL[b.state].label}</span>
         <span className="text-muted-foreground">{timing(b)}</span>
         <span className="min-w-0 text-muted-foreground">· {who(b)}</span>
-        {b.link && <span className="min-w-0 truncate text-muted-foreground">· Link: {b.link}</span>}
+        {b.link && <span className="min-w-0 truncate text-muted-foreground">· {isNotifyBanner(b.link) ? "Tap turns on notifications (hidden for people who have them on)" : `Link: ${b.link}`}</span>}
         <span className="text-xs text-muted-foreground">· by {b.author}</span>
       </div>
       <div className="flex flex-wrap gap-2">
