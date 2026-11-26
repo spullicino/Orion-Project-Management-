@@ -8,6 +8,7 @@ import { getCurrentProfile, requireActiveProfile } from "@/lib/auth/session";
 import { queuePush } from "@/lib/notify/queue";
 import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { withDocCounts } from "@/lib/data/materials";
 import {
   createMaterialSchema,
   editMaterialSchema,
@@ -134,7 +135,7 @@ export async function loadMaterialRequests(projectId: string | null, openOnly = 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_material_requests", { p_project: projectId, p_open_only: openOnly });
   if (error) return fail(friendly(error.message));
-  return { ok: true, data: (data ?? []) as unknown as MaterialListItem[] };
+  return { ok: true, data: await withDocCounts(supabase, (data ?? []) as unknown as MaterialListItem[]) };
 }
 
 export async function loadMaterialRequest(id: string): Promise<Result<MaterialRequestDetail | null>> {
@@ -151,6 +152,18 @@ export async function loadMaterialRequest(id: string): Promise<Result<MaterialRe
     const urls = new Map((signed ?? []).filter((s) => s.path && s.signedUrl).map((s) => [s.path!, s.signedUrl]));
     detail.photos = detail.photos.map((p) => ({ ...p, url: urls.get(p.storage_path) ?? null, thumb_url: urls.get(thumbPath(p.storage_path)) ?? null }));
   }
+  // Delivery notes / invoices (database update 0029; before it this is simply empty).
+  const { data: docs } = await supabase
+    .from("material_request_documents")
+    .select("id, kind, file_name, mime_type, size_bytes, uploaded_by, created_at")
+    .eq("request_id", id)
+    .order("created_at");
+  if (docs?.length) {
+    const ids = [...new Set(docs.map((d) => d.uploaded_by).filter((x): x is string => !!x))];
+    const { data: people } = ids.length ? await supabase.from("profiles").select("id, first_name, last_name, email").in("id", ids) : { data: [] };
+    const name = new Map((people ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name}`.trim() || p.email]));
+    detail.documents = docs.map((d) => ({ ...d, uploaded_by_name: (d.uploaded_by && name.get(d.uploaded_by)) || "Someone" }));
+  } else detail.documents = [];
   return { ok: true, data: detail };
 }
 
@@ -249,4 +262,100 @@ export async function loadMaterialReport(projectId: string, from?: string | null
   const { data, error } = await supabase.rpc("get_material_report", { p_project: projectId, p_from: from || null, p_to: to || null });
   if (error) return fail(friendly(error.message));
   return { ok: true, data: (data ?? []) as unknown as ReportLine[] };
+}
+
+// ---------------------------------------------------------------------------
+// Delivery documents and "received on site" (database update 0029)
+// ---------------------------------------------------------------------------
+
+const DOC_TYPES = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
+const docUploadSchema = z.object({
+  request_id: uuid,
+  id: uuid,
+  file_name: z.string().trim().min(1).max(200),
+  mime_type: z.string().regex(DOC_TYPES, "Photos or PDF files only"),
+  size: z.number().int().positive().max(25 * 1024 * 1024, "Files must be under 25 MB"),
+  kind: z.enum(["delivery_note", "invoice", "other"]),
+});
+const docPath = (projectId: string, requestId: string, id: string, fileName: string) =>
+  `${projectId}/materials/${requestId}/docs/${id}-${fileName.replace(/[^\w.\- ]+/g, "_").slice(-80)}`;
+const needs0029 = (m: string) => /material_request_documents|receive_material_request|does not exist|schema cache/.test(m);
+
+/** Step 1: a one-time link the phone uploads the photo or PDF to. */
+export async function createMaterialDocumentUpload(input: unknown): Promise<Result<{ signedUrl: string }>> {
+  const me = await posterOrNull();
+  if (!me) return fail(SIGNED_OUT);
+  const parsed = docUploadSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid file");
+  if (!(await rateLimit("upload", me.id))) return fail("Too many uploads. Please wait a few minutes.");
+  const supabase = await createClient();
+  const { data: req } = await supabase.from("material_requests").select("id, project_id").eq("id", parsed.data.request_id).maybeSingle();
+  if (!req) return fail("Request not found");
+  const { data, error } = await supabase.storage
+    .from("project-files")
+    .createSignedUploadUrl(docPath(req.project_id, req.id, parsed.data.id, parsed.data.file_name), { upsert: true });
+  if (error || !data) return fail("You can't add files to this project.");
+  return { ok: true, data: { signedUrl: data.signedUrl } };
+}
+
+/** Step 2: once uploaded, record it on the request (managers are told). */
+export async function registerMaterialDocument(input: unknown): Promise<Result> {
+  const me = await posterOrNull();
+  if (!me) return fail(SIGNED_OUT);
+  const parsed = docUploadSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid file");
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { data: req } = await supabase.from("material_requests").select("id, project_id").eq("id", v.request_id).maybeSingle();
+  if (!req) return fail("Request not found");
+  const { error } = await supabase.from("material_request_documents").upsert(
+    {
+      id: v.id,
+      request_id: req.id,
+      project_id: req.project_id,
+      kind: v.kind,
+      storage_path: docPath(req.project_id, req.id, v.id, v.file_name),
+      file_name: v.file_name,
+      mime_type: v.mime_type,
+      size_bytes: v.size,
+      uploaded_by: me.id,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+  if (error) return fail(needs0029(error.message) ? "Run database update 0029 first." : friendly(error.message));
+  refresh(req.project_id);
+  queuePush();
+  return { ok: true };
+}
+
+export async function deleteMaterialDocument(id: string): Promise<Result> {
+  await requireActiveProfile();
+  if (!uuid.safeParse(id).success) return fail("Invalid file");
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("material_request_documents").delete().eq("id", id).select("project_id, storage_path");
+  if (error) return fail(friendly(error.message));
+  if (!data?.length) return fail("Only the person who added it or a manager can remove it.");
+  await supabase.storage.from("project-files").remove([data[0].storage_path]);
+  refresh(data[0].project_id);
+  return { ok: true };
+}
+
+const receiveSchema = z.object({
+  deliveries: z.array(z.object({ item_id: uuid, delivered_qty: z.number().min(0).max(1_000_000) })).max(200),
+  note: z.string().trim().max(4000).optional(),
+});
+
+/** On site: "received" with the quantities that came (technicians too). */
+export async function receiveMaterialRequest(id: string, input: unknown): Promise<Result<{ status: string }>> {
+  await requireActiveProfile();
+  if (!uuid.safeParse(id).success) return fail("Invalid request");
+  const parsed = receiveSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the quantities");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("receive_material_request", { p_id: id, p_deliveries: parsed.data.deliveries, p_note: parsed.data.note ?? null });
+  if (error) return fail(needs0029(error.message) ? "Run database update 0029 first." : friendly(error.message));
+  const { data: r } = await supabase.from("material_requests").select("project_id").eq("id", id).maybeSingle();
+  refresh(r?.project_id);
+  queuePush();
+  return { ok: true, data: { status: String(data) } };
 }

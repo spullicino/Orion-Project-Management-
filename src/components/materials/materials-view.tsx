@@ -5,6 +5,7 @@ import {
   ChevronDown,
   MessageSquare,
   Package,
+  Paperclip,
   Plus,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -194,7 +195,12 @@ export function MaterialsView({
             <Camera className="size-3.5" aria-hidden /> {r.photo_count}
           </span>
         )}
-        {r.comment_count > 0 && (
+        {(r.doc_count ?? 0) > 0 && (
+        <span className="inline-flex items-center gap-1" title="Delivery documents">
+          <Paperclip className="size-3.5" aria-hidden /> {r.doc_count}
+        </span>
+      )}
+      {r.comment_count > 0 && (
           <span className="inline-flex items-center gap-1">
             <MessageSquare className="size-3.5" aria-hidden /> {r.comment_count}
           </span>

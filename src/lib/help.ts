@@ -509,6 +509,18 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Materials arrived on site: mark received and add the delivery note",
+        minRole: "technician",
+        steps: [
+          "Open the material request (Materials, or the project's Materials tab) and tap **Received on site**.",
+          "Check the quantities — change any item that came short — and add a note if something is wrong (e.g. damaged).",
+          "Under **Delivery note**, tap **Take photo** and photograph the paper the driver gave you (or **Choose file** for a PDF).",
+          "Tap **Confirm received**. It's marked **Delivered** (or **Partly delivered** if something is short) and the manager is told.",
+          "Got the invoice later? Open the request and tap **Add** under **Delivery documents**.",
+        ],
+        tip: "Requests with documents show a 📎 in the list. Tap a document to open it, or ⬇ to download it.",
+      },
+      {
         title: "Order and receive materials",
         minRole: "manager",
         steps: [

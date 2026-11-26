@@ -149,6 +149,21 @@ export type Database = {
       invites: Table<Invite, Partial<Invite> & { email: string }>;
       app_settings: Table<AppSettings>;
       job_secrets: Table<{ name: string; token: string }>;
+      material_request_documents: Table<
+        {
+          id: string;
+          request_id: string;
+          project_id: string;
+          kind: "delivery_note" | "invoice" | "other";
+          storage_path: string;
+          file_name: string;
+          mime_type: string | null;
+          size_bytes: number | null;
+          uploaded_by: string | null;
+          created_at: string;
+        },
+        { id: string; request_id: string; project_id: string; kind?: "delivery_note" | "invoice" | "other"; storage_path: string; file_name: string; mime_type?: string | null; size_bytes?: number | null; uploaded_by?: string }
+      >;
       audit_log: Table<{
         id: number;
         created_at: string;
@@ -376,6 +391,7 @@ export type Database = {
       queue_daily_update_reminders: { Args: { p_now?: string }; Returns: number };
       touch_last_seen: { Args: Record<string, never>; Returns: undefined };
       restore_task: { Args: { p_task: string }; Returns: string };
+      receive_material_request: { Args: { p_id: string; p_deliveries: Json; p_note?: string | null }; Returns: string };
       cleanup_audit: { Args: Record<string, never>; Returns: undefined };
       get_general_tasks: { Args: { p_all?: boolean }; Returns: Json };
       create_general_task_due_notifications: { Args: Record<string, never>; Returns: number };

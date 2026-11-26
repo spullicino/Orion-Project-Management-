@@ -1790,3 +1790,54 @@ describe("duplicate a task in the same project", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("material requests: delivery documents and received on site", () => {
+  type Row = Record<string, unknown>;
+  const req = "75000000-0000-4000-8000-000000000001";
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+  const setup = `${as(USERS.tech1)}
+    select public.create_material_request('${req}', '${PROJECTS.valletta}', null, false, null,
+      '[{"name":"Plasterboard 12.5mm","quantity":40,"unit":"sheets"},{"name":"Drywall screws","quantity":2,"unit":"boxes"}]'::jsonb);
+    set constraints all immediate;
+    reset role;`;
+  const items = `(select jsonb_agg(jsonb_build_object('item_id', id, 'delivered_qty', case when name like 'Plaster%' then 40 else 1 end)) from public.material_request_items where request_id = '${req}')`;
+
+  it("anyone on the project can attach a delivery note; managers are told; others can't", async () => {
+    await withSetup(`${setup} ${as(USERS.tech1)}
+        insert into public.material_request_documents (id, request_id, project_id, kind, storage_path, file_name, uploaded_by)
+        values (gen_random_uuid(), '${req}', '${PROJECTS.valletta}', 'delivery_note', '${PROJECTS.valletta}/materials/${req}/docs/a.jpg', 'Delivery note.jpg', '${USERS.tech1}');
+        reset role;`, USERS.manager, async (db) => {
+      expect(await db.query("select file_name from public.material_request_documents")).toEqual([{ file_name: "Delivery note.jpg" }]);
+      const notes = await db.query<Row>("select title from public.notifications where title like '%delivery note%'");
+      expect(notes).toHaveLength(1);
+    });
+    await withSetup(setup, USERS.tech2, async (db) => {
+      expect(
+        await db.fails(`insert into public.material_request_documents (id, request_id, project_id, storage_path, file_name, uploaded_by)
+          values (gen_random_uuid(), '${req}', '${PROJECTS.valletta}', 'x/y.pdf', 'y.pdf', '${USERS.tech2}')`),
+      ).toMatch(/row-level security/);
+    });
+  });
+
+  it("the technician on site marks it received; short items make it Partly delivered; managers are told", async () => {
+    await withSetup(`${setup} ${as(USERS.tech1)} select public.receive_material_request('${req}', ${items}, 'Screws: 1 box short'); reset role;`, USERS.manager, async (db) => {
+      const [r] = await db.query<Row>(`select status, received_by from public.material_requests where id = '${req}'`);
+      expect(r).toEqual({ status: "partly_delivered", received_by: USERS.tech1 });
+      expect(await db.query("select 1 from public.notifications where title like 'Received on site%'")).toHaveLength(1);
+      expect(await db.query(`select body from public.material_request_comments where request_id = '${req}'`)).toEqual([{ body: "Screws: 1 box short" }]);
+    });
+    const all = `(select jsonb_agg(jsonb_build_object('item_id', id, 'delivered_qty', quantity)) from public.material_request_items where request_id = '${req}')`;
+    await withSetup(`${setup} ${as(USERS.tech1)} select public.receive_material_request('${req}', ${all}); reset role;`, USERS.tech1, async (db) => {
+      expect((await db.query<Row>(`select status from public.material_requests where id = '${req}'`))[0].status).toBe("delivered");
+    });
+  });
+
+  it("people not on the project, and Basic users, can't mark it received", async () => {
+    for (const u of [USERS.tech2, USERS.basic]) {
+      await withSetup(setup, u, async (db) => {
+        expect(await db.fails(`select public.receive_material_request('${req}', '[]'::jsonb)`)).toMatch(/Request not found/);
+      });
+    }
+  });
+});

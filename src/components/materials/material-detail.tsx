@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CheckCheck, Copy, FileDown, Loader2, Pencil, Plus, RotateCcw, Send, ShoppingCart, Truck, XCircle } from "lucide-react";
+import { Ban, CheckCheck, Copy, FileDown, Loader2, Pencil, Plus, RotateCcw, Send, ShoppingCart, Truck, XCircle, PackageCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { addMaterialComment, loadMaterialRequest, updateMaterialStatus } from "@/app/(app)/materials/actions";
@@ -17,11 +17,13 @@ import { chatTime } from "@/lib/chat";
 import { buildMaterialPdf } from "@/lib/materials/pdf";
 import { cn, formatDate, fullName } from "@/lib/utils";
 import { MATERIAL_STATUS, type MaterialRequestDetail, type MaterialStatus } from "@/types/materials";
+import { DocumentsSection, ReceiveDialog } from "./material-documents";
 import type { MaterialFormStart } from "./material-form";
 
 const qty = (n: number) => Number(n).toLocaleString("en-GB", { maximumFractionDigits: 2 });
 const EVENT_LABEL: Record<string, string> = {
   created: "requested it",
+  document: "added a document",
   requested: "reopened it",
   ordered: "marked it ordered",
   partly_delivered: "recorded a partial delivery",
@@ -59,6 +61,7 @@ export function MaterialDetail({
   const [comment, setComment] = useState("");
   const [photo, setPhoto] = useState<number | null>(null);
   const [dialog, setDialog] = useState<null | "ordered" | "delivery" | "reject">(null);
+  const [receiving, setReceiving] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirm();
 
   const load = useCallback(async () => {
@@ -225,8 +228,29 @@ export function MaterialDetail({
                 </section>
               )}
 
+              <DocumentsSection
+                requestId={r.id}
+                documents={r.documents ?? []}
+                canAdd={(canEdit || canManage) && r.documents !== undefined}
+                canDelete={(d) => canManage || d.uploaded_by === me.id}
+                onChanged={() => {
+                  void load();
+                  onChanged();
+                }}
+              />
+
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
+                {!canManage && canEdit && open && r.status !== "requested" && (
+                  <Button onClick={() => setReceiving(true)} disabled={busy}>
+                    <PackageCheck aria-hidden /> Received on site
+                  </Button>
+                )}
+                {!canManage && canEdit && r.status === "requested" && (
+                  <Button variant="outline" onClick={() => setReceiving(true)} disabled={busy}>
+                    <PackageCheck aria-hidden /> Received on site
+                  </Button>
+                )}
                 {canManage && r.status === "requested" && (
                   <Button onClick={() => setDialog("ordered")} disabled={busy}>
                     <ShoppingCart aria-hidden /> Mark ordered
@@ -321,14 +345,24 @@ export function MaterialDetail({
                 <ul className="grid gap-1 text-sm">
                   {r.events.map((e, i) => (
                     <li key={i} className="text-muted-foreground">
-                      <span className="font-medium text-foreground">{e.actor ? fullName(e.actor) : "Someone"}</span> {EVENT_LABEL[e.kind] ?? e.kind}
-                      {e.detail ? ` — ${e.detail}` : ""} · {chatTime(e.created_at)}
+                      <span className="font-medium text-foreground">{e.actor ? fullName(e.actor) : "Someone"}</span> {e.kind === "document" ? `added ${e.detail ?? "a document"}` : (EVENT_LABEL[e.kind] ?? e.kind)}
+                      {e.detail && e.kind !== "document" ? ` — ${e.detail}` : ""} · {chatTime(e.created_at)}
                     </li>
                   ))}
                 </ul>
               </section>
 
               {dialog === "ordered" && <OrderedDialog r={r} busy={busy} onClose={() => setDialog(null)} onSave={(v) => change({ status: "ordered", ...v }, r.status === "requested" ? "Marked ordered" : "Order details saved")} />}
+              {receiving && (
+                <ReceiveDialog
+                  r={r}
+                  onClose={() => setReceiving(false)}
+                  onDone={() => {
+                    void load();
+                    onChanged();
+                  }}
+                />
+              )}
               {dialog === "delivery" && <DeliveryDialog r={r} busy={busy} onClose={() => setDialog(null)} onSave={(v) => change(v, v.status === "delivered" ? "Marked delivered" : "Partial delivery recorded")} />}
               {dialog === "reject" && <RejectDialog busy={busy} onClose={() => setDialog(null)} onSave={(reason) => change({ status: "rejected", reject_reason: reason }, "Request rejected")} />}
               <Lightbox

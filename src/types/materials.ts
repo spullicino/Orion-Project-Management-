@@ -31,6 +31,8 @@ export type MaterialListItem = {
   photo_count: number;
   comment_count: number;
   late: boolean;
+  /** How many delivery notes / invoices are attached (database update 0029). */
+  doc_count?: number;
 };
 
 export type MaterialItem = { id: string; position: number; name: string; quantity: number; unit: string; note: string | null; delivered_qty: number; product_id?: string | null };
@@ -59,6 +61,25 @@ export type MaterialRequestDetail = {
   photos: { id: string; storage_path: string; width: number | null; height: number | null; url?: string | null; thumb_url?: string | null }[];
   comments: { id: string; body: string; created_at: string; author_id: string; author: Person | null }[];
   events: { kind: string; detail: string | null; created_at: string; actor: Person | null }[];
+  /** Delivery notes, invoices… (database update 0029). */
+  documents?: MaterialDocument[];
+};
+
+export type MaterialDocumentKind = "delivery_note" | "invoice" | "other";
+export const DOCUMENT_KINDS: { value: MaterialDocumentKind; label: string }[] = [
+  { value: "delivery_note", label: "Delivery note" },
+  { value: "invoice", label: "Invoice" },
+  { value: "other", label: "Other document" },
+];
+export type MaterialDocument = {
+  id: string;
+  kind: MaterialDocumentKind;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: string | null;
+  uploaded_by_name: string;
+  created_at: string;
 };
 
 export type ProjectMaterial = { name: string; unit: string; delivered: number; requested: number; last_delivered: string | null; requests: number[] };

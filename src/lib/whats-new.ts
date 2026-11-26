@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-26-material-documents",
+    date: "2026-11-26",
+    title: "Delivery notes and “Received on site” for material requests",
+    body: "When materials arrive, open the request and tap “Received on site”: confirm the quantities and take a photo of the delivery note. Invoices and other documents can be added any time under “Delivery documents”. Managers are notified.",
+    help: "/help#materials",
+    minRole: "technician",
+  },
+  {
     id: "2026-11-26-refresh",
     date: "2026-11-26",
     title: "Refresh without closing the app",

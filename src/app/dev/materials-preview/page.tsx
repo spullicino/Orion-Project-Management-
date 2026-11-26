@@ -33,6 +33,7 @@ const list: MaterialListItem[] = [
     summary: "Plasterboard 12.5mm ×40 sheets, Drywall screws ×2 boxes",
     photo_count: 1,
     comment_count: 1,
+    doc_count: 1,
     late: false,
   },
   {
@@ -127,7 +128,13 @@ const detail: MaterialRequestDetail = {
       author: { first_name: "Mark", last_name: "Borg" },
     },
   ],
-  events: [{ kind: "created", detail: null, created_at: now, actor: tina }],
+  events: [
+    { kind: "created", detail: null, created_at: now, actor: tina },
+    { kind: "document", detail: "a delivery note", created_at: now, actor: tina },
+  ],
+  documents: [
+    { id: "d1", kind: "delivery_note", file_name: "IMG_2041.jpg", mime_type: "image/jpeg", size_bytes: 820000, uploaded_by: "u3", uploaded_by_name: "Tina Camilleri", created_at: now },
+  ],
 };
 
 const P2 = { id: "p2", name: "OG5698 - Central Bank", color: "#16a34a" };
@@ -149,7 +156,9 @@ export default function MaterialsPreview() {
 }
 
 function Preview() {
-  const all = useSearchParams().get("all") === "1";
+  const params = useSearchParams();
+  const all = params.get("all") === "1";
+  const tech = params.get("tech") === "1"; // see it as a technician on the project
   return (
     <OutboxProvider userId="preview">
       <main className="mx-auto max-w-3xl px-4 py-6 md:px-8">
@@ -159,7 +168,7 @@ function Preview() {
           projectId={all ? undefined : "p1"}
           initial={all ? spread(list) : list}
           editable={[{ id: "p1", name: P.name }]}
-          manageable={["p1"]}
+          manageable={tech ? [] : ["p1"]}
           detailLoader={async () => ({ ok: true as const, data: detail })}
           projectName={P.name}
           products={[
