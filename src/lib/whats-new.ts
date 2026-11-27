@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-gantt-export",
+    date: "2026-11-27",
+    title: "Gantt export: fit to page, live preview and print",
+    body: "Export now lets you fit the whole chart on 1 page, fit the width over more pages, or make a poster of sheets across × down — on A4 to A1 or Letter, landscape or portrait. Pick the dates and groups, text size and what to show, see a live preview, then download or print.",
+    help: "/help#gantt",
+    minRole: "manager",
+  },
+  {
     id: "2026-11-27-projects-list",
     date: "2026-11-27",
     title: "Projects as a list, search, and jumping between projects",

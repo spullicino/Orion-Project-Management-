@@ -33,7 +33,16 @@ export type GanttInput = {
   projectEnd?: string | null;
 };
 
-export type GanttOptions = { zoom: Zoom; colorBy: ColorBy; today: string; showOwners?: boolean };
+export type GanttOptions = {
+  zoom: Zoom;
+  colorBy: ColorBy;
+  today: string;
+  showOwners?: boolean;
+  /** Exports: show only these dates (bars outside are cut at the edges). */
+  range?: { start: string; end: string } | null;
+  /** Exports: stretch (>1) or squeeze (<1) the timeline; squeezing makes text relatively bigger when fitted to paper. */
+  dayWidthFactor?: number;
+};
 
 export const DAY_WIDTH: Record<Zoom, number> = { day: 36, week: 14, month: 4 };
 export const ROW_HEIGHT = 40;
@@ -181,7 +190,21 @@ export function autoZoom(input: GanttInput, today: string, targetWidth = 1500): 
   return "month";
 }
 
-function dateRange(input: GanttInput, today: string, zoom: Zoom) {
+function alignRange(start: string, end: string, zoom: Zoom) {
+  if (zoom === "week") {
+    const dow = (new Date(toUTC(start)).getUTCDay() + 6) % 7;
+    start = shiftDate(start, -dow);
+  }
+  if (zoom === "month") {
+    start = `${start.slice(0, 7)}-01`;
+    const e = new Date(toUTC(end));
+    end = fromUTC(Date.UTC(e.getUTCFullYear(), e.getUTCMonth() + 1, 0));
+  }
+  return { start, end, days: daysBetween(start, end) + 1 };
+}
+
+function dateRange(input: GanttInput, today: string, zoom: Zoom, range?: { start: string; end: string } | null) {
+  if (range && range.end >= range.start) return alignRange(range.start, range.end, zoom);
   const dates: string[] = [today];
   for (const t of input.tasks) {
     const s = taskSpan(t);
@@ -247,8 +270,8 @@ function ticks(start: string, days: number, dayWidth: number, zoom: Zoom) {
 
 export function layoutGantt(input: GanttInput, opts: GanttOptions): GanttLayout {
   const { zoom, colorBy, today } = opts;
-  const dayWidth = DAY_WIDTH[zoom];
-  const { start, end, days } = dateRange(input, today, zoom);
+  const dayWidth = DAY_WIDTH[zoom] * (opts.dayWidthFactor ?? 1);
+  const { start, end, days } = dateRange(input, today, zoom, opts.range);
   const xFor = (iso: string) => daysBetween(start, iso) * dayWidth;
   const labelsById = new Map(input.labels.map((l) => [l.id, l]));
 
@@ -283,7 +306,7 @@ export function layoutGantt(input: GanttInput, opts: GanttOptions): GanttLayout 
         y,
         height: ROW_HEIGHT,
         color,
-        bar: span ? { x: xFor(span.start), width: (daysBetween(span.start, span.end) + 1) * dayWidth, ...span } : null,
+        bar: span ? clipBar({ x: xFor(span.start), width: (daysBetween(span.start, span.end) + 1) * dayWidth, ...span }, days * dayWidth) : null,
       };
       rows.push(row);
       taskRowById.set(t.id, row);
@@ -334,6 +357,14 @@ export function layoutGantt(input: GanttInput, opts: GanttOptions): GanttLayout 
     todayX: todayInRange ? xFor(today) + dayWidth / 2 : null,
     legend,
   };
+}
+
+/** Bars that run past the chart's edges (a chosen date range) are cut there; fully outside = no bar. */
+function clipBar<B extends { x: number; width: number }>(bar: B, width: number): B | null {
+  const x1 = Math.max(bar.x, 0);
+  const x2 = Math.min(bar.x + bar.width, width);
+  if (x2 <= x1) return null;
+  return { ...bar, x: x1, width: x2 - x1 };
 }
 
 /** Converts a horizontal drag distance to whole days. */

@@ -36,6 +36,7 @@ export function GanttLabels({
   onRowClick,
   dark,
   fontFamily = FONT,
+  showPct = true,
 }: {
   layout: GanttLayout;
   width: number;
@@ -44,9 +45,11 @@ export function GanttLabels({
   onRowClick?: (taskId: string) => void;
   dark?: boolean;
   fontFamily?: string;
+  /** The "% complete" column (exports can leave it out). */
+  showPct?: boolean;
 }) {
   // Room on the right for the % complete column.
-  const PCT_W = 46;
+  const PCT_W = showPct ? 46 : 0;
   const maxChars = Math.floor((width - 28 - PCT_W) / 7.2);
   const text = dark ? "#e2e8f0" : C.text;
   const pctX = width - 12;
@@ -70,9 +73,11 @@ export function GanttLabels({
       <text x={14} y={HEADER_HEIGHT - 16} fontSize={11} fontWeight={700} fill={C.muted} letterSpacing={0.6}>
         TASK
       </text>
-      <text x={pctX} y={HEADER_HEIGHT - 16} fontSize={11} fontWeight={700} fill={C.muted} textAnchor="end">
-        %
-      </text>
+      {showPct && (
+        <text x={pctX} y={HEADER_HEIGHT - 16} fontSize={11} fontWeight={700} fill={C.muted} textAnchor="end">
+          %
+        </text>
+      )}
       <line x1={0} x2={width} y1={HEADER_HEIGHT} y2={HEADER_HEIGHT} stroke={C.grid} />
       {rows.map((r) => {
         if (r.kind === "milestones")
@@ -89,7 +94,7 @@ export function GanttLabels({
               <text x={14} y={r.y + r.height / 2 + 5} fontSize={13} fontWeight={700} fill={text}>
                 {ellipsize(r.group.name, maxChars)}
               </text>
-              {groupPct.has(r.group.id) && (
+              {showPct && groupPct.has(r.group.id) && (
                 <text x={pctX} y={r.y + r.height / 2 + 5} fontSize={12} fontWeight={700} fill={text} textAnchor="end">
                   {groupPct.get(r.group.id)}%
                 </text>
@@ -113,16 +118,18 @@ export function GanttLabels({
             >
               {ellipsize(r.task.title, maxChars)}
             </text>
-            <text
-              x={pctX}
-              y={r.y + r.height / 2 + 5}
-              fontSize={12}
-              fontWeight={pctOf(r.task) === 100 ? 700 : undefined}
-              fill={pctOf(r.task) === 100 ? C.done : pctOf(r.task) > 0 ? text : C.muted}
-              textAnchor="end"
-            >
-              {pctOf(r.task)}%
-            </text>
+            {showPct && (
+              <text
+                x={pctX}
+                y={r.y + r.height / 2 + 5}
+                fontSize={12}
+                fontWeight={pctOf(r.task) === 100 ? 700 : undefined}
+                fill={pctOf(r.task) === 100 ? C.done : pctOf(r.task) > 0 ? text : C.muted}
+                textAnchor="end"
+              >
+                {pctOf(r.task)}%
+              </text>
+            )}
             {owners && (
               <text x={14} y={r.y + 32} fontSize={10.5} fill={C.muted}>
                 {ellipsize(owners, maxChars + 4)}

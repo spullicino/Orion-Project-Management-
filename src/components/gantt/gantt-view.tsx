@@ -13,7 +13,8 @@ import { filterTasks, todayISO } from "@/lib/board";
 import type { ColorBy, GanttInput, Zoom } from "@/lib/gantt/layout";
 import { cn, fullName } from "@/lib/utils";
 import type { Milestone } from "@/types/board";
-import { ExportDialog, MilestoneDialog, ShareDialog } from "./gantt-dialogs";
+import { ExportDialog } from "./export-dialog";
+import { MilestoneDialog, ShareDialog } from "./gantt-dialogs";
 import { GanttChart } from "./gantt-chart";
 
 function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {

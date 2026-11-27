@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Copy, Download, Link2, Loader2, Trash2 } from "lucide-react";
+import { Check, Copy, Link2, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createShareLink, deleteMilestone, getClientLogoUrl, listShareLinks, revokeShareLink, saveMilestone, type ShareLink } from "@/app/(app)/projects/gantt-actions";
+import { createShareLink, deleteMilestone, listShareLinks, revokeShareLink, saveMilestone, type ShareLink } from "@/app/(app)/projects/gantt-actions";
 import { ColorPicker } from "@/components/projects/color-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { todayISO } from "@/lib/board";
-import { exportGantt, imageToPngDataUrl, type ExportFormat, type Paper } from "@/lib/gantt/export";
-import { autoZoom, type ColorBy, type GanttInput, type Zoom } from "@/lib/gantt/layout";
 import { formatDate } from "@/lib/utils";
-import type { Milestone, Project } from "@/types/board";
+import type { Milestone } from "@/types/board";
 
 // ---------------------------------------------------------------------------
 // Milestone add / edit
@@ -91,117 +89,6 @@ export function MilestoneDialog({ projectId, milestone, open, onClose }: { proje
 // ---------------------------------------------------------------------------
 // Export PDF / PNG
 // ---------------------------------------------------------------------------
-
-export function ExportDialog({
-  open,
-  onClose,
-  project,
-  input,
-  defaultColorBy,
-}: {
-  open: boolean;
-  onClose: () => void;
-  project: Project;
-  input: GanttInput;
-  defaultColorBy: ColorBy;
-}) {
-  const [format, setFormat] = useState<ExportFormat>("pdf");
-  const [paper, setPaper] = useState<Paper>("a4");
-  const [zoom, setZoom] = useState<Zoom | "auto">("auto");
-  const [colorBy, setColorBy] = useState<ColorBy>(defaultColorBy);
-  const [showOwners, setShowOwners] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function run() {
-    setBusy(true);
-    try {
-      const today = todayISO();
-      const [orionLogo, clientLogo] = await Promise.all([
-        imageToPngDataUrl("/brand/orion-logo.png"),
-        project.client_id
-          ? getClientLogoUrl(project.client_id).then((r) => (r.ok && r.data?.url ? imageToPngDataUrl(r.data.url) : null))
-          : Promise.resolve(null),
-      ]);
-      await exportGantt(
-        input,
-        { format, paper, zoom: zoom === "auto" ? autoZoom(input, today) : zoom, colorBy, showOwners, today },
-        { projectName: project.name, clientName: project.client?.name, code: project.code, generatedOn: formatDate(new Date()), orionLogo, clientLogo },
-      );
-      toast.success(format === "pdf" ? "PDF downloaded" : "Image downloaded");
-      onClose();
-    } catch (e) {
-      console.error(e);
-      toast.error("Sorry, the export failed. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
-      {open && (
-        <DialogContent title="Export for the client" description="A clean Gantt chart with the Orion logo, project and client name, today's date and a legend.">
-          <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="File type">
-              {(["pdf", "png"] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  role="radio"
-                  aria-checked={format === f}
-                  onClick={() => setFormat(f)}
-                  className={`h-14 rounded-xl border text-sm font-semibold ${format === f ? "border-primary bg-primary/10 text-primary" : "hover:bg-accent"}`}
-                >
-                  {f === "pdf" ? "PDF document" : "PNG image"}
-                </button>
-              ))}
-            </div>
-            {format === "pdf" && (
-              <FormField id="paper" label="Paper size (landscape)">
-                <NativeSelect value={paper} onChange={(e) => setPaper(e.target.value as Paper)}>
-                  <option value="a4">A4</option>
-                  <option value="a3">A3 (bigger, easier to read)</option>
-                </NativeSelect>
-              </FormField>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField id="ex-zoom" label="Scale">
-                <NativeSelect value={zoom} onChange={(e) => setZoom(e.target.value as Zoom | "auto")}>
-                  <option value="auto">Best fit</option>
-                  <option value="day">Days</option>
-                  <option value="week">Weeks</option>
-                  <option value="month">Months</option>
-                </NativeSelect>
-              </FormField>
-              <FormField id="ex-color" label="Colour bars by">
-                <NativeSelect value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
-                  <option value="status">Status</option>
-                  <option value="group">Group</option>
-                </NativeSelect>
-              </FormField>
-            </div>
-            <label className="flex items-center justify-between gap-3 rounded-xl border p-3">
-              <span>
-                <span className="block text-sm font-medium">Show who is working on each task</span>
-                <span className="block text-xs text-muted-foreground">Off = internal details hidden (owners). Internal notes are never included.</span>
-              </span>
-              <Switch checked={showOwners} onCheckedChange={setShowOwners} />
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={onClose} disabled={busy}>
-                Cancel
-              </Button>
-              <Button onClick={run} disabled={busy}>
-                {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Download aria-hidden />}
-                {busy ? "Preparing…" : "Download"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      )}
-    </Dialog>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Client share links

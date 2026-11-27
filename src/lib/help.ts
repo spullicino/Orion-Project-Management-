@@ -365,13 +365,18 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        title: "Export the Gantt as PDF or picture",
+        title: "Export or print the Gantt (fit to page)",
         minRole: "manager",
         steps: [
-          "On the Gantt tap **Export**.",
-          "Choose PDF or PNG, the paper size, scale and how to colour the bars.",
-          "Tap the export button — the file downloads to your device, ready to email.",
+          "On the Gantt tap **Export**. The **preview** shows exactly how the first page will look and how many pages there are — it updates as you change anything.",
+          "**File:** PDF (to print or email) or a PNG picture.",
+          "**Paper and fit:** A4, A3, A2, A1 or Letter, landscape or portrait, then: **Whole chart on 1 page**, **Fit the width, more pages down**, or **Custom: sheets across × down** — a poster over several sheets (dashed lines in the preview show where they join).",
+          "**Dates:** the whole project, the next 1, 3 or 6 months, or your own **From – to**. Choose the timeline in days, weeks or months, or Best fit.",
+          "**Tasks:** tick only the groups you want, leave out finished tasks, and choose whether to show who is working on each task.",
+          "**Look:** text size, task name column width, colour by status or group, and switch the title & logos, legend, % column, milestones, today line and \u201cwaits for\u201d arrows on or off.",
+          "Tap **Download PDF** (or image), or **Print** to open it straight in the print screen.",
         ],
+        tip: "Your choices are remembered on this device for next time. Internal tasks are never included.",
       },
       {
         title: "Use the Calendar",
