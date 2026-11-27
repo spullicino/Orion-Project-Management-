@@ -24,6 +24,7 @@ export const AUDIT_ENTITIES: { value: string; label: string }[] = [
   { value: "comment", label: "Comments" },
   { value: "user", label: "People's details and levels" },
   { value: "banner", label: "Banner messages" },
+  { value: "ticket", label: "Aftersales tickets" },
 ];
 
 const FIELD: Record<string, string> = {
@@ -50,6 +51,8 @@ const FIELD: Record<string, string> = {
   ends_at: "end",
   paused: "paused",
   audience_type: "who sees it",
+  subject: "subject",
+  assigned_to: "assigned to",
   issues: "issues",
 };
 
@@ -74,6 +77,14 @@ const LABELS: Record<string, string> = {
   manager: "Manager",
   technician: "Technician",
   basic: "Basic",
+  new: "New",
+  assigned: "Assigned",
+  in_progress: "In progress",
+  resolved: "Resolved",
+  closed: "Closed",
+  low: "Low",
+  normal: "Normal",
+  high: "High",
   info: "Info",
   reminder: "Reminder",
   urgent: "Urgent",
@@ -137,6 +148,8 @@ export function describeAudit(e: Pick<AuditEntry, "action" | "entity" | "title" 
       return `deleted a comment by ${c.written_by ?? "someone"} on task ${t}${c.comment ? `: “${value("comment", c.comment)}”` : ""}`;
     case "banner":
       return e.action === "updated" ? `changed banner message ${t}: ${changed}` : `${e.action === "created" ? "added" : e.action} banner message ${t}`;
+    case "ticket":
+      return e.action === "updated" ? `changed ticket ${t}: ${changed}` : `${e.action === "created" ? "opened" : e.action} ticket ${t}`;
     case "user":
       return `changed ${e.title}'s details: ${changed}`;
     default:

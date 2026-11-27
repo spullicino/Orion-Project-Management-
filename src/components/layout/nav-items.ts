@@ -1,4 +1,4 @@
-import { Boxes, LayoutDashboard, Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { Boxes, Headset, LayoutDashboard, Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import type { AppRole } from "@/types/database";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; minRole?: AppRole };
@@ -34,6 +34,9 @@ export const SECONDARY_NAV: NavItem[] = [
   { href: "/admin", label: "Admin", icon: ShieldCheck, minRole: "admin" },
   { href: "/help", label: "Help", icon: CircleHelp },
 ];
+
+/** Modules — only for people an administrator gave access to (Admin → Modules). */
+export const AFTERSALES_ITEM: NavItem = { href: "/aftersales", label: "Aftersales", icon: Headset };
 
 export function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);

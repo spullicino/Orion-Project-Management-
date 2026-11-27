@@ -1,4 +1,4 @@
-import { Boxes, Building2, ChevronRight, CircleHelp, Package, ListChecks, NotebookTabs, ShieldCheck } from "lucide-react";
+import { Boxes, Building2, Headset, ChevronRight, CircleHelp, Package, ListChecks, NotebookTabs, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { SignOutButton } from "@/components/pwa/sign-out-button";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { can, ROLE_LABEL, ROLES } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
+import { getModuleLevel } from "@/lib/modules";
 import { loadPrefs } from "@/app/(app)/notifications/actions";
 import { resolveAvatarUrls } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +21,11 @@ export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const profile = await requireActiveProfile();
-  const [[avatarUrl], prefs] = await Promise.all([resolveAvatarUrls(await createClient(), [profile.avatar_url]), loadPrefs()]);
+  const [[avatarUrl], prefs, aftersales] = await Promise.all([
+    resolveAvatarUrls(await createClient(), [profile.avatar_url]),
+    loadPrefs(),
+    getModuleLevel(profile, "aftersales"),
+  ]);
   const roleInfo = ROLES.find((r) => r.value === profile.role);
 
   return (
@@ -61,6 +66,7 @@ export default async function ProfilePage() {
           </Card>
 
           {[
+            { href: "/aftersales", label: "Aftersales (support tickets)", icon: Headset, show: !!aftersales },
             { href: "/my-tasks", label: "My Tasks", icon: ListChecks, show: true },
             { href: "/materials", label: "Material requests", icon: Package, show: true },
             { href: "/personal", label: "Personal notes & to-dos", icon: NotebookTabs, show: true },

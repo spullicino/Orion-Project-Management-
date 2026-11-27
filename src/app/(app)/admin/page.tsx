@@ -1,4 +1,4 @@
-import { Activity, History, Megaphone, Flag } from "lucide-react";
+import { Activity, Blocks, History, Megaphone, Flag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
@@ -57,6 +57,11 @@ export default async function AdminPage() {
             <Button asChild variant="outline">
               <Link href="/admin/messages">
                 <Megaphone aria-hidden /> Important messages
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/admin/modules">
+                <Blocks aria-hidden /> Modules
               </Link>
             </Button>
             <Button asChild variant="outline">

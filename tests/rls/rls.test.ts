@@ -1948,3 +1948,112 @@ describe("banner at the top of the app (administrators only)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("modules: Aftersales (tickets)", () => {
+  type Row = Record<string, unknown>;
+  const grant = (u: string, level: "agent" | "manager") =>
+    `insert into public.module_access (user_id, module, level, granted_by) values ('${u}', 'aftersales', '${level}', '${USERS.admin}');`;
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+  const T = "60000000-0000-4000-8000-0000000000a1";
+  const C = "60000000-0000-4000-8000-0000000000c1";
+  const ticket = `
+    insert into public.as_customers (id, name, created_by) values ('${C}', 'Solair Owners Assoc.', '${USERS.admin}');
+    insert into public.as_tickets (id, subject, customer_id, created_by) values ('${T}', 'Fire panel beeping', '${C}', '${USERS.admin}');`;
+
+  it("people without the module see nothing and can't add anything — even managers", async () => {
+    for (const u of [USERS.manager, USERS.tech1, USERS.basic]) {
+      await withSetup(ticket, u, async (db) => {
+        for (const t of ["as_tickets", "as_customers", "as_messages", "as_categories", "as_contacts", "as_sites", "as_files"]) {
+          expect(await count(db, `select 1 from public.${t}`)).toBe(0);
+        }
+        expect(await db.fails(`insert into public.as_tickets (subject, created_by) values ('x', '${u}')`)).toMatch(/row-level security/);
+        expect(await db.fails(`insert into public.as_customers (name) values ('x')`)).toMatch(/row-level security/);
+        expect(await db.fails(`insert into storage.objects (bucket_id, name, owner_id) values ('aftersales', 'tickets/${T}/a.pdf', '${u}')`)).toMatch(/row-level security/);
+      });
+    }
+  });
+
+  it("only administrators give access; a pending account gets nothing even with access", async () => {
+    await asUser(USERS.manager, async (db) => {
+      expect(await db.fails(grant(USERS.manager, "manager"))).toMatch(/row-level security/);
+    });
+    await withSetup(`${grant(USERS.pending, "manager")} ${ticket}`, USERS.pending, async (db) => {
+      expect(await count(db, "select 1 from public.as_tickets")).toBe(0);
+    });
+    await asUser(USERS.admin, async (db) => {
+      await db.query(grant(USERS.tech1, "agent"));
+      expect(await count(db, `select 1 from public.module_access where user_id = '${USERS.tech1}'`)).toBe(1);
+    });
+  });
+
+  it("a new ticket gets a TKT number, a history line, and the managers are told", async () => {
+    await withSetup(`${grant(USERS.manager, "manager")} ${grant(USERS.tech1, "agent")}`, USERS.tech1, async (db) => {
+      const [t] = await db.query<Row>(`insert into public.as_tickets (subject, priority, created_by) values ('CCTV camera 3 offline', 'high', '${USERS.tech1}') returning id, number, status`);
+      expect(Number(t.number)).toBeGreaterThanOrEqual(1001);
+      expect(t.status).toBe("new");
+      expect((await db.query<Row>(`select body from public.as_messages where ticket_id = '${t.id}'`)).map((r) => r.body)).toEqual(["Ticket opened"]);
+    });
+    await withSetup(
+      `${grant(USERS.manager, "manager")} ${grant(USERS.tech1, "agent")} ${as(USERS.tech1)} insert into public.as_tickets (subject, created_by) values ('Intercom dead', '${USERS.tech1}'); reset role;`,
+      USERS.manager,
+      async (db) => {
+        expect((await db.query<Row>("select title from public.notifications where type = 'ticket.new'")).map((r) => r.title)[0]).toMatch(/^New ticket TKT-\d+$/);
+      },
+    );
+  });
+
+  it("assigning, replying and the customer writing back move the status along", async () => {
+    const setup = `${grant(USERS.tech1, "agent")} ${ticket}`;
+    await withSetup(setup, USERS.admin, async (db) => {
+      const status = async () => (await db.query<Row>(`select status, first_response_at from public.as_tickets where id = '${T}'`))[0];
+      await db.query(`update public.as_tickets set assigned_to = '${USERS.tech1}' where id = '${T}'`);
+      expect((await status()).status).toBe("assigned");
+      await db.query(`insert into public.as_messages (ticket_id, kind, author_id, body) values ('${T}', 'reply', '${USERS.admin}', 'We will visit tomorrow')`);
+      const s = await status();
+      expect(s.status).toBe("in_progress");
+      expect(s.first_response_at).not.toBeNull();
+      await db.query(`update public.as_tickets set status = 'resolved' where id = '${T}'`);
+      expect((await db.query<Row>(`select resolved_at from public.as_tickets where id = '${T}'`))[0].resolved_at).not.toBeNull();
+      await db.query(`insert into public.as_messages (ticket_id, kind, author_id, from_name, body) values ('${T}', 'customer', '${USERS.admin}', 'Mr Borg', 'Still beeping')`);
+      expect((await status()).status).toBe("in_progress");
+      const history = (await db.query<Row>(`select body from public.as_messages where ticket_id = '${T}' and kind = 'event' order by created_at, body`)).map((r) => r.body);
+      expect(history.some((h) => /^Assigned to \S/.test(String(h)))).toBe(true);
+      expect(history.some((h) => String(h).startsWith("Status: In progress → Resolved"))).toBe(true);
+      expect(await count(db, "select 1 from public.audit_log where entity = 'ticket' and created_at = now()")).toBeGreaterThanOrEqual(2);
+    });
+    await withSetup(`${setup} update public.as_tickets set assigned_to = '${USERS.tech1}' where id = '${T}';`, USERS.tech1, async (db) => {
+      expect((await db.query<Row>("select title from public.notifications where type = 'ticket.assigned'")).length).toBe(1);
+    });
+  });
+
+  it("tickets only go to people with the module; members are listed only to members", async () => {
+    await withSetup(`${grant(USERS.tech1, "agent")} ${ticket}`, USERS.admin, async (db) => {
+      expect(await db.fails(`update public.as_tickets set assigned_to = '${USERS.tech2}' where id = '${T}'`)).toMatch(/can't use Aftersales/);
+      const names = (await db.query<Row>("select user_id, level from public.module_members('aftersales')")).map((r) => `${r.user_id}:${r.level}`);
+      expect(names).toEqual(expect.arrayContaining([`${USERS.admin}:manager`, `${USERS.tech1}:agent`]));
+      expect(names).toHaveLength(2);
+    });
+    await asUser(USERS.tech2, async (db) => expect(await count(db, "select * from public.module_members('aftersales')")).toBe(0));
+  });
+
+  it("agents work on tickets but can't delete them, change categories, or fake history", async () => {
+    await withSetup(`${grant(USERS.tech1, "agent")} ${ticket}`, USERS.tech1, async (db) => {
+      expect(await count(db, "select 1 from public.as_categories")).toBe(10);
+      await db.query(`insert into public.as_messages (ticket_id, kind, author_id, body) values ('${T}', 'note', '${USERS.tech1}', 'Panel needs new battery')`);
+      expect(await db.fails(`insert into public.as_messages (ticket_id, kind, author_id, body) values ('${T}', 'event', '${USERS.tech1}', 'Ticket closed')`)).toMatch(/row-level security/);
+      expect(await db.fails(`insert into public.as_messages (ticket_id, kind, author_id, body) values ('${T}', 'note', '${USERS.admin}', 'as someone else')`)).toMatch(/row-level security/);
+      expect(await db.fails("update public.as_messages set body = 'edited'")).toMatch(/permission denied/);
+      expect(await db.fails("insert into public.as_categories (name) values ('Lifts')")).toMatch(/row-level security/);
+      await db.query(`delete from public.as_tickets where id = '${T}'`);
+      expect(await count(db, "select 1 from public.as_tickets")).toBe(1);
+      expect(await db.fails(`insert into storage.objects (bucket_id, name, owner_id) values ('aftersales', 'tickets/${T}/a.pdf', '${USERS.tech1}')`)).toBeNull();
+      expect(await db.fails(`insert into public.as_files (id, ticket_id, storage_path, file_name, uploaded_by) values (gen_random_uuid(), '${T}', 'elsewhere/a.pdf', 'a.pdf', '${USERS.tech1}')`)).toMatch(/row-level security/);
+    });
+    await withSetup(`${grant(USERS.manager, "manager")} ${ticket}`, USERS.manager, async (db) => {
+      await db.query("insert into public.as_categories (name, position) values ('Lifts', 11)");
+      await db.query(`delete from public.as_tickets where id = '${T}'`);
+      expect(await count(db, "select 1 from public.as_tickets")).toBe(0);
+    });
+  });
+});

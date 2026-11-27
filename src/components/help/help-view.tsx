@@ -6,6 +6,7 @@ import {
   ClipboardPenLine,
   FolderKanban,
   GanttChartSquare,
+  Headset,
   House,
   LayoutDashboard,
   Lightbulb,
@@ -33,7 +34,7 @@ import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/database";
 
 const ICONS: Record<string, LucideIcon> = {
-  Bell, ClipboardPenLine, FolderKanban, GanttChartSquare, House, LayoutDashboard, ListChecks, MessagesSquare,
+  Bell, ClipboardPenLine, FolderKanban, GanttChartSquare, Headset, House, LayoutDashboard, ListChecks, MessagesSquare,
   NotebookTabs, Package, Rocket, Share2, ShieldCheck, Table2, UserRound, Users, WifiOff,
 };
 

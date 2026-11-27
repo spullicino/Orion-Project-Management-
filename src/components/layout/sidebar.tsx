@@ -9,7 +9,7 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { hasRole, ROLE_LABEL } from "@/lib/auth/roles";
 import { cn, fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
-import { SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
+import { AFTERSALES_ITEM, SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
 import { CountBadge } from "./bottom-tabs";
 import { RefreshButton } from "@/components/pwa/refresh";
 
@@ -33,9 +33,20 @@ function NavLink({ item, pathname, newRequests }: { item: NavItem; pathname: str
   );
 }
 
-export function Sidebar({ profile, avatarUrl, newRequests = 0 }: { profile: Profile; avatarUrl: string | null; newRequests?: number }) {
+export function Sidebar({
+  profile,
+  avatarUrl,
+  newRequests = 0,
+  aftersales = false,
+}: {
+  profile: Profile;
+  avatarUrl: string | null;
+  newRequests?: number;
+  /** Can use the Aftersales module. */
+  aftersales?: boolean;
+}) {
   const pathname = usePathname();
-  const secondary = SECONDARY_NAV.filter((i) => !i.minRole || hasRole(profile.role, i.minRole));
+  const secondary = [...(aftersales ? [AFTERSALES_ITEM] : []), ...SECONDARY_NAV.filter((i) => !i.minRole || hasRole(profile.role, i.minRole))];
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-card md:flex">
       <div className="px-5 py-5">

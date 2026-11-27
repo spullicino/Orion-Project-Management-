@@ -8,6 +8,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type AppRole = "admin" | "manager" | "technician" | "basic";
+export type TicketStatus = "new" | "assigned" | "in_progress" | "waiting" | "resolved" | "closed";
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
 export type UserStatus = "pending" | "active" | "deactivated";
 
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
@@ -344,6 +346,78 @@ export type Database = {
         },
         { user_id: string; type: string; title: string; body?: string | null; link?: string | null; project_id?: string | null; task_id?: string | null; actor_id?: string | null }
       >;
+      module_access: Table<
+        { user_id: string; module: "aftersales"; level: "agent" | "manager"; granted_by: string | null; granted_at: string },
+        { user_id: string; module: "aftersales"; level: "agent" | "manager"; granted_by?: string }
+      >;
+      as_customers: Table<
+        { id: string; name: string; kind: "company" | "person"; phone: string | null; address: string | null; notes: string | null; client_id: string | null; created_by: string | null; created_at: string; updated_at: string },
+        { id?: string; name: string; kind?: "company" | "person"; phone?: string | null; address?: string | null; notes?: string | null; client_id?: string | null }
+      >;
+      as_contacts: Table<
+        { id: string; customer_id: string; name: string; email: string | null; phone: string | null; created_at: string },
+        { id?: string; customer_id: string; name?: string; email?: string | null; phone?: string | null }
+      >;
+      as_sites: Table<
+        { id: string; customer_id: string; name: string; address: string | null; handover_date: string | null; warranty_end: string | null; project_id: string | null; notes: string | null; created_at: string; updated_at: string },
+        { id?: string; customer_id: string; name: string; address?: string | null; handover_date?: string | null; warranty_end?: string | null; project_id?: string | null; notes?: string | null }
+      >;
+      as_categories: Table<{ id: string; name: string; position: number; active: boolean }, { id?: string; name: string; position?: number; active?: boolean }>;
+      as_tickets: Table<
+        {
+          id: string;
+          number: number;
+          subject: string;
+          status: TicketStatus;
+          priority: TicketPriority;
+          category_id: string | null;
+          customer_id: string | null;
+          contact_id: string | null;
+          site_id: string | null;
+          assigned_to: string | null;
+          source: "email" | "portal" | "staff";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          first_response_at: string | null;
+          last_customer_at: string | null;
+          last_staff_at: string | null;
+          resolved_at: string | null;
+          closed_at: string | null;
+        },
+        {
+          id?: string;
+          subject: string;
+          status?: TicketStatus;
+          priority?: TicketPriority;
+          category_id?: string | null;
+          customer_id?: string | null;
+          contact_id?: string | null;
+          site_id?: string | null;
+          assigned_to?: string | null;
+          source?: "email" | "portal" | "staff";
+          created_by?: string;
+        }
+      >;
+      as_messages: Table<
+        {
+          id: string;
+          ticket_id: string;
+          kind: "customer" | "reply" | "note" | "event";
+          author_id: string | null;
+          from_name: string | null;
+          from_email: string | null;
+          body: string;
+          email_message_id: string | null;
+          email_status: "pending" | "sent" | "failed" | null;
+          created_at: string;
+        },
+        { id?: string; ticket_id: string; kind: "customer" | "reply" | "note"; author_id?: string; from_name?: string | null; from_email?: string | null; body: string }
+      >;
+      as_files: Table<
+        { id: string; ticket_id: string; message_id: string | null; storage_path: string; file_name: string; mime_type: string | null; size_bytes: number | null; uploaded_by: string | null; created_at: string },
+        { id: string; ticket_id: string; message_id?: string | null; storage_path: string; file_name: string; mime_type?: string | null; size_bytes?: number | null; uploaded_by?: string }
+      >;
       banner_messages: Table<
         {
           id: string;
@@ -465,6 +539,7 @@ export type Database = {
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
+      module_members: { Args: { p_module: string }; Returns: { user_id: string; first_name: string; last_name: string; email: string; level: "agent" | "manager" }[] };
       my_banner_messages: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["banner_messages"]["Row"][] };
       get_channel_messages: { Args: { p_channel: string; p_before?: string | null; p_limit?: number }; Returns: Json };
       get_channel_messages_since: { Args: { p_channel: string; p_since: string }; Returns: Json };

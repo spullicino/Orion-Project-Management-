@@ -25,6 +25,9 @@ const TYPES: { key: string; label: string }[] = [
   { key: "material.new", label: "New material requests on my projects (managers)" },
   { key: "material.status", label: "Updates on material requests (ordered, delivered…)" },
   { key: "material.comment", label: "Comments on material requests" },
+  { key: "ticket.assigned", label: "Aftersales: a ticket is given to me" },
+  { key: "ticket.customer", label: "Aftersales: the customer writes on my ticket" },
+  { key: "ticket.new", label: "Aftersales: a new ticket nobody has yet (Aftersales managers)" },
 ];
 
 export function NotificationSettings({ initial, pushAvailable }: { initial: NotificationPrefs; pushAvailable: boolean }) {

@@ -759,6 +759,64 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "aftersales",
+    title: "Aftersales (support tickets)",
+    icon: "Headset",
+    summary: "Customers' aftersales and maintenance requests — only if an administrator gave you access.",
+    guides: [
+      {
+        title: "Who can use Aftersales",
+        steps: [
+          "Aftersales is a separate module. You only see it (in the menu, or **Profile → Aftersales** on a phone) if an administrator gave you access.",
+          "**Agents** handle tickets, customers and sites. **Managers** can also delete, and change the categories. Administrators are always managers.",
+        ],
+      },
+      {
+        title: "Give someone access",
+        minRole: "admin",
+        steps: [
+          "Open **Admin** and tap **Modules**.",
+          "Next to the person, choose **Agent** or **Manager** under Aftersales — or **No access** to take it away. It saves straight away.",
+        ],
+      },
+      {
+        title: "Open a ticket",
+        steps: [
+          "Open **Aftersales** and tap **New ticket** (or open a customer and tap New ticket there).",
+          "Write a short **Subject**, choose or add the **Customer**, then the **Contact** and **Site** if you know them.",
+          "Choose the **Category** and **Priority**, and who it's **Assigned to** (or leave it — the Aftersales managers are told about new tickets nobody has).",
+          "Write what the customer reported and tap **Open ticket**. It gets a number like **TKT-1001**.",
+        ],
+        tip: "Soon, emails to support@oriongroup.com.mt will open tickets by themselves.",
+      },
+      {
+        title: "Work on a ticket",
+        steps: [
+          "The top shows the status, priority and — if the site has a warranty date — whether it's still under warranty.",
+          "Change **Status**, **Priority**, **Assigned to**, **Category**, **Customer**, **Contact** or **Site** — each saves straight away. **Take it** gives the ticket to you.",
+          "Below, write a **Reply to customer**, an **Internal note** (never shown to the customer) or **Customer said…** (e.g. what they told you on the phone). Attach photos or files, and choose **Then: Waiting for customer** or **Then: Resolved** to change the status at the same time.",
+          "Everything that happens is listed in order, with small grey lines for changes like status and assignment.",
+        ],
+        tip: "Replying moves a New ticket to In progress. When the customer writes on a Waiting or Resolved ticket, it goes back to In progress.",
+      },
+      {
+        title: "Find tickets",
+        steps: [
+          "Use the tabs: **Open**, **Mine**, **Unassigned**, **Waiting for customer**, **Resolved & closed** or **All**.",
+          "Search by ticket number (e.g. 1024 or TKT-1024), subject, customer or site, and filter by category or priority.",
+        ],
+      },
+      {
+        title: "Customers, contacts and sites",
+        steps: [
+          "Open **Aftersales → Customers & sites**. Customers don't need to be clients or projects in the app.",
+          "Open a customer to add **Contacts** (their email addresses are how emails will find them) and **Sites** — the buildings or installations you look after, with the handover date and **warranty end date**.",
+          "A site can be linked to a project in the app, but doesn't have to be.",
+        ],
+      },
+    ],
+  },
+  {
     id: "offline",
     title: "Working without signal",
     icon: "WifiOff",
