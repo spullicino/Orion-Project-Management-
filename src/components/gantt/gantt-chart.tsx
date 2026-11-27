@@ -29,14 +29,96 @@ export function GanttChart({ input, options, canEdit, onOpenTask, onChangeDates,
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
   const [labelW, setLabelW] = useState(260);
+  const box = useRef<HTMLDivElement>(null);
+  const resize = useRef<{ startX: number; startW: number; moved: boolean } | null>(null);
+  const lastTap = useRef(0);
+  const [resizing, setResizing] = useState(false);
 
+  // Task column width: the person's own choice on this device (phone and computer remembered separately).
+  const phone = () => window.matchMedia("(max-width: 640px)").matches;
+  const storeKey = () => (phone() ? "orion-gantt-names-phone" : "orion-gantt-names");
+  const defaultW = () => (phone() ? 150 : 260);
+  const limits = () => {
+    const total = box.current?.clientWidth ?? 1000;
+    return { min: 110, max: Math.max(160, Math.min(total - (phone() ? 90 : 200), 900)) };
+  };
+  const clampW = (w: number) => {
+    const { min, max } = limits();
+    return Math.round(Math.min(max, Math.max(min, w)));
+  };
+  const saveW = (w: number) => {
+    try {
+      localStorage.setItem(storeKey(), String(w));
+    } catch {
+      /* private mode: just for now */
+    }
+  };
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
-    const update = () => setLabelW(mq.matches ? 150 : 260);
+    const update = () => {
+      let saved: number | null = null;
+      try {
+        saved = Number(localStorage.getItem(storeKey())) || null;
+      } catch {
+        /* ignore */
+      }
+      setLabelW(clampW(saved ?? defaultW()));
+    };
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, and when switching between phone and computer width
   }, []);
+
+  /** Just wide enough for the longest task or group name. */
+  const fitWidth = () => {
+    const longest = Math.max(12, ...input.tasks.map((t) => t.title.length), ...input.groups.map((g) => g.name.length));
+    return clampW(longest * 7.2 + 28 + 46 + 8);
+  };
+  const autoFit = () => {
+    const fit = fitWidth();
+    const next = Math.abs(labelW - fit) < 4 ? clampW(defaultW()) : fit;
+    setLabelW(next);
+    saveW(next);
+  };
+
+  // Dragging the divider between the task names and the timeline.
+  useEffect(() => {
+    if (!resizing) return;
+    const move = (e: PointerEvent) => {
+      const r = resize.current;
+      if (!r) return;
+      const dx = e.clientX - r.startX;
+      if (Math.abs(dx) > 3) r.moved = true;
+      setLabelW(clampW(r.startW + dx));
+    };
+    const up = () => {
+      const r = resize.current;
+      resize.current = null;
+      setResizing(false);
+      if (r && !r.moved) {
+        // Double tap / double click: fit to the longest name (again: back to normal).
+        const now = Date.now();
+        if (now - lastTap.current < 350) {
+          lastTap.current = 0;
+          autoFit();
+        } else lastTap.current = now;
+      }
+      setLabelW((w) => {
+        saveW(w);
+        return w;
+      });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up, { once: true });
+    window.addEventListener("pointercancel", up, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tracks one drag at a time
+  }, [resizing]);
 
   // Start with today (or the project start) in view.
   useEffect(() => {
@@ -94,10 +176,50 @@ export function GanttChart({ input, options, canEdit, onOpenTask, onChangeDates,
   const isMouse = (e: React.PointerEvent) => e.pointerType === "mouse" || e.pointerType === "pen";
 
   return (
-    <div data-no-pull className="flex overflow-hidden rounded-xl border bg-card" style={{ userSelect: drag ? "none" : undefined }}>
+    <div ref={box} data-no-pull className="relative flex overflow-hidden rounded-xl border bg-card" style={{ userSelect: drag || resizing ? "none" : undefined }}>
       <svg width={labelW} height={layout.height} className="shrink-0 border-r" role="presentation">
         <GanttLabels layout={layout} width={labelW} showOwners={options.showOwners} onRowClick={onOpenTask} dark={dark} />
       </svg>
+      {/* Drag to widen or narrow the task names; double tap to fit the longest name. */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Task name column width — drag, use the arrow keys, or double tap to fit the names"
+        aria-valuenow={labelW}
+        aria-valuemin={110}
+        tabIndex={0}
+        title="Drag to resize · double-click to fit the names"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          resize.current = { startX: e.clientX, startW: labelW, moved: false };
+          setResizing(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Enter") return;
+          e.preventDefault();
+          if (e.key === "Enter") return autoFit();
+          const next = clampW(labelW + (e.key === "ArrowRight" ? 24 : -24));
+          setLabelW(next);
+          saveW(next);
+        }}
+        className="group absolute inset-y-0 z-10 flex w-6 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none"
+        style={{ left: labelW }}
+      >
+        <span className={`h-full w-0.5 transition-colors ${resizing ? "bg-primary" : "bg-transparent group-hover:bg-primary/50 group-focus-visible:bg-primary"}`} />
+        <span
+          className={`absolute top-[14px] flex h-7 w-4 items-center justify-center rounded-md border bg-card text-muted-foreground shadow-sm ${resizing ? "border-primary text-primary" : ""}`}
+          aria-hidden
+        >
+          <svg width="6" height="12" viewBox="0 0 6 12" fill="currentColor">
+            <circle cx="1.5" cy="2" r="1.2" />
+            <circle cx="4.5" cy="2" r="1.2" />
+            <circle cx="1.5" cy="6" r="1.2" />
+            <circle cx="4.5" cy="6" r="1.2" />
+            <circle cx="1.5" cy="10" r="1.2" />
+            <circle cx="4.5" cy="10" r="1.2" />
+          </svg>
+        </span>
+      </div>
       <div ref={scroller} className="min-w-0 flex-1 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" tabIndex={0} aria-label="Timeline (scroll sideways with the arrow keys)">
         <svg width={layout.width} height={layout.height} role="img" aria-label="Gantt chart of the project's tasks">
           <GanttTimeline

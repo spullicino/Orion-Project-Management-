@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-gantt-column",
+    date: "2026-11-27",
+    title: "Gantt: drag to widen the task names",
+    body: "On the Gantt, drag the grip on the line between the task names and the timeline to see full names — or double-tap it to fit the longest name. Your width is remembered on your device.",
+    help: "/help#gantt",
+  },
+  {
     id: "2026-11-27-gantt-export",
     date: "2026-11-27",
     title: "Gantt export: fit to page, live preview and print",

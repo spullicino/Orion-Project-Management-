@@ -344,6 +344,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Open the project's **Gantt** tab.",
           "Each bar is a task from its start to its due date. Diamonds are milestones. Arrows show which task waits for which.",
           "Use **Zoom** (Days, Weeks, Months) and **Today** to move around.",
+          "Task names cut off? Drag the grip (⋮⋮) on the line between the names and the timeline to widen or narrow the names column. Double-tap it to fit the longest name (again to go back). Your width is remembered on this device.",
           "Red bars are overdue or blocked; amber ones are at risk.",
         ],
       },
