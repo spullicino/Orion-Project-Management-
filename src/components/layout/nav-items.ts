@@ -15,13 +15,17 @@ export const PRIMARY_NAV: NavItem[] = [
 /** Managers and admins get Overview instead of Daily Update in the phone tab bar (posting is a button on Overview). */
 export const OVERVIEW_ITEM: NavItem = { href: "/overview", label: "Overview", icon: LayoutDashboard, minRole: "manager" };
 
-export function phoneNav(isManager: boolean): NavItem[] {
-  return isManager ? PRIMARY_NAV.map((i) => (i.href === "/daily-update" ? OVERVIEW_ITEM : i)) : PRIMARY_NAV;
+/** People with the Aftersales module get it right after Projects (a 6th tab on phones). */
+const withAftersales = (items: NavItem[], aftersales: boolean) =>
+  aftersales ? items.flatMap((i) => (i.href === "/projects" ? [i, AFTERSALES_ITEM] : [i])) : items;
+
+export function phoneNav(isManager: boolean, aftersales = false): NavItem[] {
+  return withAftersales(isManager ? PRIMARY_NAV.map((i) => (i.href === "/daily-update" ? OVERVIEW_ITEM : i)) : PRIMARY_NAV, aftersales);
 }
 
 /** Desktop sidebar: Overview goes right after Home for managers and admins. */
-export function sidebarNav(isManager: boolean): NavItem[] {
-  return isManager ? [PRIMARY_NAV[0], OVERVIEW_ITEM, ...PRIMARY_NAV.slice(1)] : PRIMARY_NAV;
+export function sidebarNav(isManager: boolean, aftersales = false): NavItem[] {
+  return withAftersales(isManager ? [PRIMARY_NAV[0], OVERVIEW_ITEM, ...PRIMARY_NAV.slice(1)] : PRIMARY_NAV, aftersales);
 }
 
 /** Extra items in the desktop sidebar (on phones they're reached from Profile). */

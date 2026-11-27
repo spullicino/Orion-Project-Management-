@@ -107,7 +107,7 @@ export default async function ShellPreview({
               )}
             </main>
           </div>
-          <BottomTabs isManager newRequests={2} />
+          <BottomTabs isManager newRequests={2} aftersales ticketCount={3} />
           <PullToRefresh />
           <UpdateBanner />
         </div>

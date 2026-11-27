@@ -49,6 +49,16 @@ export default async function AppLayout({
     getModuleLevel(profile, "aftersales"),
   ]);
 
+  // Aftersales badge: open tickets assigned to me, plus open ones nobody has taken.
+  const ticketCount = aftersales
+    ? await supabase
+        .from("as_tickets")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["new", "assigned", "in_progress", "waiting"])
+        .or(`assigned_to.eq.${profile.id},assigned_to.is.null`)
+        .then((r) => (r.error ? 0 : (r.count ?? 0)))
+    : 0;
+
   return (
     <OutboxProvider userId={profile.id}>
       <UnreadProvider initial={unread}>
@@ -60,7 +70,7 @@ export default async function AppLayout({
           >
             Skip to content
           </a>
-          <Sidebar profile={profile} avatarUrl={avatarUrl} newRequests={newRequests} aftersales={!!aftersales} />
+          <Sidebar profile={profile} avatarUrl={avatarUrl} newRequests={newRequests} aftersales={!!aftersales} ticketCount={ticketCount} />
           <div className="flex min-w-0 flex-1 flex-col">
             <MobileHeader profile={profile} avatarUrl={avatarUrl} />
             <TopBanner initial={banner} />
@@ -73,7 +83,7 @@ export default async function AppLayout({
               {children}
             </main>
           </div>
-          <BottomTabs isManager={isManager} newRequests={newRequests} />
+          <BottomTabs isManager={isManager} newRequests={newRequests} aftersales={!!aftersales} ticketCount={ticketCount} />
           <InstallPrompt />
           <OfflineWarmup />
           <ActivityPing />

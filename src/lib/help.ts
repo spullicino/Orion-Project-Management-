@@ -767,7 +767,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         title: "Who can use Aftersales",
         steps: [
-          "Aftersales is a separate module. You only see it (in the menu, or **Profile → Aftersales** on a phone) if an administrator gave you access.",
+          "Aftersales is a separate module. You only see it if an administrator gave you access — then it's in the bottom bar on phones (between **Projects** and **Overview**) and in the menu on computers.",
+          "The red number on it counts open tickets **assigned to you**, plus open tickets **nobody has taken** yet.",
           "**Agents** handle tickets, customers and sites. **Managers** can also delete, and change the categories. Administrators are always managers.",
         ],
       },

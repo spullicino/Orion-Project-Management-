@@ -9,11 +9,11 @@ import { UserAvatar } from "@/components/ui/avatar";
 import { hasRole, ROLE_LABEL } from "@/lib/auth/roles";
 import { cn, fullName } from "@/lib/utils";
 import type { Profile } from "@/types/database";
-import { AFTERSALES_ITEM, SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
+import { SECONDARY_NAV, isActive, sidebarNav, type NavItem } from "./nav-items";
 import { CountBadge } from "./bottom-tabs";
 import { RefreshButton } from "@/components/pwa/refresh";
 
-function NavLink({ item, pathname, newRequests }: { item: NavItem; pathname: string; newRequests?: number }) {
+function NavLink({ item, pathname, newRequests, ticketCount }: { item: NavItem; pathname: string; newRequests?: number; ticketCount?: number }) {
   const active = isActive(pathname, item.href);
   const Icon = item.icon;
   return (
@@ -29,6 +29,7 @@ function NavLink({ item, pathname, newRequests }: { item: NavItem; pathname: str
       <span className="flex-1">{item.label}</span>
       {item.href === "/chats" && <UnreadBadge />}
       {item.href === "/overview" && <CountBadge count={newRequests ?? 0} label="new material requests" />}
+      {item.href === "/aftersales" && <CountBadge count={ticketCount ?? 0} label="tickets for you" />}
     </Link>
   );
 }
@@ -38,15 +39,17 @@ export function Sidebar({
   avatarUrl,
   newRequests = 0,
   aftersales = false,
+  ticketCount = 0,
 }: {
   profile: Profile;
   avatarUrl: string | null;
   newRequests?: number;
   /** Can use the Aftersales module. */
   aftersales?: boolean;
+  ticketCount?: number;
 }) {
   const pathname = usePathname();
-  const secondary = [...(aftersales ? [AFTERSALES_ITEM] : []), ...SECONDARY_NAV.filter((i) => !i.minRole || hasRole(profile.role, i.minRole))];
+  const secondary = SECONDARY_NAV.filter((i) => !i.minRole || hasRole(profile.role, i.minRole));
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-card md:flex">
       <div className="px-5 py-5">
@@ -55,8 +58,8 @@ export function Sidebar({
         </Link>
       </div>
       <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3">
-        {sidebarNav(hasRole(profile.role, "manager")).map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} newRequests={newRequests} />
+        {sidebarNav(hasRole(profile.role, "manager"), aftersales).map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} newRequests={newRequests} ticketCount={ticketCount} />
         ))}
         <NotificationBell withLabel />
         <RefreshButton withLabel />

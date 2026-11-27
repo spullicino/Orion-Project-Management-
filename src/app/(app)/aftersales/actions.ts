@@ -39,7 +39,7 @@ async function member(minimum: ModuleLevel = "agent") {
 }
 const NO_ACCESS = "You don't have access to Aftersales.";
 const refresh = (number?: number) => {
-  revalidatePath("/aftersales", "layout");
+  revalidatePath("/", "layout"); // also the badge on the Aftersales tab
   if (number) revalidatePath(`/aftersales/tickets/${number}`);
 };
 
