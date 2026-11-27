@@ -15,12 +15,15 @@ const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 export const LABEL_NAME = "Orion-Projects";
 
-export const gmailConfigured = () => !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+// Trimmed: a space or line break pasted into Vercel would make Google answer "client not found".
+const clientId = () => (process.env.GOOGLE_CLIENT_ID ?? "").trim().replace(/^["']|["']$/g, "");
+const clientSecret = () => (process.env.GOOGLE_CLIENT_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+export const gmailConfigured = () => !!(clientId() && clientSecret());
 export const gmailRedirectUri = (site: string) => `${site}/api/aftersales/gmail/callback`;
 
 export function gmailAuthUrl(site: string, state: string) {
   const q = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+    client_id: clientId(),
     redirect_uri: gmailRedirectUri(site),
     response_type: "code",
     scope: SCOPE,
@@ -38,7 +41,7 @@ async function token(body: Record<string, string>): Promise<TokenResponse> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "", ...body }),
+    body: new URLSearchParams({ client_id: clientId(), client_secret: clientSecret(), ...body }),
     cache: "no-store",
   });
   const json = (await res.json().catch(() => ({}))) as TokenResponse;
