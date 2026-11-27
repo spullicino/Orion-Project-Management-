@@ -5,6 +5,7 @@ import { NewTicketButton } from "@/components/aftersales/new-ticket-dialog";
 import { TicketFilters, TicketList } from "@/components/aftersales/ticket-list";
 import { TicketView } from "@/components/aftersales/ticket-view";
 import { ModulesView } from "@/components/admin/modules-view";
+import { MailSettings } from "@/components/aftersales/mail-settings";
 import { PageHeader } from "@/components/layout/page-header";
 import type { AsLookups, TicketDetail, TicketRow } from "@/types/aftersales";
 
@@ -50,19 +51,29 @@ export default async function AftersalesPreview({ searchParams }: { searchParams
     category_id: "c0", customer_id: "k1", contact_id: "p1", site_id: "s1", assigned_to: "u2", created_at: ago(5), created_by: null, creator: null,
     first_response_at: ago(4), last_customer_at: ago(1), resolved_at: null, closed_at: null,
     messages: [
-      { id: "m1", kind: "event", author: null, from_name: null, from_email: null, body: "Ticket opened from an email", email_status: null, created_at: ago(5) },
-      { id: "m2", kind: "customer", author: null, from_name: "Anna Zammit", from_email: "anna@solair.com.mt", body: "Good morning,\n\nThe fire alarm panel in Block B has been beeping since last night and shows a fault on zone 3. Residents are complaining. Can someone come today?\n\nThanks,\nAnna", email_status: null, created_at: ago(5) },
-      { id: "m3", kind: "event", author: "Sarah Pullicino", from_name: null, from_email: null, body: "Assigned to Joe Vella", email_status: null, created_at: ago(4.5) },
-      { id: "m4", kind: "reply", author: "Joe Vella", from_name: null, from_email: null, body: "Hi Anna, we'll be on site at 14:00 today to check zone 3. Please make sure we can access the panel room.", email_status: "sent", created_at: ago(4) },
-      { id: "m5", kind: "note", author: "Joe Vella", from_name: null, from_email: null, body: "Probably detector 3.14 (car park) — dusty. Bring a spare and the test kit.", email_status: null, created_at: ago(3.8) },
-      { id: "m6", kind: "customer", author: null, from_name: "Anna Zammit", from_email: "anna@solair.com.mt", body: "Perfect, the caretaker will be there.", email_status: null, created_at: ago(1) },
+      { id: "m1", kind: "event", author: null, from_name: null, from_email: null, body: "Ticket opened from an email", email_status: null, email_to: null, email_error: null, created_at: ago(5) },
+      { id: "m2", kind: "customer", author: null, from_name: "Anna Zammit", from_email: "anna@solair.com.mt", body: "Good morning,\n\nThe fire alarm panel in Block B has been beeping since last night and shows a fault on zone 3. Residents are complaining. Can someone come today?\n\nThanks,\nAnna", email_status: null, email_to: null, email_error: null, created_at: ago(5) },
+      { id: "m3", kind: "event", author: "Sarah Pullicino", from_name: null, from_email: null, body: "Assigned to Joe Vella", email_status: null, email_to: null, email_error: null, created_at: ago(4.5) },
+      { id: "m4", kind: "reply", author: "Joe Vella", from_name: null, from_email: null, body: "Hi Anna, we'll be on site at 14:00 today to check zone 3. Please make sure we can access the panel room.", email_status: "sent", email_to: "anna@solair.com.mt", email_error: null, created_at: ago(4) },
+      { id: "m5", kind: "note", author: "Joe Vella", from_name: null, from_email: null, body: "Probably detector 3.14 (car park) — dusty. Bring a spare and the test kit.", email_status: null, email_to: null, email_error: null, created_at: ago(3.8) },
+      { id: "m7", kind: "reply", author: "Joe Vella", from_name: null, from_email: null, body: "We've ordered the replacement detector — it arrives Monday.", email_status: "failed", email_to: null, email_error: "Gmail 503: the service is temporarily unavailable", created_at: ago(2) },
+      { id: "m6", kind: "customer", author: null, from_name: "Anna Zammit", from_email: "anna@solair.com.mt", body: "Perfect, the caretaker will be there.", email_status: null, email_to: null, email_error: null, created_at: ago(1) },
     ],
     files: [{ id: "f1", file_name: "panel-display.jpg", mime_type: "image/jpeg", size_bytes: 412_000, uploaded_by: null, uploader: "Anna Zammit", created_at: ago(5) }],
   };
 
-  if (page === "ticket") return <TicketView ticket={ticket} lookups={lookups} meId="me" isManager today="2026-11-27" />;
+  if (page === "ticket") return <TicketView ticket={ticket} lookups={lookups} meId="me" isManager today="2026-11-27" mailbox="support@oriongroup.com.mt" />;
   if (page === "customer")
     return <CustomerDetail customer={lookups.customers[0]} lookups={lookups} tickets={tickets.slice(0, 3)} clients={[]} projects={[]} isManager today="2026-11-27" />;
+  if (page === "settings") {
+    const base = { mailbox: "support@oriongroup.com.mt", connected: true, connected_at: ago(30), connected_by: "Sarah Pullicino", last_sync_at: ago(48), last_error: null, last_error_at: null, auto_ack: true, ack_text: "Thank you for contacting Orion Group. We have received your request and logged it as {ticket}.\n\nOur aftersales team will get back to you as soon as possible.", signature: "Orion Group — Aftersales\nsupport@oriongroup.com.mt" };
+    return (
+      <div className="grid gap-5">
+        <MailSettings status={base} configured isManager isAdmin siteUrl="https://orion-projects.vercel.app" redirectUri="https://orion-projects.vercel.app/api/aftersales/gmail/callback" result="connected" nowMs={now} />
+        <MailSettings status={{ ...base, connected: false, mailbox: null }} configured={false} isManager isAdmin siteUrl="https://orion-projects.vercel.app" redirectUri="https://orion-projects.vercel.app/api/aftersales/gmail/callback" nowMs={now} />
+      </div>
+    );
+  }
   if (page === "modules")
     return (
       <>

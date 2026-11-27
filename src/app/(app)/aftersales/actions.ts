@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Result } from "@/app/(app)/projects/actions";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { sendTicketReply } from "@/lib/mail/outbound";
 import { getModuleLevel, type ModuleLevel } from "@/lib/modules";
 import { queuePush } from "@/lib/notify/queue";
 import { rateLimit } from "@/lib/rate-limit";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   contactSchema,
@@ -99,7 +101,10 @@ export async function deleteTicket(id: string): Promise<Result> {
   return { ok: true };
 }
 
-/** A reply to the customer, an internal note, or something the customer said (e.g. on the phone). */
+/**
+ * A reply to the customer, an internal note, or something the customer said (e.g. on the phone).
+ * Replies are saved first; with `email`, files are uploaded and then sendTicketReplyEmail() sends it.
+ */
 export async function addTicketMessage(input: unknown): Promise<Result<{ id: string }>> {
   const me = await member();
   if (!me) return fail(NO_ACCESS);
@@ -119,6 +124,21 @@ export async function addTicketMessage(input: unknown): Promise<Result<{ id: str
   queuePush();
   refresh(t?.number);
   return { ok: true, data: { id: data.id } };
+}
+
+/** After the reply's files are uploaded: email it from support@ (Gmail). */
+export async function sendTicketReplyEmail(messageId: string): Promise<Result<{ to: string }>> {
+  const me = await member();
+  if (!me) return fail(NO_ACCESS);
+  if (!z.string().uuid().safeParse(messageId).success) return fail("Reply not found");
+  const supabase = await createClient();
+  const { data: m } = await supabase.from("as_messages").select("id, kind, author_id, email_status").eq("id", messageId).maybeSingle();
+  if (!m || m.kind !== "reply" || m.author_id !== me.id) return fail("Reply not found");
+  if (m.email_status === "sent") return fail("It was already emailed.");
+  // Admin client: sending updates the message and reads the mailbox keys. Checked: member, own reply.
+  const res = await sendTicketReply(createAdminClient(), messageId);
+  refresh();
+  return res.ok ? { ok: true, data: { to: res.to } } : fail(res.error);
 }
 
 export async function deleteTicketMessage(id: string): Promise<Result> {

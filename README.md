@@ -137,6 +137,7 @@ Keep these SMTP details — the daily email summary uses them too (step 10).
    | `NEXT_PUBLIC_SITE_URL` | `https://projects.oriongroup.com.mt` (once you have it — step 8) | email links |
    | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` | from step 10 | notifications, daily job |
    | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | from step 5 | daily email summary |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Cloud (Help → Aftersales → "Connect the support@ Gmail") | Aftersales emails (optional) |
 
    Vercel may warn that `NEXT_PUBLIC_…` values are visible to browsers — that's expected and safe for those two (choose *Config* if asked). Keep the names unchanged.
 3. **Deploy.** Your app is at `https://<name>.vercel.app`.

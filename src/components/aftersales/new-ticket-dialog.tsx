@@ -51,7 +51,7 @@ function NewTicketDialog({ lookups, presetCustomer, onClose }: { lookups: AsLook
 
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
-      <DialogContent title="New ticket" description="For a call or visit. Emails to support@ will open tickets by themselves once Gmail is connected." className="max-w-lg">
+      <DialogContent title="New ticket" description="For a call or visit. Emails to support@ open tickets by themselves once Gmail is connected." className="max-w-lg">
         <form
           className="grid gap-3"
           onSubmit={async (e) => {

@@ -79,12 +79,20 @@ export async function loadTickets(supabase: Db, me: string, f: TicketFilters, lo
   }));
 }
 
+/** The connected support@ mailbox (null when not connected, or before database update 0035). */
+export async function loadMailbox(supabase: Db): Promise<string | null> {
+  const { data, error } = await supabase.rpc("aftersales_mail_status");
+  if (error || !data) return null;
+  const s = data as { connected?: boolean; mailbox?: string | null };
+  return s.connected ? (s.mailbox ?? null) : null;
+}
+
 /** One ticket with its conversation and files. */
 export async function loadTicket(supabase: Db, number: number): Promise<TicketDetail | null> {
   const { data: t } = await supabase.from("as_tickets").select("*").eq("number", number).maybeSingle();
   if (!t) return null;
   const [{ data: messages }, { data: files }] = await Promise.all([
-    supabase.from("as_messages").select("id, kind, author_id, from_name, from_email, body, email_status, created_at").eq("ticket_id", t.id).order("created_at").order("id"),
+    supabase.from("as_messages").select("id, kind, author_id, from_name, from_email, body, email_status, email_to, email_error, created_at").eq("ticket_id", t.id).order("created_at").order("id"),
     supabase.from("as_files").select("id, file_name, mime_type, size_bytes, uploaded_by, created_at").eq("ticket_id", t.id).order("created_at"),
   ]);
   const ids = [...new Set([t.created_by, ...(messages ?? []).map((m) => m.author_id), ...(files ?? []).map((f) => f.uploaded_by)].filter(Boolean) as string[])];
@@ -110,7 +118,7 @@ export async function loadTicket(supabase: Db, number: number): Promise<TicketDe
     last_customer_at: t.last_customer_at,
     resolved_at: t.resolved_at,
     closed_at: t.closed_at,
-    messages: (messages ?? []).map((m) => ({ id: m.id, kind: m.kind, author: by(m.author_id), from_name: m.from_name, from_email: m.from_email, body: m.body, email_status: m.email_status, created_at: m.created_at })),
+    messages: (messages ?? []).map((m) => ({ id: m.id, kind: m.kind, author: by(m.author_id), from_name: m.from_name, from_email: m.from_email, body: m.body, email_status: m.email_status, email_to: m.email_to, email_error: m.email_error, created_at: m.created_at })),
     files: (files ?? []).map((f) => ({ ...f, uploader: by(f.uploaded_by) })),
   };
 }

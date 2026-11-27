@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-aftersales-email",
+    date: "2026-11-27",
+    title: "Aftersales: emails to support@ open tickets",
+    body: "Once support@ is connected (Aftersales → Settings), new emails open tickets by themselves and the customer gets an automatic reply with the OGT number. Replies — with the OGT number, in the same conversation, or the same subject — go onto the same ticket. Your replies in the app are emailed from support@ in the same conversation.",
+    help: "/help#aftersales",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-27-aftersales",
     date: "2026-11-27",
     title: "Aftersales module: support tickets (OGT-1001…)",

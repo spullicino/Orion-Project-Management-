@@ -30,7 +30,7 @@ describe("table privileges", () => {
       await asUser(USERS.admin, async (db) => {
         names = (
           await db.query<{ tablename: string }>(
-            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets', 'user_activity', 'audit_log', 'deleted_tasks') order by 1",
+            "select tablename from pg_tables where schemaname = 'public' and tablename not in ('rate_limits', 'push_outbox', 'job_secrets', 'user_activity', 'audit_log', 'deleted_tasks', 'as_mail_settings') order by 1",
           )
         ).map((r) => r.tablename);
       });
@@ -2063,6 +2063,46 @@ describe("modules: Aftersales (tickets)", () => {
       await db.query("insert into public.as_categories (name, position) values ('Lifts', 11)");
       await db.query(`delete from public.as_tickets where id = '${T}'`);
       expect(await count(db, "select 1 from public.as_tickets")).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("Aftersales email (Gmail)", () => {
+  type Row = Record<string, unknown>;
+  const grant = (u: string, level: "agent" | "manager") =>
+    `insert into public.module_access (user_id, module, level, granted_by) values ('${u}', 'aftersales', '${level}', '${USERS.admin}');`;
+  const connected = `update public.as_mail_settings set mailbox = 'support@oriongroup.com.mt', refresh_token = 'secret-refresh', access_token = 'secret-access', connected_at = now();`;
+
+  it("the mailbox keys are never readable — not even by administrators", async () => {
+    await withSetup(connected, USERS.admin, async (db) => {
+      expect(await db.fails("select refresh_token from public.as_mail_settings")).toMatch(/permission denied/);
+      const status = (await db.query<Row>("select public.aftersales_mail_status() as s"))[0].s as Record<string, unknown>;
+      expect(status).toMatchObject({ mailbox: "support@oriongroup.com.mt", connected: true, auto_ack: true });
+      expect(JSON.stringify(status)).not.toMatch(/secret-/);
+    });
+    await withSetup(connected, USERS.manager, async (db) => {
+      expect((await db.query<Row>("select public.aftersales_mail_status() as s"))[0].s).toBeNull();
+    });
+  });
+
+  it("only Aftersales managers change the automatic reply, and it must show the ticket number", async () => {
+    await withSetup(grant(USERS.tech1, "agent"), USERS.tech1, async (db) => {
+      expect(await db.fails("select public.set_aftersales_mail_options(false, 'Hi {ticket}', 'Orion')")).toMatch(/Only Aftersales managers/);
+    });
+    await withSetup(grant(USERS.manager, "manager"), USERS.manager, async (db) => {
+      expect(await db.fails("select public.set_aftersales_mail_options(true, 'Thanks, we got it', 'Orion')")).toMatch(/must include \{ticket\}/);
+      await db.query("select public.set_aftersales_mail_options(true, 'Logged as {ticket}', 'Orion Aftersales')");
+      expect((await db.query<Row>("select public.aftersales_mail_status() as s"))[0].s).toMatchObject({ ack_text: "Logged as {ticket}", signature: "Orion Aftersales" });
+    });
+  });
+
+  it("people can't fake email details on messages", async () => {
+    const T = "60000000-0000-4000-8000-0000000000e1";
+    await withSetup(`${grant(USERS.tech1, "agent")} insert into public.as_tickets (id, subject, created_by) values ('${T}', 'x', '${USERS.admin}');`, USERS.tech1, async (db) => {
+      expect(await db.fails(`insert into public.as_messages (ticket_id, kind, author_id, body, gmail_id) values ('${T}', 'reply', '${USERS.tech1}', 'hi', 'g1')`)).toMatch(/row-level security/);
+      expect(await db.fails(`insert into public.as_messages (ticket_id, kind, author_id, body, email_message_id) values ('${T}', 'reply', '${USERS.tech1}', 'hi', '<x@y>')`)).toMatch(/row-level security/);
+      expect(await db.fails(`insert into public.as_messages (ticket_id, kind, author_id, body) values ('${T}', 'reply', '${USERS.tech1}', 'hi')`)).toBeNull();
     });
   });
 });

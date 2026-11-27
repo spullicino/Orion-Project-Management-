@@ -41,6 +41,8 @@ export type TicketMessage = {
   from_email: string | null;
   body: string;
   email_status: "pending" | "sent" | "failed" | null;
+  email_to: string | null;
+  email_error: string | null;
   created_at: string;
 };
 export type TicketFile = { id: string; file_name: string; mime_type: string | null; size_bytes: number | null; uploaded_by: string | null; uploader: string | null; created_at: string };

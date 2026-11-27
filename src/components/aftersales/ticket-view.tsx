@@ -12,8 +12,10 @@ import {
   deleteTicketFile,
   deleteTicketMessage,
   registerTicketFile,
+  sendTicketReplyEmail,
   updateTicket,
 } from "@/app/(app)/aftersales/actions";
+import { resendReply } from "@/app/(app)/aftersales/mail-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useConfirm } from "@/components/ui/confirm";
@@ -66,12 +68,13 @@ async function uploadTicketFile(ticketId: string, file: File, messageId: string 
 
 type Mode = "reply" | "note" | "customer";
 const MODES: { value: Mode; label: string; icon: typeof Send; hint: string }[] = [
-  { value: "reply", label: "Reply to customer", icon: MessageSquareReply, hint: "Saved on the ticket. Emailing replies from support@ starts once Gmail is connected — until then, send it from Gmail too." },
+  { value: "reply", label: "Reply to customer", icon: MessageSquareReply, hint: "Saved on the ticket. Gmail isn't connected yet (Aftersales → Settings) — until then, send it from Gmail too." },
   { value: "note", label: "Internal note", icon: Lock, hint: "Only people with Aftersales see notes — never the customer." },
   { value: "customer", label: "Customer said…", icon: Phone, hint: "Write down what the customer told you, e.g. on the phone or on site." },
 ];
 
-function Message({ m, canDelete, onDelete }: { m: TicketMessage; canDelete: boolean; onDelete: () => void }) {
+function Message({ m, canDelete, onDelete, onRetry }: { m: TicketMessage; canDelete: boolean; onDelete: () => void; onRetry?: () => Promise<void> }) {
+  const [retrying, setRetrying] = useState(false);
   if (m.kind === "event") {
     return (
       <li className="flex justify-center px-2">
@@ -85,7 +88,11 @@ function Message({ m, canDelete, onDelete }: { m: TicketMessage; canDelete: bool
     m.kind === "customer"
       ? { box: "bg-muted/60 border", who: m.from_name || m.from_email || "Customer", tag: m.from_email && m.from_name ? m.from_email : m.author && !m.from_email ? `written down by ${m.author}` : null }
       : m.kind === "reply"
-        ? { box: "bg-primary/10 border border-primary/30 md:ml-10", who: m.author ?? "Orion", tag: m.email_status === "sent" ? "Emailed" : m.email_status === "failed" ? "Email failed" : "Not emailed" }
+        ? {
+            box: cn("border md:ml-10", m.email_status === "failed" ? "border-destructive/50 bg-destructive/5" : "border-primary/30 bg-primary/10"),
+            who: m.author ?? "Orion",
+            tag: m.email_status === "sent" ? `Emailed${m.email_to ? ` to ${m.email_to}` : ""}` : m.email_status === "failed" ? "Email not sent" : "Not emailed",
+          }
         : { box: "bg-amber-500/10 border border-amber-500/40 md:ml-10", who: m.author ?? "Someone", tag: "Internal note" };
   return (
     <li className={cn("grid gap-1 rounded-xl p-3", style.box)}>
@@ -101,11 +108,43 @@ function Message({ m, canDelete, onDelete }: { m: TicketMessage; canDelete: bool
         )}
       </div>
       <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+      {m.email_status === "failed" && onRetry && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+          <span className="min-w-0 flex-1">{m.email_error ?? "The email couldn't be sent."}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={retrying}
+            onClick={async () => {
+              setRetrying(true);
+              await onRetry();
+              setRetrying(false);
+            }}
+          >
+            {retrying ? <Loader2 className="animate-spin" aria-hidden /> : <Send aria-hidden />} Try again
+          </Button>
+        </div>
+      )}
     </li>
   );
 }
 
-export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket: TicketDetail; lookups: AsLookups; meId: string; isManager: boolean; today: string }) {
+export function TicketView({
+  ticket,
+  lookups,
+  meId,
+  isManager,
+  today,
+  mailbox,
+}: {
+  ticket: TicketDetail;
+  lookups: AsLookups;
+  meId: string;
+  isManager: boolean;
+  today: string;
+  /** The connected support@ mailbox, or null when Gmail isn't connected. */
+  mailbox: string | null;
+}) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const [saving, setSaving] = useState<string | null>(null);
@@ -116,6 +155,7 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [editSubject, setEditSubject] = useState(false);
+  const [emailIt, setEmailIt] = useState(true);
   const pick = useRef<HTMLInputElement>(null);
 
   const customer = lookups.customers.find((c) => c.id === ticket.customer_id) ?? null;
@@ -123,6 +163,9 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
   const sites = customer ? lookups.sites.filter((s) => s.customer_id === customer.id) : [];
   const site = lookups.sites.find((s) => s.id === ticket.site_id) ?? null;
   const contact = lookups.contacts.find((c) => c.id === ticket.contact_id) ?? null;
+  // Who a reply goes to: the contact, else whoever last wrote.
+  const replyTo = contact?.email ?? [...ticket.messages].reverse().find((m) => m.kind === "customer" && m.from_email)?.from_email ?? null;
+  const willEmail = mode === "reply" && !!mailbox && !!replyTo && emailIt;
 
   async function save(field: string, patch: TicketPatch, ok?: string) {
     setSaving(field);
@@ -142,12 +185,18 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
     }
     let allFiles = true;
     for (const f of files) allFiles = (await uploadTicketFile(ticket.id, f, res.data!.id)) && allFiles;
+    let emailed: string | null = null;
+    if (willEmail) {
+      const sent = await sendTicketReplyEmail(res.data!.id);
+      if (sent.ok) emailed = sent.data!.to;
+      else toast.error(`Saved, but the email wasn't sent: ${sent.error}`);
+    }
     setSending(false);
     setBody("");
     setFromName("");
     setThenStatus("");
     setFiles([]);
-    toast.success(mode === "note" ? "Note added" : mode === "reply" ? "Reply saved" : "Saved");
+    toast.success(mode === "note" ? "Note added" : emailed ? `Reply emailed to ${emailed}` : mode === "reply" ? "Reply saved" : "Saved");
     if (!allFiles) toast.error("Some files didn't upload — add them again.");
     router.refresh();
   }
@@ -324,6 +373,16 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
                 key={m.id}
                 m={m}
                 canDelete={isManager && m.kind !== "event"}
+                onRetry={
+                  m.kind === "reply" && mailbox
+                    ? async () => {
+                        const res = await resendReply(m.id);
+                        if (!res.ok) return void toast.error(res.error);
+                        toast.success(`Emailed to ${res.data!.to}`);
+                        router.refresh();
+                      }
+                    : undefined
+                }
                 onDelete={async () => {
                   if (!(await confirm("Delete this message?", { body: "It's removed from the ticket for good." }))) return;
                   const res = await deleteTicketMessage(m.id);
@@ -388,7 +447,21 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">{MODES.find((m) => m.value === mode)!.hint}</p>
+              {mode === "reply" && mailbox ? (
+                replyTo ? (
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input type="checkbox" className="size-5 shrink-0 accent-[var(--primary)]" checked={emailIt} onChange={(e) => setEmailIt(e.target.checked)} />
+                    <span className="min-w-0">
+                      Email it to <strong className="break-all">{replyTo}</strong> from {mailbox}
+                      <span className="block text-xs text-muted-foreground">In the same email conversation, with any files you attach. Untick to only save it here.</span>
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-xs text-muted-foreground">This ticket has no customer email address, so the reply is only saved here. Add a contact with an email to send replies.</p>
+                )
+              ) : (
+                <p className="text-xs text-muted-foreground">{MODES.find((m) => m.value === mode)!.hint}</p>
+              )}
               {mode === "customer" && (
                 <Input value={fromName} onChange={(e) => setFromName(e.target.value)} maxLength={160} placeholder={`Who said it? e.g. ${contact?.name || "Mr Borg"}`} aria-label="Who said it" />
               )}
@@ -434,7 +507,7 @@ export function TicketView({ ticket, lookups, meId, isManager, today }: { ticket
                 </NativeSelect>
                 <Button className="ml-auto" onClick={send} disabled={sending || !body.trim()}>
                   {sending ? <Loader2 className="animate-spin" aria-hidden /> : <Send aria-hidden />}
-                  {mode === "note" ? "Add note" : "Save"}
+                  {mode === "note" ? "Add note" : willEmail ? "Send" : "Save"}
                 </Button>
               </div>
             </CardContent>
