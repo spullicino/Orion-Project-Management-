@@ -3,7 +3,7 @@ import { MailSettings, type MailStatus } from "@/components/aftersales/mail-sett
 import { AftersalesSettings } from "@/components/aftersales/settings-view";
 import { SlaSettingsCard, type SlaSettings } from "@/components/aftersales/sla-settings";
 import { PageHeader } from "@/components/layout/page-header";
-import { gmailConfigured, gmailRedirectUri } from "@/lib/mail/gmail";
+import { gmailClientIdInUse, gmailConfigured, gmailKeysLookSwapped, gmailRedirectUri } from "@/lib/mail/gmail";
 import { requireModule } from "@/lib/modules";
 import { getSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +38,8 @@ export default async function AftersalesSettingsPage({ searchParams }: { searchP
             isAdmin={profile.role === "admin"}
             siteUrl={site}
             redirectUri={gmailRedirectUri(site)}
+            clientId={level === "manager" ? gmailClientIdInUse() : null}
+            keysSwapped={gmailKeysLookSwapped()}
             result={sp.gmail}
             nowMs={nowMs()}
           />

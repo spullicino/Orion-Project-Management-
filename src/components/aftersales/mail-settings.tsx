@@ -62,6 +62,8 @@ export function MailSettings({
   redirectUri,
   result,
   nowMs,
+  clientId,
+  keysSwapped,
 }: {
   status: MailStatus | null;
   configured: boolean;
@@ -71,6 +73,9 @@ export function MailSettings({
   redirectUri: string;
   result?: string;
   nowMs: number;
+  /** The Google Client ID the app uses (managers), to compare with Google Cloud. */
+  clientId?: string | null;
+  keysSwapped?: boolean;
 }) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
@@ -128,6 +133,18 @@ export function MailSettings({
           </div>
         ) : !status.connected ? (
           <div className="grid gap-2">
+            {keysSwapped && (
+              <p className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+                The Client ID and Client secret in Vercel look swapped: GOOGLE_CLIENT_ID should end in .apps.googleusercontent.com and GOOGLE_CLIENT_SECRET usually starts with GOCSPX-.
+              </p>
+            )}
+            {clientId && (
+              <div className="grid gap-1 text-xs text-muted-foreground">
+                <span>Google Client ID the app is using — it must match Google Cloud → Clients exactly:</span>
+                <code className="break-all rounded-lg bg-muted p-2">{clientId}</code>
+              </div>
+            )}
             <p className="text-sm">Not connected yet. {isManager ? "Connect it, signing in to Google as the support mailbox." : "An Aftersales manager can connect it."}</p>
             {isManager && (
               <Button asChild className="justify-self-start">

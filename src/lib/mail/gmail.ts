@@ -19,6 +19,10 @@ export const LABEL_NAME = "Orion-Projects";
 const clientId = () => (process.env.GOOGLE_CLIENT_ID ?? "").trim().replace(/^["']|["']$/g, "");
 const clientSecret = () => (process.env.GOOGLE_CLIENT_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
 export const gmailConfigured = () => !!(clientId() && clientSecret());
+/** For checking the setup: the Client ID in use (not a secret — Google shows it in the sign-in address). */
+export const gmailClientIdInUse = () => clientId() || null;
+/** The secret should look like GOCSPX-…; if the ID looks like that, the two were swapped. */
+export const gmailKeysLookSwapped = () => /^GOCSPX-/i.test(clientId()) || /\.apps\.googleusercontent\.com$/i.test(clientSecret());
 export const gmailRedirectUri = (site: string) => `${site}/api/aftersales/gmail/callback`;
 
 export function gmailAuthUrl(site: string, state: string) {
