@@ -1,4 +1,4 @@
-import { Boxes, Headset, LayoutDashboard, Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { Activity, Boxes, Headset, LayoutDashboard, Building2, CircleHelp, Package, NotebookTabs, ClipboardPenLine, FolderKanban, House, ListChecks, MessagesSquare, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import type { AppRole } from "@/types/database";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; minRole?: AppRole };
@@ -36,6 +36,7 @@ export const SECONDARY_NAV: NavItem[] = [
   { href: "/products", label: "Products", icon: Boxes, minRole: "manager" },
   { href: "/clients", label: "Clients", icon: Building2, minRole: "manager" },
   { href: "/admin", label: "Admin", icon: ShieldCheck, minRole: "admin" },
+  { href: "/admin/activity", label: "Activity", icon: Activity, minRole: "admin" },
   { href: "/help", label: "Help", icon: CircleHelp },
 ];
 
@@ -43,5 +44,7 @@ export const SECONDARY_NAV: NavItem[] = [
 export const AFTERSALES_ITEM: NavItem = { href: "/aftersales", label: "Aftersales", icon: Headset };
 
 export function isActive(pathname: string, href: string) {
+  // Activity has its own menu item, so Admin isn't highlighted there too.
+  if (href === "/admin" && pathname.startsWith("/admin/activity")) return false;
   return pathname === href || pathname.startsWith(`${href}/`);
 }

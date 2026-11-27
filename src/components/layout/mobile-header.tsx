@@ -1,4 +1,4 @@
-import { CircleHelp } from "lucide-react";
+import { Activity, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/notifications/notifications-provider";
@@ -13,6 +13,11 @@ export function MobileHeader({ profile, avatarUrl }: { profile: Profile; avatarU
         <Logo showText={false} />
       </Link>
       <div className="flex items-center">
+      {profile.role === "admin" && (
+        <Link href="/admin/activity" aria-label="Activity — who's using the app" className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
+          <Activity className="size-5" aria-hidden />
+        </Link>
+      )}
       <RefreshButton />
       <Link href="/help" aria-label="Help" className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
         <CircleHelp className="size-5" aria-hidden />
