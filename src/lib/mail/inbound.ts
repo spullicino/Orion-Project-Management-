@@ -25,7 +25,7 @@ const refsOf = (m: ParsedMail) => [m.inReplyTo, ...(Array.isArray(m.references) 
  * onto its ticket or opens a new one. Imported emails get the "Orion-Projects"
  * label in Gmail, so each is read once. One check runs at a time.
  */
-export async function syncMailbox(admin: Admin): Promise<SyncResult> {
+export async function syncMailbox(admin: Admin, site: string): Promise<SyncResult> {
   // One at a time: take the lock unless another check started in the last 5 minutes.
   const stale = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: locked } = await admin
@@ -50,7 +50,7 @@ export async function syncMailbox(admin: Admin): Promise<SyncResult> {
     const after = Math.floor(new Date(g.settings.import_after ?? g.settings.connected_at ?? Date.now()).getTime() / 1000) - 60;
     const list = await g.api.list(`in:inbox -label:${LABEL_NAME} after:${after}`, 20);
     for (const item of list.messages ?? []) {
-      const result = await importOne(admin, g.api, g.settings, item.id);
+      const result = await importOne(admin, g.api, { ...g.settings, portal: `${site}/portal` }, item.id);
       if (result === "new") newTickets++;
       if (result === "skipped") skipped++;
       else imported++;
@@ -71,7 +71,7 @@ export async function syncMailbox(admin: Admin): Promise<SyncResult> {
   }
 }
 
-type Settings = { mailbox: string | null; auto_ack: boolean; ack_text: string; signature: string };
+type Settings = { mailbox: string | null; auto_ack: boolean; ack_text: string; signature: string; portal: string };
 
 /** One email → its ticket. "skipped" for our own and automatic emails. */
 async function importOne(admin: Admin, api: GmailApi, s: Settings, gmailId: string): Promise<"new" | "added" | "skipped"> {
@@ -159,7 +159,7 @@ async function importOne(admin: Admin, api: GmailApi, s: Settings, gmailId: stri
 
   if (isNew && s.auto_ack && s.mailbox) {
     try {
-      await sendAcknowledgement(admin, api, { mailbox: s.mailbox, ack_text: s.ack_text, signature: s.signature }, { ...ticket, gmail_thread_id: msg.threadId }, { email: fromEmail, name: from?.name || null }, mail.messageId ?? null);
+      await sendAcknowledgement(admin, api, { mailbox: s.mailbox, ack_text: s.ack_text, signature: s.signature, portal: s.portal }, { ...ticket, gmail_thread_id: msg.threadId }, { email: fromEmail, name: from?.name || null }, mail.messageId ?? null);
     } catch (e) {
       await admin.from("as_messages").insert({ ticket_id: ticket.id, kind: "event", author_id: null, body: `The automatic reply couldn't be sent: ${(e as Error).message.slice(0, 200)}` });
     }

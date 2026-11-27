@@ -1,17 +1,18 @@
 "use client";
 
-import { ArrowLeft, Building2, Loader2, Mail, MapPin, Pencil, Phone, Plus, Search, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Building2, Copy, Globe, Loader2, Mail, MapPin, Pencil, Phone, Plus, Search, Trash2, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { deleteContact, deleteCustomer, deleteSite, saveContact, saveCustomer, saveSite } from "@/app/(app)/aftersales/actions";
+import { deleteContact, deleteCustomer, deleteSite, saveContact, saveCustomer, saveSite, setPortalShared } from "@/app/(app)/aftersales/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useConfirm } from "@/components/ui/confirm";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatDate } from "@/lib/utils";
 import type { AsContact, AsCustomer, AsLookups, AsSite, TicketRow } from "@/types/aftersales";
@@ -217,6 +218,58 @@ function SiteDialog({ customerId, site, projects, onClose }: { customerId: strin
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Customer portal: where contacts sign in, and whether they all see the company's tickets. */
+function PortalCard({ customer, contacts }: { customer: AsCustomer; contacts: AsContact[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const withEmail = contacts.filter((c) => c.email).length;
+  // The full address only exists in the browser (the server shows /portal until then).
+  const address = useSyncExternalStore(
+    () => () => {},
+    () => `${window.location.origin}/portal`,
+    () => "/portal",
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Globe className="size-5 text-primary" aria-hidden /> Customer portal
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3 text-sm">
+        <p className="text-muted-foreground">
+          Contacts sign in with their email address (no password) to see their requests, reply and add photos. {withEmail === 0 ? "Add a contact with an email address first." : `${withEmail} ${withEmail === 1 ? "contact" : "contacts"} can sign in.`}
+        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <code className="min-w-0 flex-1 truncate rounded-lg bg-muted p-2 text-xs">{address}</code>
+          <Button size="icon" variant="outline" aria-label="Copy the portal address" onClick={() => navigator.clipboard.writeText(address).then(() => toast.success("Copied"))}>
+            <Copy aria-hidden />
+          </Button>
+        </div>
+        <label className="flex min-h-11 items-center justify-between gap-3">
+          <span>
+            <span className="block font-medium">Everyone at {customer.name} sees all its requests</span>
+            <span className="block text-xs text-muted-foreground">Off: each contact sees only their own.</span>
+          </span>
+          <Switch
+            checked={!!customer.portal_shared}
+            disabled={busy}
+            aria-label="Share requests with everyone at this customer"
+            onCheckedChange={async (v) => {
+              setBusy(true);
+              const res = await setPortalShared(customer.id, v);
+              setBusy(false);
+              if (!res.ok) return void toast.error(res.error);
+              toast.success(v ? "Shared with everyone at this customer" : "Each contact sees only their own");
+              router.refresh();
+            }}
+          />
+        </label>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -449,6 +502,8 @@ export function CustomerDetail({
           </CardContent>
         </Card>
       </div>
+
+      <PortalCard customer={customer} contacts={contacts} />
 
       <section className="grid gap-2">
         <h2 className="text-base font-semibold">Tickets ({tickets.length})</h2>

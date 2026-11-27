@@ -51,6 +51,8 @@ async function repairMissingProfile(userId: string): Promise<string | null> {
   }
 }
 
+export const PORTAL_USER = "portal";
+
 /** Who is signed in, and their profile. Cached per request. */
 export const getSessionState = cache(async (): Promise<SessionState> => {
   const supabase = await createClient();
@@ -68,6 +70,8 @@ export const getSessionState = cache(async (): Promise<SessionState> => {
   const load = () => supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   let { data, error } = await load();
   if (data) return { userId, email, profile: data, problem: null, whatsNewSeen };
+  // Customers signed in to the Aftersales portal have no staff profile (and never get one).
+  if (meta.portal === true) return { userId, email, profile: null, problem: PORTAL_USER };
 
   const problem = error ? `Could not load your profile: ${error.message}` : await repairMissingProfile(userId);
   if (!problem) {
@@ -87,7 +91,7 @@ export async function requireActiveProfile(): Promise<Profile> {
   const state = await getSessionState();
   if (!state.userId) redirect("/login");
   // Signed in but no profile: never send back to /login (that would loop).
-  if (!state.profile) redirect("/account-problem");
+  if (!state.profile) redirect(state.problem === PORTAL_USER ? "/portal" : "/account-problem");
   if (state.profile.status !== "active") redirect("/pending");
   return state.profile;
 }

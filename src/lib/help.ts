@@ -810,6 +810,17 @@ export const HELP_TOPICS: HelpTopic[] = [
         tip: "Change the automatic reply and the signature in Aftersales → Settings (managers).",
       },
       {
+        title: "The customer portal",
+        steps: [
+          "Customers open **orion-projects.vercel.app/portal**, enter their email address and get a sign-in link by email — no password. Only email addresses saved as **contacts** in Aftersales can sign in.",
+          "They see their requests and the status (Received, Being handled, Waiting for you, Resolved), our replies and the photos and files — never internal notes.",
+          "They can **reply**, **take or add photos and files**, and open a **New request** (choosing one of their sites). It arrives like an email: the ticket goes back to In progress and whoever has it is told.",
+          "By default each contact sees only their own requests. On the customer's page, switch on **Everyone at … sees all its requests** to share them across the company.",
+          "The automatic reply to new emails includes the portal's address ({portal}).",
+        ],
+        tip: "Customer portal accounts can never open the staff app. Messages from the portal are marked “via the portal” on the ticket.",
+      },
+      {
         title: "Connect the support@ Gmail (once)",
         minRole: "admin",
         steps: [

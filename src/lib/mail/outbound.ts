@@ -115,14 +115,14 @@ export async function sendTicketReply(admin: Admin, messageId: string): Promise<
 export async function sendAcknowledgement(
   admin: Admin,
   api: GmailApi,
-  s: { mailbox: string; ack_text: string; signature: string },
+  s: { mailbox: string; ack_text: string; signature: string; portal?: string },
   t: { id: string; number: number; subject: string; gmail_thread_id: string | null },
   to: { email: string; name: string | null },
   replyTo: string | null,
 ) {
   const ref = ticketRef(t.number);
   const id = newMessageId(s.mailbox);
-  const text = `${fillTemplate(s.ack_text, { ticket: ref, name: to.name ?? "" })}${s.signature?.trim() ? `\n\n${s.signature.trim()}` : ""}`;
+  const text = `${fillTemplate(s.ack_text, { ticket: ref, name: to.name ?? "", portal: s.portal })}${s.signature?.trim() ? `\n\n${s.signature.trim()}` : ""}`;
   const raw = await compose({
     from: s.mailbox,
     to,

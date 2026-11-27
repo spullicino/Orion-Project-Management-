@@ -378,3 +378,14 @@ export async function removeHoliday(day: string): Promise<Result> {
   refresh();
   return { ok: true };
 }
+
+/** Portal: everyone at this customer sees all its tickets (otherwise each contact sees their own). */
+export async function setPortalShared(customerId: string, shared: boolean): Promise<Result> {
+  if (!(await member())) return fail(NO_ACCESS);
+  if (!z.string().uuid().safeParse(customerId).success) return fail("Customer not found");
+  const supabase = await createClient();
+  const { error } = await supabase.from("as_customers").update({ portal_shared: shared }).eq("id", customerId);
+  if (error) return fail(/portal_shared|schema cache/.test(error.message) ? "Run database update 0037 first." : friendly(error.message));
+  refresh();
+  return { ok: true };
+}

@@ -12,7 +12,7 @@ export async function loadLookups(supabase: Db): Promise<AsLookups> {
   const [people, categories, customers, contacts, sites] = await Promise.all([
     supabase.rpc("module_members", { p_module: "aftersales" }),
     supabase.from("as_categories").select("id, name, active").order("position"),
-    supabase.from("as_customers").select("id, name, kind, phone, address, notes, client_id").order("name").limit(5000),
+    supabase.from("as_customers").select("*").order("name").limit(5000),
     supabase.from("as_contacts").select("id, customer_id, name, email, phone").order("name").limit(10000),
     supabase.from("as_sites").select("id, customer_id, name, address, handover_date, warranty_end, project_id, notes").order("name").limit(10000),
   ]);
@@ -103,7 +103,7 @@ export async function loadTicket(supabase: Db, number: number): Promise<TicketDe
   const { data: t } = await supabase.from("as_tickets").select("*").eq("number", number).maybeSingle();
   if (!t) return null;
   const [{ data: messages }, { data: files }] = await Promise.all([
-    supabase.from("as_messages").select("id, kind, author_id, from_name, from_email, body, email_status, email_to, email_error, created_at").eq("ticket_id", t.id).order("created_at").order("id"),
+    supabase.from("as_messages").select("id, kind, author_id, from_name, from_email, body, email_status, email_to, email_error, gmail_id, created_at").eq("ticket_id", t.id).order("created_at").order("id"),
     supabase.from("as_files").select("id, file_name, mime_type, size_bytes, uploaded_by, created_at").eq("ticket_id", t.id).order("created_at"),
   ]);
   const ids = [...new Set([t.created_by, ...(messages ?? []).map((m) => m.author_id), ...(files ?? []).map((f) => f.uploaded_by)].filter(Boolean) as string[])];
@@ -132,7 +132,10 @@ export async function loadTicket(supabase: Db, number: number): Promise<TicketDe
     first_response_due: t.first_response_due ?? null,
     resolve_due: t.resolve_due ?? null,
     paused_since: t.paused_since ?? null,
-    messages: (messages ?? []).map((m) => ({ id: m.id, kind: m.kind, author: by(m.author_id), from_name: m.from_name, from_email: m.from_email, body: m.body, email_status: m.email_status, email_to: m.email_to, email_error: m.email_error, created_at: m.created_at })),
+    messages: (messages ?? []).map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      via: m.kind !== "customer" ? null : m.gmail_id ? ("email" as const) : !m.author_id && m.from_email ? ("portal" as const) : ("staff" as const), author: by(m.author_id), from_name: m.from_name, from_email: m.from_email, body: m.body, email_status: m.email_status, email_to: m.email_to, email_error: m.email_error, created_at: m.created_at })),
     files: (files ?? []).map((f) => ({ ...f, uploader: by(f.uploaded_by) })),
   };
 }

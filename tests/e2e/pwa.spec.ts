@@ -32,7 +32,7 @@ test("offline: the service worker shows a friendly page instead of an error", as
   await context.setOffline(false);
 });
 
-for (const path of ["/login", "/signup", "/forgot-password", "/offline"]) {
+for (const path of ["/login", "/signup", "/forgot-password", "/offline", "/portal"]) {
   test(`${path} has no accessibility violations and no security-policy errors`, async ({ page }) => {
     const problems: string[] = [];
     page.on("console", (m) => m.type() === "error" && /Content Security Policy|Refused to/i.test(m.text()) && problems.push(m.text()));

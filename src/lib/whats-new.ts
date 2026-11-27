@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-aftersales-portal",
+    date: "2026-11-27",
+    title: "Aftersales: customer portal",
+    body: "Customers can now sign in at /portal with a link emailed to them (no password) to see their requests, reply, add photos and open new requests. Only saved contacts can sign in; they never see internal notes. Share a company's requests with all its contacts from the customer's page.",
+    help: "/help#aftersales",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-27-aftersales-targets",
     date: "2026-11-27",
     title: "Aftersales: response targets, alerts and a report",

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { syncMailbox } from "@/lib/mail/inbound";
 import { sendPendingPush } from "@/lib/notify/push";
+import { getSiteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ async function handle(request: NextRequest) {
   }
   if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const result = await syncMailbox(admin);
+  const result = await syncMailbox(admin, await getSiteUrl());
   const push = result.ok && (result.imported || result.newTickets) ? await sendPendingPush() : null;
   // Always 200: problems are shown in Aftersales → Settings, not as failed jobs every minute.
   return NextResponse.json({ ...result, push });

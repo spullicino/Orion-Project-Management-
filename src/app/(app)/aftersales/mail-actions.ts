@@ -9,6 +9,7 @@ import { syncMailbox } from "@/lib/mail/inbound";
 import { sendTicketReply } from "@/lib/mail/outbound";
 import { getModuleLevel, type ModuleLevel } from "@/lib/modules";
 import { sendPendingPush } from "@/lib/notify/push";
+import { getSiteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,7 +53,7 @@ export async function disconnectGmail(): Promise<Result> {
 /** "Check now": read new emails straight away instead of waiting for the next minute. */
 export async function checkMailNow(): Promise<Result<{ imported: number; newTickets: number }>> {
   if (!(await member())) return fail("You don't have access to Aftersales.");
-  const result = await syncMailbox(createAdminClient()); // Checked: Aftersales member (above).
+  const result = await syncMailbox(createAdminClient(), await getSiteUrl()); // Checked: Aftersales member (above).
   if (!result.ok) return fail(result.error);
   if (result.imported || result.newTickets) await sendPendingPush();
   revalidatePath("/", "layout");

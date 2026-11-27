@@ -81,7 +81,7 @@ export function nameFromSender(name: string | null | undefined, address: string)
     .slice(0, 160);
 }
 
-/** Fill in the automatic reply: {ticket} → OGT-1234, {name} → the customer's name. */
-export function fillTemplate(text: string, values: { ticket: string; name?: string }) {
-  return text.replaceAll("{ticket}", values.ticket).replaceAll("{name}", values.name ?? "");
+/** Fill in the automatic reply: {ticket} → OGT-1234, {name} → the customer's name, {portal} → the portal address. */
+export function fillTemplate(text: string, values: { ticket: string; name?: string; portal?: string }) {
+  return text.replaceAll("{ticket}", values.ticket).replaceAll("{name}", values.name ?? "").replaceAll("{portal}", values.portal ?? "");
 }

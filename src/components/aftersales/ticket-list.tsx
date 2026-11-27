@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Search, UserRound } from "lucide-react";
+import { Globe, Mail, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -106,6 +106,7 @@ export function TicketList({ tickets, empty, nowMs }: { tickets: TicketRow[]; em
               <PriorityPill priority={t.priority} hideNormal />
               <SlaPill info={slaInfo(t, nowMs)} />
               {t.source === "email" && <Mail className="size-4 text-muted-foreground" aria-label="From an email" />}
+              {t.source === "portal" && <Globe className="size-4 text-muted-foreground" aria-label="From the portal" />}
               <span className="min-w-0 truncate text-muted-foreground">{[t.customer, t.site].filter(Boolean).join(" · ") || "No customer yet"}</span>
               <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <UserRound className="size-3.5" aria-hidden /> {t.assignee ?? "Not assigned"}

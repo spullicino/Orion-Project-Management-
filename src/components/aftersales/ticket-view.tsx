@@ -86,7 +86,18 @@ function Message({ m, canDelete, onDelete, onRetry }: { m: TicketMessage; canDel
   }
   const style =
     m.kind === "customer"
-      ? { box: "bg-muted/60 border", who: m.from_name || m.from_email || "Customer", tag: m.from_email && m.from_name ? m.from_email : m.author && !m.from_email ? `written down by ${m.author}` : null }
+      ? {
+          box: "bg-muted/60 border",
+          who: m.from_name || m.from_email || "Customer",
+          tag:
+            m.via === "portal"
+              ? "via the portal"
+              : m.from_email && m.from_name
+                ? m.from_email
+                : m.author && !m.from_email
+                  ? `written down by ${m.author}`
+                  : null,
+        }
       : m.kind === "reply"
         ? {
             box: cn("border md:ml-10", m.email_status === "failed" ? "border-destructive/50 bg-destructive/5" : "border-primary/30 bg-primary/10"),
@@ -221,6 +232,7 @@ export function TicketView({
               <Mail className="size-4" aria-hidden /> from an email
             </span>
           )}
+          {ticket.source === "portal" && <span className="font-normal">· from the customer portal</span>}
           <span className="font-normal">· opened {when(ticket.created_at)}{ticket.creator ? ` by ${ticket.creator}` : ""}</span>
         </p>
         <div className="flex items-start gap-2">

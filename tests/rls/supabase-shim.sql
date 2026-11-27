@@ -44,13 +44,14 @@ create table auth.identities (
   updated_at timestamptz default now()
 );
 
+-- Same as Supabase's own definitions (an empty setting counts as not set).
 create function auth.uid() returns uuid language sql stable as $$
-  select nullif(coalesce(current_setting('request.jwt.claim.sub', true),
-                         current_setting('request.jwt.claims', true)::jsonb ->> 'sub'), '')::uuid
+  select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
+                  (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid
 $$;
 create function auth.role() returns text language sql stable as $$
-  select coalesce(current_setting('request.jwt.claim.role', true),
-                  current_setting('request.jwt.claims', true)::jsonb ->> 'role')
+  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
+                  (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'))::text
 $$;
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb

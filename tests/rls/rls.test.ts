@@ -2192,3 +2192,84 @@ describe("Aftersales response targets", () => {
     await asUser(USERS.tech2, async (db) => expect(await count(db, "select 1 from public.as_sla_settings")).toBe(0));
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("Aftersales client portal", () => {
+  type Row = Record<string, unknown>;
+  const ANNA = "70000000-0000-4000-8000-0000000000a1"; // contact at Solair
+  const BEN = "70000000-0000-4000-8000-0000000000b1"; // another contact at Solair
+  const EVE = "70000000-0000-4000-8000-0000000000e1"; // not a contact
+  const C1 = "70000000-0000-4000-8000-0000000000c1";
+  const C2 = "70000000-0000-4000-8000-0000000000c2";
+  const S1 = "70000000-0000-4000-8000-0000000000d1";
+  const user = (id: string, email: string, confirmed = true) =>
+    `insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data) values ('${id}', '${email}', ${confirmed ? "now()" : "null"}, '{"portal":true}');`;
+  const base = `
+    insert into public.module_access (user_id, module, level, granted_by) values ('${USERS.tech1}', 'aftersales', 'agent', '${USERS.admin}');
+    insert into public.as_customers (id, name, created_by) values ('${C1}', 'Solair', '${USERS.admin}'), ('${C2}', 'Other Co', '${USERS.admin}');
+    insert into public.as_contacts (customer_id, name, email) values ('${C1}', 'Anna Zammit', 'anna@solair.com.mt'), ('${C1}', 'Ben', 'ben@solair.com.mt'), ('${C2}', 'Olga', 'olga@other.com');
+    insert into public.as_sites (id, customer_id, name) values ('${S1}', '${C1}', 'Block B');
+    insert into public.as_tickets (number, subject, customer_id, contact_id, assigned_to, created_by)
+      select 9001, 'Anna''s panel', '${C1}', id, '${USERS.tech1}', '${USERS.admin}' from public.as_contacts where email = 'anna@solair.com.mt';
+    insert into public.as_tickets (number, subject, customer_id, contact_id, created_by)
+      select 9002, 'Ben''s intercom', '${C1}', id, '${USERS.admin}' from public.as_contacts where email = 'ben@solair.com.mt';
+    insert into public.as_tickets (number, subject, customer_id, created_by) values (9003, 'Other company', '${C2}', '${USERS.admin}');
+    insert into public.as_messages (ticket_id, kind, author_id, body) select id, 'note', '${USERS.admin}', 'SECRET internal note' from public.as_tickets where number = 9001;
+    insert into public.as_messages (ticket_id, kind, author_id, body) select id, 'reply', '${USERS.tech1}', 'We will come at 2' from public.as_tickets where number = 9001;
+    ${user(ANNA, "Anna@Solair.com.mt")} ${user(BEN, "ben@solair.com.mt")} ${user(EVE, "eve@nowhere.com")}`;
+
+  it("portal sign-ins never become staff accounts", async () => {
+    await withSetup(base, USERS.admin, async (db) => {
+      expect(await count(db, `select 1 from public.profiles where id in ('${ANNA}', '${BEN}', '${EVE}')`)).toBe(0);
+    });
+  });
+
+  it("a contact sees only their own tickets — our replies, never internal notes", async () => {
+    await withSetup(base, ANNA, async (db) => {
+      expect((await db.query<Row>("select public.portal_me() as m"))[0].m).toMatchObject({ name: "Anna Zammit", customer: "Solair", shared: false });
+      expect(((await db.query<Row>("select public.portal_tickets() as t"))[0].t as Row[]).map((t) => t.number)).toEqual([9001]);
+      const t = (await db.query<Row>("select public.portal_ticket(9001) as t"))[0].t as { messages: { body: string; who: string }[] };
+      expect(t.messages.map((m) => m.body)).toEqual(["We will come at 2"]);
+      expect(JSON.stringify(t)).not.toMatch(/SECRET/);
+      expect((await db.query<Row>("select public.portal_ticket(9002) as t"))[0].t).toBeNull();
+      expect((await db.query<Row>("select public.portal_ticket(9003) as t"))[0].t).toBeNull();
+      // The app's tables stay closed to portal users.
+      expect(await count(db, "select 1 from public.as_tickets")).toBe(0);
+      expect(await count(db, "select 1 from public.as_messages")).toBe(0);
+    });
+  });
+
+  it("with sharing on, everyone at the company sees the company's tickets", async () => {
+    await withSetup(`${base} update public.as_customers set portal_shared = true where id = '${C1}';`, BEN, async (db) => {
+      expect(((await db.query<Row>("select public.portal_tickets() as t"))[0].t as Row[]).map((t) => t.number).sort()).toEqual([9001, 9002]);
+    });
+  });
+
+  it("strangers and unconfirmed emails get nothing", async () => {
+    await withSetup(base, EVE, async (db) => {
+      expect((await db.query<Row>("select public.portal_me() as m"))[0].m).toBeNull();
+      expect((await db.query<Row>("select public.portal_tickets() as t"))[0].t).toEqual([]);
+      expect(await db.fails("select public.portal_open_ticket('x', 'y')")).toMatch(/Sign in again/);
+    });
+    const unconfirmed = base.replace(user(ANNA, "Anna@Solair.com.mt"), user(ANNA, "Anna@Solair.com.mt", false));
+    await withSetup(unconfirmed, ANNA, async (db) => {
+      expect((await db.query<Row>("select public.portal_ticket(9001) as t"))[0].t).toBeNull();
+    });
+  });
+
+  it("customers reply and open requests; whoever has the ticket is told", async () => {
+    await withSetup(base, ANNA, async (db) => {
+      await db.query("select public.portal_add_message(9001, 'Still beeping')");
+      expect(await db.fails("select public.portal_add_message(9002, 'not mine')")).toMatch(/Request not found/);
+      const n = Number((await db.query<Row>(`select public.portal_open_ticket('Intercom dead', 'Flat 5 cannot hear', '${S1}') as n`))[0].n);
+      expect(n).toBeGreaterThan(0);
+      expect(await db.fails(`select public.portal_open_ticket('x', 'y', gen_random_uuid())`)).toMatch(/Choose one of your sites/);
+      expect(((await db.query<Row>("select public.portal_tickets() as t"))[0].t as Row[]).map((t) => t.subject)).toContain("Intercom dead");
+    });
+    await withSetup(`${base} set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${ANNA}","role":"authenticated"}', true); select public.portal_add_message(9001, 'Still beeping'); reset role;`, USERS.tech1, async (db) => {
+      expect((await db.query<Row>("select title from public.notifications where type = 'ticket.customer'"))[0].title).toMatch(/: the customer wrote$/);
+      const m = (await db.query<Row>("select author_id, from_email, from_name from public.as_messages where body = 'Still beeping'"))[0];
+      expect(m).toMatchObject({ author_id: null, from_email: "anna@solair.com.mt", from_name: "Anna Zammit" });
+    });
+  });
+});

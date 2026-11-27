@@ -219,7 +219,7 @@ export function MailSettings({
             Automatic reply text
             <Textarea value={ackText} onChange={(e) => setAckText(e.target.value)} rows={5} maxLength={4000} disabled={!isManager || !autoAck} />
             <span className="text-xs font-normal text-muted-foreground">
-              <code>{"{ticket}"}</code> becomes the ticket number (OGT-1024), <code>{"{name}"}</code> the customer&apos;s name.
+              <code>{"{ticket}"}</code> becomes the ticket number (OGT-1024), <code>{"{name}"}</code> the customer&apos;s name, <code>{"{portal}"}</code> the customer portal&apos;s address.
             </span>
           </label>
           <label className="grid gap-1 text-sm font-medium">

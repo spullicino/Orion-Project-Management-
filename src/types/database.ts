@@ -351,8 +351,8 @@ export type Database = {
         { user_id: string; module: "aftersales"; level: "agent" | "manager"; granted_by?: string }
       >;
       as_customers: Table<
-        { id: string; name: string; kind: "company" | "person"; phone: string | null; address: string | null; notes: string | null; client_id: string | null; created_by: string | null; created_at: string; updated_at: string },
-        { id?: string; name: string; kind?: "company" | "person"; phone?: string | null; address?: string | null; notes?: string | null; client_id?: string | null; created_by?: string | null }
+        { id: string; name: string; kind: "company" | "person"; phone: string | null; address: string | null; notes: string | null; client_id: string | null; portal_shared: boolean; created_by: string | null; created_at: string; updated_at: string },
+        { id?: string; name: string; kind?: "company" | "person"; phone?: string | null; address?: string | null; notes?: string | null; client_id?: string | null; portal_shared?: boolean; created_by?: string | null }
       >;
       as_contacts: Table<
         { id: string; customer_id: string; name: string; email: string | null; phone: string | null; created_at: string },
@@ -596,6 +596,13 @@ export type Database = {
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
+      portal_me: { Args: Record<string, never>; Returns: Json };
+      portal_tickets: { Args: Record<string, never>; Returns: Json };
+      portal_ticket: { Args: { p_number: number }; Returns: Json };
+      portal_add_message: { Args: { p_number: number; p_body: string }; Returns: string };
+      portal_open_ticket: { Args: { p_subject: string; p_body: string; p_site: string | null }; Returns: number };
+      portal_ticket_id: { Args: { p_number: number }; Returns: string | null };
+      portal_file_path: { Args: { p_file: string }; Returns: Json };
       queue_ticket_sla_alerts: { Args: Record<string, never>; Returns: number };
       aftersales_mail_status: { Args: Record<string, never>; Returns: Json };
       set_aftersales_mail_options: { Args: { p_auto_ack: boolean; p_ack_text: string; p_signature: string }; Returns: undefined };

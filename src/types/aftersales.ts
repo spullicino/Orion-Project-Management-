@@ -2,7 +2,7 @@ import type { TicketPriority, TicketStatus } from "@/types/database";
 
 export type AsPerson = { id: string; name: string; level: "agent" | "manager" };
 export type AsCategory = { id: string; name: string; active: boolean };
-export type AsCustomer = { id: string; name: string; kind: "company" | "person"; phone: string | null; address: string | null; notes: string | null; client_id: string | null };
+export type AsCustomer = { id: string; name: string; kind: "company" | "person"; phone: string | null; address: string | null; notes: string | null; client_id: string | null; portal_shared?: boolean };
 export type AsContact = { id: string; customer_id: string; name: string; email: string | null; phone: string | null };
 export type AsSite = {
   id: string;
@@ -40,6 +40,8 @@ export type TicketRow = {
 export type TicketMessage = {
   id: string;
   kind: "customer" | "reply" | "note" | "event";
+  /** Where a customer message came from. */
+  via: "email" | "portal" | "staff" | null;
   author: string | null;
   from_name: string | null;
   from_email: string | null;

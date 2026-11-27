@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/share", // client read-only Gantt links (phase 3)
   "/offline",
   "/api/cron", // checks its own secret (CRON_SECRET)
+  "/portal", // Aftersales customer portal: signs in by emailed link, checks its own session
 ];
 
 export function isPublicPath(pathname: string) {

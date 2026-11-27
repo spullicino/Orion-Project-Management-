@@ -11,6 +11,8 @@ export const LIMITS = {
   dailyPost: { max: 40, windowSeconds: 3600 },
   materialRequest: { max: 30, windowSeconds: 3600 },
   chatMessage: { max: 60, windowSeconds: 60 },
+  portalLink: { max: 5, windowSeconds: 3600 },
+  portalWrite: { max: 30, windowSeconds: 3600 },
 } as const;
 
 export async function clientIp() {
