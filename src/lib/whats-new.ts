@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-projects-list",
+    date: "2026-11-27",
+    title: "Projects as a list, search, and jumping between projects",
+    body: "On Projects, switch between Cards and a compact List (remembered on your device) and find projects by name, code or client. Inside a project, tap ⇅ next to its name to jump to another project on the same tab.",
+    help: "/help#projects",
+  },
+  {
     id: "2026-11-27-daily-comments",
     date: "2026-11-27",
     title: "Comments on daily updates",

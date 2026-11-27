@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BoardProvider } from "@/components/board/board-context";
+import { ProjectSwitcher } from "@/components/board/project-switcher";
 import { ProjectTabs } from "@/components/board/project-tabs";
 import { RealtimeRefresh } from "@/components/board/realtime-refresh";
 import { TaskDrawer } from "@/components/board/task-drawer";
@@ -53,6 +54,7 @@ export default async function ProjectLayout({ children, params }: { children: Re
         <div className="min-w-0 flex-1">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
             {p.name}
+            {!p.is_template && <ProjectSwitcher currentId={p.id} />}
             {p.is_template && <Badge variant="secondary">Template</Badge>}
             {STATUS_LABEL[p.status] && <Badge variant="secondary">{STATUS_LABEL[p.status]}</Badge>}
             {!p.is_template && p.status === "active" && (() => {

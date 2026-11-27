@@ -105,8 +105,10 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Open a project",
         steps: [
           "Tap **Projects**.",
-          "Use the search box or the **Active / All incl. archived** filters to find it.",
+          "Type in **Find a project** (name, code or client), or use the **Active / All incl. archived** filters.",
+          "Choose how they're shown with the buttons next to the search: **Cards** (big tiles) or **List** (one line per project — more fit on the screen). Your choice is remembered on this phone or computer.",
           "Tap the project. The tabs along the top (Dashboard, Board, Kanban, Gantt, Calendar, Diary, Photos, Chat) show different views of the same project.",
+          "To jump to another project, tap the **⇅** button next to the project's name and pick one — you stay on the same tab (e.g. Gantt).",
         ],
         tip: "You only see projects you've been added to (and ones you created). Administrators see every project. Can't find one? Ask a manager or administrator to add you.",
       },
