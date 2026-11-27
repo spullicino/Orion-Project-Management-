@@ -22,6 +22,7 @@ export const AUDIT_ENTITIES: { value: string; label: string }[] = [
   { value: "material_request", label: "Material requests" },
   { value: "daily_update", label: "Daily updates" },
   { value: "comment", label: "Comments" },
+  { value: "daily_comment", label: "Comments on daily updates" },
   { value: "user", label: "People's details and levels" },
   { value: "banner", label: "Banner messages" },
   { value: "ticket", label: "Aftersales tickets" },
@@ -150,6 +151,8 @@ export function describeAudit(e: Pick<AuditEntry, "action" | "entity" | "title" 
       return e.action === "updated" ? `changed banner message ${t}: ${changed}` : `${e.action === "created" ? "added" : e.action} banner message ${t}`;
     case "ticket":
       return e.action === "updated" ? `changed ticket ${t}: ${changed}` : `${e.action === "created" ? "opened" : e.action} ticket ${t}`;
+    case "daily_comment":
+      return `deleted a comment by ${c.written_by ?? "someone"} on ${e.title?.replace(/^Comment on /, "") ?? "a daily update"}${c.comment ? `: “${value("comment", c.comment)}”` : ""}`;
     case "user":
       return `changed ${e.title}'s details: ${changed}`;
     default:

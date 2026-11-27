@@ -2,9 +2,11 @@
 
 import { AlertTriangle, Clock, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteDailyUpdate, updateDailyUpdate } from "@/app/(app)/daily-update/actions";
+import { getDailyCommentCounts } from "@/app/(app)/daily-update/comment-actions";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
@@ -15,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, fullName } from "@/lib/utils";
 import type { DailyUpdate } from "@/types/diary";
+import { DiaryComments } from "./diary-comments";
 import { PhotoGrid } from "./lightbox";
 
 const timeOf = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" }).format(new Date(iso));
@@ -24,7 +27,20 @@ export function canModify(u: DailyUpdate, me: { id: string; isManager: boolean }
   return me.isManager || (u.author_id === me.id && Date.now() - new Date(u.created_at).getTime() < 24 * 3600 * 1000);
 }
 
-export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me: { id: string; isManager: boolean }; showProject?: boolean }) {
+export function DiaryCard({
+  update,
+  me,
+  showProject,
+  commentCount = 0,
+  openComments = false,
+}: {
+  update: DailyUpdate;
+  me: { id: string; isManager: boolean };
+  showProject?: boolean;
+  commentCount?: number;
+  /** Opened from a notification about a comment. */
+  openComments?: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
   const { confirm, dialog } = useConfirm();
@@ -96,6 +112,8 @@ export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me
         </div>
       )}
 
+      <DiaryComments updateId={update.id} count={commentCount} me={me} startOpen={openComments} />
+
       <Dialog open={editing} onOpenChange={setEditing}>
         {editing && (
           <DialogContent title="Edit daily update" description="You can edit your own update for 24 hours after posting.">
@@ -138,6 +156,20 @@ export function DiaryCard({ update, me, showProject }: { update: DailyUpdate; me
 
 /** Updates grouped under day headings. */
 export function DiaryDays({ updates, me, showProject }: { updates: DailyUpdate[]; me: { id: string; isManager: boolean }; showProject?: boolean }) {
+  // Comment counts for the "Comments (2)" buttons, and the update a notification opened.
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const idsKey = updates.map((u) => u.id).join(",");
+  useEffect(() => {
+    if (!idsKey) return;
+    let alive = true;
+    getDailyCommentCounts(idsKey.split(","))
+      .then((c) => alive && setCounts(c))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [idsKey]);
+  const openFor = useSearchParams().get("comments");
   const days: { date: string; items: DailyUpdate[] }[] = [];
   for (const u of updates) {
     const last = days[days.length - 1];
@@ -155,7 +187,7 @@ export function DiaryDays({ updates, me, showProject }: { updates: DailyUpdate[]
           </h2>
           <div className="grid gap-3">
             {d.items.map((u) => (
-              <DiaryCard key={u.id} update={u} me={me} showProject={showProject} />
+              <DiaryCard key={u.id} update={u} me={me} showProject={showProject} commentCount={counts[u.id] ?? 0} openComments={openFor === u.id} />
             ))}
           </div>
         </section>

@@ -20,6 +20,7 @@ const TYPES: { key: string; label: string }[] = [
   { key: "task.due_soon", label: "My tasks are due today or tomorrow" },
   { key: "task.overdue", label: "My tasks are overdue" },
   { key: "daily.new", label: "New daily updates on my projects (managers)" },
+  { key: "daily.comment", label: "Comments on my daily updates (and ones I commented on)" },
   { key: "daily.reminder", label: "Reminder to post my daily update (technicians)" },
   { key: "personal.due", label: "My personal to-dos are due" },
   { key: "material.new", label: "New material requests on my projects (managers)" },

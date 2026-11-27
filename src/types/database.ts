@@ -475,6 +475,10 @@ export type Database = {
         updated_at: string;
       }>;
       as_holidays: Table<{ day: string; name: string }>;
+      daily_update_comments: Table<
+        { id: string; update_id: string; project_id: string; author_id: string | null; body: string; mentions: string[]; created_at: string; edited_at: string | null },
+        { id?: string; update_id: string; project_id: string; author_id?: string; body: string; mentions?: string[] }
+      >;
       banner_messages: Table<
         {
           id: string;
@@ -596,6 +600,7 @@ export type Database = {
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
+      daily_comment_people: { Args: { p_update: string }; Returns: { user_id: string; first_name: string; last_name: string; email: string }[] };
       portal_me: { Args: Record<string, never>; Returns: Json };
       portal_tickets: { Args: Record<string, never>; Returns: Json };
       portal_ticket: { Args: { p_number: number }; Returns: Json };

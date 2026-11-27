@@ -422,6 +422,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     where: "Daily Update",
     guides: [
       {
+        title: "Comment on a daily update",
+        steps: [
+          "Under any daily update you can see, tap **Comment** (or **Comments (2)** when there are some).",
+          "Write your comment and tap **Post**. Type **@** and choose a name to mention someone on the project.",
+          "The person who posted the update is told, and so is everyone who commented before — so you can have a back-and-forth. Mentioned people are told too.",
+          "Edit or delete your own comments with the pencil and bin. Managers can delete any comment (it's kept in the audit log).",
+        ],
+        tip: "Tap the notification to jump straight to the update with its comments open. Switch these off in Profile → Notifications → Comments on my daily updates.",
+      },
+      {
         title: "Post your daily update",
         minRole: "technician",
         steps: [

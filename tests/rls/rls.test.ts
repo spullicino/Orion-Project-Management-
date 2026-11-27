@@ -2273,3 +2273,75 @@ describe("Aftersales client portal", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("comments on daily updates", () => {
+  type Row = Record<string, unknown>;
+  const U = "80000000-0000-4000-8000-0000000000a1";
+  // tech1 posts on Valletta (members: manager, tech1, basic). tech2 is on Mosta only.
+  const setup = `insert into public.daily_updates (id, project_id, author_id, work_date, work_done) values ('${U}', '${PROJECTS.valletta}', '${USERS.tech1}', '2030-01-09', 'Partitions done');`;
+  const comment = (author: string, body: string, mentions = "{}") =>
+    `insert into public.daily_update_comments (update_id, project_id, author_id, body, mentions) values ('${U}', '${PROJECTS.valletta}', '${author}', '${body}', '${mentions}');`;
+  const as = (u: string) => `set local role authenticated; select set_config('request.jwt.claims', '{"sub":"${u}","role":"authenticated"}', true);`;
+
+  it("people who can see the update can comment; others can't see or comment", async () => {
+    await withSetup(setup, USERS.manager, async (db) => {
+      await db.query(comment(USERS.manager, "Did you finish level 2?"));
+      expect(await count(db, "select 1 from public.daily_update_comments")).toBe(1);
+      expect(await db.fails(comment(USERS.tech1, "pretending to be tech1"))).toMatch(/row-level security/);
+    });
+    await withSetup(`${setup} ${comment(USERS.manager, "Did you finish level 2?")}`, USERS.tech2, async (db) => {
+      expect(await count(db, "select 1 from public.daily_update_comments")).toBe(0);
+      expect(await db.fails(comment(USERS.tech2, "sneaky"))).toMatch(/row-level security/);
+      expect(await count(db, `select * from public.daily_comment_people('${U}')`)).toBe(0);
+    });
+    await withSetup(setup, USERS.basic, async (db) => {
+      await db.query(comment(USERS.basic, "Noted"));
+      // The project must match the update's.
+      expect(await db.fails(`insert into public.daily_update_comments (update_id, project_id, author_id, body) values ('${U}', '${PROJECTS.mosta}', '${USERS.basic}', 'x')`)).toMatch(/row-level security/);
+    });
+  });
+
+  it("the author, earlier commenters and @mentioned people are told — not the commenter", async () => {
+    const thread = `${setup} ${as(USERS.basic)} ${comment(USERS.basic, "Looks good")} reset role; ${as(USERS.manager)} ${comment(USERS.manager, "@Admin please check", `{${USERS.admin},${USERS.tech2}}`)} reset role;`;
+    const titles = async (u: string) => {
+      let t: string[] = [];
+      await withSetup(thread, u, async (db) => {
+        t = (await db.query<Row>("select type, title from public.notifications where type in ('daily.comment', 'mention') order by created_at, title")).map((r) => `${r.type}: ${r.title}`);
+      });
+      return t;
+    };
+    const author = await titles(USERS.tech1);
+    expect(author).toHaveLength(2);
+    expect(author.every((t) => /commented on your daily update/.test(t))).toBe(true);
+    expect(await titles(USERS.basic)).toEqual([expect.stringMatching(/^daily\.comment: .* also commented on a daily update/)]);
+    expect(await titles(USERS.admin)).toEqual([expect.stringMatching(/^mention: .* mentioned you on a daily update/)]);
+    expect(await titles(USERS.tech2)).toEqual([]); // not on the project
+    expect(await titles(USERS.manager)).toEqual([]); // the one who wrote it
+  });
+
+  it("people edit their own comments; managers and authors delete; deletions are in the audit log", async () => {
+    const base = `${setup} ${comment(USERS.basic, "Looks good")}`;
+    await withSetup(base, USERS.tech1, async (db) => {
+      await db.query("update public.daily_update_comments set body = 'changed'");
+      expect((await db.query<Row>("select body from public.daily_update_comments"))[0].body).toBe("Looks good");
+      await db.query("delete from public.daily_update_comments");
+      expect(await count(db, "select 1 from public.daily_update_comments")).toBe(1);
+    });
+    await withSetup(base, USERS.basic, async (db) => {
+      await db.query(`update public.daily_update_comments set body = 'Looks great', update_id = '${U}', author_id = '${USERS.admin}'`);
+      const c = (await db.query<Row>("select body, author_id, edited_at from public.daily_update_comments"))[0];
+      expect(c).toMatchObject({ body: "Looks great", author_id: USERS.basic });
+      expect(c.edited_at).not.toBeNull();
+    });
+    await withSetup(base, USERS.manager, async (db) => {
+      await db.query("delete from public.daily_update_comments");
+      expect(await count(db, "select 1 from public.daily_update_comments")).toBe(0);
+    });
+    await withSetup(`${base} delete from public.daily_update_comments;`, USERS.admin, async (db) => {
+      const a = (await db.query<Row>("select title, changes from public.audit_log where entity = 'daily_comment'"))[0];
+      expect(a.title).toMatch(/daily update$/);
+      expect(a.changes).toMatchObject({ comment: "Looks good" });
+    });
+  });
+});

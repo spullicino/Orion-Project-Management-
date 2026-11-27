@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-daily-comments",
+    date: "2026-11-27",
+    title: "Comments on daily updates",
+    body: "Tap Comment under a daily update to ask a question or reply — type @ to mention someone. Whoever posted the update, and everyone else in the conversation, gets a notification.",
+    help: "/help#daily-update",
+  },
+  {
     id: "2026-11-27-aftersales-portal",
     date: "2026-11-27",
     title: "Aftersales: customer portal",
