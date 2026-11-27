@@ -3,11 +3,11 @@ import { parseTicketRef, ticketRef, warrantyState } from "@/lib/aftersales";
 import { contactSchema, messageSchema, newTicketSchema, siteSchema } from "@/lib/validation/aftersales";
 
 describe("aftersales helpers", () => {
-  it("ticket numbers read and write as TKT-1024", () => {
-    expect(ticketRef(1024)).toBe("TKT-1024");
-    for (const s of ["TKT-1024", "tkt 1024", "  1024 ", "TKT1024"]) expect(parseTicketRef(s)).toBe(1024);
+  it("ticket numbers read and write as OGT-1024 (old TKT- still found)", () => {
+    expect(ticketRef(1024)).toBe("OGT-1024");
+    for (const s of ["OGT-1024", "ogt 1024", "  1024 ", "OGT1024", "TKT-1024"]) expect(parseTicketRef(s)).toBe(1024);
     expect(parseTicketRef("fire alarm")).toBeNull();
-    expect(parseTicketRef("TKT-")).toBeNull();
+    expect(parseTicketRef("OGT-")).toBeNull();
   });
 
   it("warranty: in, ended, or unknown", () => {

@@ -10,7 +10,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { TICKET_PRIORITIES, TICKET_PRIORITY } from "@/lib/aftersales";
+import { TICKET_PRIORITIES, TICKET_PRIORITY, ticketRef } from "@/lib/aftersales";
 import type { AsLookups } from "@/types/aftersales";
 import type { TicketPriority } from "@/types/database";
 import { CustomerPicker } from "./customer-picker";
@@ -69,7 +69,7 @@ function NewTicketDialog({ lookups, presetCustomer, onClose }: { lookups: AsLook
             });
             setBusy(false);
             if (!res.ok) return void toast.error(res.error);
-            toast.success(`Ticket TKT-${res.data!.number} opened`);
+            toast.success(`Ticket ${ticketRef(res.data!.number)} opened`);
             onClose();
             router.push(`/aftersales/tickets/${res.data!.number}`);
           }}

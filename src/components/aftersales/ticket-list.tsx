@@ -61,7 +61,7 @@ export function TicketFilters({ view, categories, counts }: { view: TicketView; 
           }}
         >
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="TKT number, subject, customer or site" aria-label="Search tickets" className="pl-9" enterKeyHint="search" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="OGT number, subject, customer or site" aria-label="Search tickets" className="pl-9" enterKeyHint="search" />
         </form>
         <NativeSelect aria-label="Category" value={params.get("category") ?? ""} onChange={(e) => go({ category: e.target.value || null })}>
           <option value="">All categories</option>

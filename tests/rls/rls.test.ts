@@ -1987,7 +1987,7 @@ describe("modules: Aftersales (tickets)", () => {
     });
   });
 
-  it("a new ticket gets a TKT number, a history line, and the managers are told", async () => {
+  it("a new ticket gets an OGT number, a history line, and the managers are told", async () => {
     await withSetup(`${grant(USERS.manager, "manager")} ${grant(USERS.tech1, "agent")}`, USERS.tech1, async (db) => {
       const [t] = await db.query<Row>(`insert into public.as_tickets (subject, priority, created_by) values ('CCTV camera 3 offline', 'high', '${USERS.tech1}') returning id, number, status`);
       expect(Number(t.number)).toBeGreaterThanOrEqual(1001);
@@ -1998,7 +1998,7 @@ describe("modules: Aftersales (tickets)", () => {
       `${grant(USERS.manager, "manager")} ${grant(USERS.tech1, "agent")} ${as(USERS.tech1)} insert into public.as_tickets (subject, created_by) values ('Intercom dead', '${USERS.tech1}'); reset role;`,
       USERS.manager,
       async (db) => {
-        expect((await db.query<Row>("select title from public.notifications where type = 'ticket.new'")).map((r) => r.title)[0]).toMatch(/^New ticket TKT-\d+$/);
+        expect((await db.query<Row>("select title from public.notifications where type = 'ticket.new'")).map((r) => r.title)[0]).toMatch(/^New ticket OGT-\d+$/);
       },
     );
   });
@@ -2024,6 +2024,15 @@ describe("modules: Aftersales (tickets)", () => {
     });
     await withSetup(`${setup} update public.as_tickets set assigned_to = '${USERS.tech1}' where id = '${T}';`, USERS.tech1, async (db) => {
       expect((await db.query<Row>("select title from public.notifications where type = 'ticket.assigned'")).length).toBe(1);
+    });
+  });
+
+  it("ticket numbers read OGT-… in notifications and the audit log", async () => {
+    await withSetup(`${grant(USERS.tech1, "agent")} ${ticket} update public.as_tickets set assigned_to = '${USERS.tech1}' where id = '${T}';`, USERS.tech1, async (db) => {
+      expect((await db.query<Row>("select title from public.notifications where type = 'ticket.assigned'"))[0].title).toMatch(/^OGT-\d+ was given to you$/);
+    });
+    await withSetup(ticket, USERS.admin, async (db) => {
+      expect((await db.query<Row>(`select title from public.audit_log where entity = 'ticket' and entity_id = '${T}'`))[0].title).toMatch(/^OGT-\d+ · Fire panel beeping$/);
     });
   });
 

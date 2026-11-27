@@ -1,10 +1,10 @@
 /** Aftersales (support tickets): labels, colours and small helpers shared by screens and server. */
 import type { TicketPriority, TicketStatus } from "@/types/database";
 
-export const ticketRef = (n: number) => `TKT-${n}`;
-/** "TKT-1024", "tkt 1024" or "1024" → 1024. */
+export const ticketRef = (n: number) => `OGT-${n}`;
+/** "OGT-1024", "ogt 1024" or "1024" → 1024 (the old "TKT-1024" works too). */
 export function parseTicketRef(s: string): number | null {
-  const m = /^\s*(?:tkt[\s-]*)?(\d{1,9})\s*$/i.exec(s);
+  const m = /^\s*(?:(?:ogt|tkt)[\s-]*)?(\d{1,9})\s*$/i.exec(s);
   return m ? Number(m[1]) : null;
 }
 

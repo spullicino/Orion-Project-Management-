@@ -785,7 +785,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Open **Aftersales** and tap **New ticket** (or open a customer and tap New ticket there).",
           "Write a short **Subject**, choose or add the **Customer**, then the **Contact** and **Site** if you know them.",
           "Choose the **Category** and **Priority**, and who it's **Assigned to** (or leave it — the Aftersales managers are told about new tickets nobody has).",
-          "Write what the customer reported and tap **Open ticket**. It gets a number like **TKT-1001**.",
+          "Write what the customer reported and tap **Open ticket**. It gets a number like **OGT-1001**.",
         ],
         tip: "Soon, emails to support@oriongroup.com.mt will open tickets by themselves.",
       },
@@ -803,7 +803,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Find tickets",
         steps: [
           "Use the tabs: **Open**, **Mine**, **Unassigned**, **Waiting for customer**, **Resolved & closed** or **All**.",
-          "Search by ticket number (e.g. 1024 or TKT-1024), subject, customer or site, and filter by category or priority.",
+          "Search by ticket number (e.g. 1024 or OGT-1024), subject, customer or site, and filter by category or priority.",
         ],
       },
       {

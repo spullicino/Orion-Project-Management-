@@ -19,7 +19,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
   {
     id: "2026-11-27-aftersales",
     date: "2026-11-27",
-    title: "Aftersales module: support tickets (TKT-1001…)",
+    title: "Aftersales module: support tickets (OGT-1001…)",
     body: "A new module for aftersales and maintenance requests: tickets with status, priority, category and who's on it; customers with their contacts and sites (with warranty end dates — they don't need to be projects in the app); replies, internal notes and files on each ticket. Administrators choose who can use it in Admin → Modules. Next: emails to support@ will open tickets by themselves.",
     help: "/help#aftersales",
     minRole: "admin",
