@@ -1,4 +1,4 @@
-import { Activity, CircleHelp } from "lucide-react";
+import { Activity, CircleHelp, History } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { NotificationBell } from "@/components/notifications/notifications-provider";
@@ -12,10 +12,16 @@ export function MobileHeader({ profile, avatarUrl }: { profile: Profile; avatarU
       <Link href="/home" aria-label="Orion Projects home">
         <Logo showText={false} />
       </Link>
-      <div className="flex items-center">
+      {/* On the narrowest phones (e.g. iPhone SE) the buttons are a little narrower so they all fit. */}
+      <div className="flex items-center max-[359px]:[&>*]:!w-10">
       {profile.role === "admin" && (
         <Link href="/admin/activity" aria-label="Activity — who's using the app" className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
           <Activity className="size-5" aria-hidden />
+        </Link>
+      )}
+      {profile.role === "admin" && (
+        <Link href="/admin/audit" aria-label="Audit log — who changed or deleted what" className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
+          <History className="size-5" aria-hidden />
         </Link>
       )}
       <RefreshButton />
