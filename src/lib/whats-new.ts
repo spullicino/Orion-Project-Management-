@@ -17,6 +17,14 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-27-aftersales-targets",
+    date: "2026-11-27",
+    title: "Aftersales: response targets, alerts and a report",
+    body: "Tickets now show when the first reply and the fix are due (working hours, Malta holidays excluded; the clock stops while waiting for the customer). Whoever has the ticket is warned before it's late, and managers are told when it's missed. New Overdue tab, a monthly Report with Excel, and resolved tickets close after 7 quiet days.",
+    help: "/help#aftersales",
+    minRole: "admin",
+  },
+  {
     id: "2026-11-27-aftersales-email",
     date: "2026-11-27",
     title: "Aftersales: emails to support@ open tickets",

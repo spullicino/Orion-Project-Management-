@@ -303,6 +303,7 @@ export function CustomerDetail({
   projects,
   isManager,
   today,
+  nowMs,
 }: {
   customer: AsCustomer;
   lookups: AsLookups;
@@ -311,6 +312,7 @@ export function CustomerDetail({
   projects: { id: string; name: string }[];
   isManager: boolean;
   today: string;
+  nowMs: number;
 }) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
@@ -450,7 +452,7 @@ export function CustomerDetail({
 
       <section className="grid gap-2">
         <h2 className="text-base font-semibold">Tickets ({tickets.length})</h2>
-        <TicketList tickets={tickets} empty="No tickets for this customer yet." />
+        <TicketList tickets={tickets} empty="No tickets for this customer yet." nowMs={nowMs} />
       </section>
 
       {isManager && (

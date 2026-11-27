@@ -23,14 +23,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { TICKET_PRIORITIES, TICKET_PRIORITY, TICKET_STATUS, TICKET_STATUSES, ticketRef } from "@/lib/aftersales";
+import { slaInfo, TICKET_PRIORITIES, TICKET_PRIORITY, TICKET_STATUS, TICKET_STATUSES, ticketRef } from "@/lib/aftersales";
 import { uploadWithProgress } from "@/lib/offline/upload";
 import { cn } from "@/lib/utils";
 import type { AsLookups, TicketDetail, TicketMessage } from "@/types/aftersales";
 import type { TicketPatch } from "@/lib/validation/aftersales";
 import type { TicketStatus } from "@/types/database";
 import { CustomerPicker } from "./customer-picker";
-import { PriorityPill, StatusPill, WarrantyBadge } from "./pills";
+import { PriorityPill, SlaPill, StatusPill, WarrantyBadge } from "./pills";
 
 const when = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Malta" }).format(new Date(iso));
@@ -136,6 +136,7 @@ export function TicketView({
   isManager,
   today,
   mailbox,
+  nowMs,
 }: {
   ticket: TicketDetail;
   lookups: AsLookups;
@@ -144,6 +145,7 @@ export function TicketView({
   today: string;
   /** The connected support@ mailbox, or null when Gmail isn't connected. */
   mailbox: string | null;
+  nowMs: number;
 }) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
@@ -230,6 +232,7 @@ export function TicketView({
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={ticket.status} />
           <PriorityPill priority={ticket.priority} />
+          <SlaPill info={slaInfo(ticket, nowMs)} showPaused />
           {site && <WarrantyBadge end={site.warranty_end} today={today} />}
         </div>
       </header>
@@ -351,8 +354,26 @@ export function TicketView({
             )}
             {site?.address && <p className="text-sm text-muted-foreground">{site.address}</p>}
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t pt-3 text-xs">
+              {ticket.first_response_due && (
+                <>
+                  <dt className="text-muted-foreground">First reply due</dt>
+                  <dd className={cn(!ticket.first_response_at && !ticket.paused_since && new Date(ticket.first_response_due).getTime() < nowMs && "font-semibold text-destructive")}>
+                    {when(ticket.first_response_due)}
+                  </dd>
+                </>
+              )}
               <dt className="text-muted-foreground">First reply</dt>
-              <dd>{ticket.first_response_at ? when(ticket.first_response_at) : "Not yet"}</dd>
+              <dd className={cn(ticket.first_response_at && ticket.first_response_due && ticket.first_response_at > ticket.first_response_due && "text-destructive")}>
+                {ticket.first_response_at ? `${when(ticket.first_response_at)}${ticket.first_response_due ? (ticket.first_response_at <= ticket.first_response_due ? " · on time" : " · late") : ""}` : "Not yet"}
+              </dd>
+              {ticket.resolve_due && (
+                <>
+                  <dt className="text-muted-foreground">To be fixed by</dt>
+                  <dd className={cn(!ticket.resolved_at && !ticket.paused_since && new Date(ticket.resolve_due).getTime() < nowMs && "font-semibold text-destructive")}>
+                    {ticket.paused_since && !ticket.resolved_at ? "Clock stopped while waiting" : when(ticket.resolve_due)}
+                  </dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Customer last wrote</dt>
               <dd>{ticket.last_customer_at ? when(ticket.last_customer_at) : "—"}</dd>
               {ticket.resolved_at && (

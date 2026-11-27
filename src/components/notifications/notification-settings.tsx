@@ -28,6 +28,7 @@ const TYPES: { key: string; label: string }[] = [
   { key: "ticket.assigned", label: "Aftersales: a ticket is given to me" },
   { key: "ticket.customer", label: "Aftersales: the customer writes on my ticket" },
   { key: "ticket.new", label: "Aftersales: a new ticket nobody has yet (Aftersales managers)" },
+  { key: "ticket.sla", label: "Aftersales: a reply or fix is due soon, or overdue" },
 ];
 
 export function NotificationSettings({ initial, pushAvailable }: { initial: NotificationPrefs; pushAvailable: boolean }) {

@@ -11,6 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
   return { title: /^\d+$/.test(number) ? ticketRef(Number(number)) : "Ticket" };
 }
 
+const nowMs = () => Date.now();
 const maltaToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Malta" }).format(new Date());
 
 export default async function TicketPage({ params }: { params: Promise<{ number: string }> }) {
@@ -20,5 +21,5 @@ export default async function TicketPage({ params }: { params: Promise<{ number:
   const supabase = await createClient();
   const [ticket, lookups, mailbox] = await Promise.all([loadTicket(supabase, Number(number)), loadLookups(supabase), loadMailbox(supabase)]);
   if (!ticket) notFound();
-  return <TicketView ticket={ticket} lookups={lookups} meId={profile.id} isManager={level === "manager"} today={maltaToday()} mailbox={mailbox} />;
+  return <TicketView ticket={ticket} lookups={lookups} meId={profile.id} isManager={level === "manager"} today={maltaToday()} mailbox={mailbox} nowMs={nowMs()} />;
 }

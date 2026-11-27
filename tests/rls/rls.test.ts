@@ -2106,3 +2106,89 @@ describe("Aftersales email (Gmail)", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("Aftersales response targets", () => {
+  type Row = Record<string, unknown>;
+  const grant = (u: string, level: "agent" | "manager") =>
+    `insert into public.module_access (user_id, module, level, granted_by) values ('${u}', 'aftersales', '${level}', '${USERS.admin}');`;
+  const mt = (local: string) => `('${local}'::timestamp at time zone 'Europe/Malta')`;
+  const local = async (db: { query: <T = Row>(s: string) => Promise<T[]> }, expr: string) =>
+    String((await db.query<Row>(`select to_char((${expr}) at time zone 'Europe/Malta', 'Dy YYYY-MM-DD HH24:MI') as v`))[0].v);
+
+  it("counts working hours only: Mon–Fri 08:00–17:00, no public holidays", async () => {
+    await withSetup("insert into public.as_holidays (day, name) values ('2030-01-15', 'Test holiday');", USERS.admin, async (db) => {
+      // Friday 16:00 + 2 working hours → Monday 09:00
+      expect(await local(db, `app.as_add_work_minutes(${mt("2030-01-11 16:00")}, 120)`)).toBe("Mon 2030-01-14 09:00");
+      // Before opening time counts from 08:00
+      expect(await local(db, `app.as_add_work_minutes(${mt("2030-01-14 06:30")}, 60)`)).toBe("Mon 2030-01-14 09:00");
+      // Monday 16:00 + 2 h skips the Tuesday holiday → Wednesday 09:00
+      expect(await local(db, `app.as_add_work_minutes(${mt("2030-01-14 16:00")}, 120)`)).toBe("Wed 2030-01-16 09:00");
+      expect((await db.query<Row>(`select app.as_work_minutes_between(${mt("2030-01-11 16:00")}, ${mt("2030-01-14 09:00")}) as m`))[0].m).toBe(120);
+    });
+  });
+
+  it("a ticket gets due times from its priority, and the clock stops while waiting for the customer", async () => {
+    const T = "60000000-0000-4000-8000-0000000000f1";
+    const setup = `insert into public.as_tickets (id, subject, priority, created_at, created_by) values ('${T}', 'Panel', 'urgent', ${mt("2030-01-11 16:00")}, '${USERS.admin}');`;
+    await withSetup(setup, USERS.admin, async (db) => {
+      expect(await local(db, `(select first_response_due from public.as_tickets where id = '${T}')`)).toBe("Fri 2030-01-11 17:00");
+      expect(await local(db, `(select resolve_due from public.as_tickets where id = '${T}')`)).toBe("Mon 2030-01-14 16:00"); // 1 h Friday + 8 h Monday
+      // Priority Low → 2 working days for the first reply.
+      await db.query(`update public.as_tickets set priority = 'low' where id = '${T}'`);
+      expect(await local(db, `(select first_response_due from public.as_tickets where id = '${T}')`)).toBe("Tue 2030-01-15 16:00");
+      // Waiting for the customer: paused. Back in progress: the paused working time is added.
+      await db.query(`update public.as_tickets set status = 'waiting' where id = '${T}'`);
+      expect((await db.query<Row>(`select paused_since is not null as p from public.as_tickets where id = '${T}'`))[0].p).toBe(true);
+    });
+    await withSetup(
+      `${setup} update public.as_tickets set status = 'waiting' where id = '${T}'; update public.as_tickets set paused_since = now() - interval '7 days' where id = '${T}';`,
+      USERS.admin,
+      async (db) => {
+        const before = (await db.query<Row>(`select resolve_due from public.as_tickets where id = '${T}'`))[0].resolve_due as Date;
+        await db.query(`update public.as_tickets set status = 'in_progress' where id = '${T}'`);
+        const after = (await db.query<Row>(`select resolve_due, paused_minutes, paused_since from public.as_tickets where id = '${T}'`))[0];
+        expect(Number(after.paused_minutes)).toBeGreaterThanOrEqual(4 * 540); // a week has at least 4 working days
+        expect((after.resolve_due as Date).getTime()).toBeGreaterThan(before.getTime());
+        expect(after.paused_since).toBeNull();
+      },
+    );
+  });
+
+  it("missed targets alert the person on it and the managers — once; resolved tickets close after 7 quiet days", async () => {
+    const T = "60000000-0000-4000-8000-0000000000f2";
+    const R = "60000000-0000-4000-8000-0000000000f3";
+    const setup = `${grant(USERS.manager, "manager")} ${grant(USERS.tech1, "agent")}
+      insert into public.as_tickets (id, subject, created_at, assigned_to, created_by) values ('${T}', 'Old one', now() - interval '60 days', '${USERS.tech1}', '${USERS.admin}');
+      insert into public.as_tickets (id, subject, created_by) values ('${R}', 'Done one', '${USERS.admin}');
+      update public.as_tickets set status = 'resolved' where id = '${R}';
+      update public.as_tickets set resolved_at = now() - interval '8 days' where id = '${R}';
+      select public.queue_ticket_sla_alerts(); select public.queue_ticket_sla_alerts();`;
+    await withSetup(setup, USERS.tech1, async (db) => {
+      const titles = (await db.query<Row>("select title from public.notifications where type = 'ticket.sla' order by title")).map((r) => r.title);
+      expect(titles).toEqual([expect.stringMatching(/: first reply is overdue$/), expect.stringMatching(/: overdue — not fixed in time$/)]);
+      expect((await db.query<Row>(`select status from public.as_tickets where id = '${R}'`))[0].status).toBe("closed");
+    });
+    await withSetup(setup, USERS.manager, async (db) => {
+      expect(await count(db, "select 1 from public.notifications where type = 'ticket.sla'")).toBe(2);
+    });
+    await asUser(USERS.admin, async (db) => {
+      expect(await db.fails("select public.queue_ticket_sla_alerts()")).toMatch(/permission denied/);
+    });
+  });
+
+  it("only Aftersales managers change targets and holidays", async () => {
+    await withSetup(grant(USERS.tech1, "agent"), USERS.tech1, async (db) => {
+      expect(await count(db, "select 1 from public.as_holidays")).toBeGreaterThanOrEqual(28);
+      await db.query("update public.as_sla_settings set auto_close_days = 0");
+      expect((await db.query<Row>("select auto_close_days from public.as_sla_settings"))[0].auto_close_days).toBe(7);
+      expect(await db.fails("insert into public.as_holidays (day, name) values ('2030-01-01', 'x')")).toMatch(/row-level security/);
+    });
+    await withSetup(grant(USERS.manager, "manager"), USERS.manager, async (db) => {
+      await db.query("update public.as_sla_settings set auto_close_days = 14");
+      await db.query("insert into public.as_holidays (day, name) values ('2030-01-01', 'New Year')");
+      expect((await db.query<Row>("select auto_close_days from public.as_sla_settings"))[0].auto_close_days).toBe(14);
+    });
+    await asUser(USERS.tech2, async (db) => expect(await count(db, "select 1 from public.as_sla_settings")).toBe(0));
+  });
+});

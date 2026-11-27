@@ -34,12 +34,76 @@ export function warrantyState(warrantyEnd: string | null | undefined, today: str
 }
 
 /** The lists on the Tickets page. */
-export type TicketView = "open" | "mine" | "unassigned" | "waiting" | "done" | "all";
+export type TicketView = "open" | "mine" | "unassigned" | "waiting" | "overdue" | "done" | "all";
 export const TICKET_VIEWS: { value: TicketView; label: string }[] = [
   { value: "open", label: "Open" },
   { value: "mine", label: "Mine" },
   { value: "unassigned", label: "Unassigned" },
   { value: "waiting", label: "Waiting for customer" },
+  { value: "overdue", label: "Overdue" },
   { value: "done", label: "Resolved & closed" },
   { value: "all", label: "All" },
+];
+
+// ---------------------------------------------------------------------------
+// Response targets
+// ---------------------------------------------------------------------------
+export type SlaFields = {
+  status: TicketStatus;
+  first_response_at: string | null;
+  first_response_due: string | null;
+  resolve_due: string | null;
+  paused_since: string | null;
+};
+export type SlaInfo = { kind: "first" | "resolve"; due: string; overdue: boolean; soon: boolean; paused: boolean; label: string };
+
+/** "45 min", "3 h", "2 days" (clock time, rounded). */
+export function roughDuration(ms: number): string {
+  const min = Math.max(1, Math.round(Math.abs(ms) / 60_000));
+  if (min < 60) return `${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 48) return `${h} h`;
+  const d = Math.round(h / 24);
+  return `${d} days`;
+}
+
+/** What's next for an open ticket: its first reply, or else getting it fixed. null when resolved/closed. */
+export function slaInfo(t: SlaFields, nowMs: number): SlaInfo | null {
+  if (t.status === "resolved" || t.status === "closed") return null;
+  const kind = !t.first_response_at && t.first_response_due ? "first" : "resolve";
+  const due = kind === "first" ? t.first_response_due : t.resolve_due;
+  if (!due) return null;
+  const paused = !!t.paused_since;
+  const left = new Date(due).getTime() - nowMs;
+  const overdue = !paused && left <= 0;
+  const soon = !paused && !overdue && left < 2 * 3_600_000;
+  const what = kind === "first" ? "Reply" : "Fix";
+  const label = paused ? "Clock stopped — waiting for customer" : overdue ? `${what} overdue ${roughDuration(left)}` : `${what} due in ${roughDuration(left)}`;
+  return { kind, due, overdue, soon, paused, label };
+}
+
+/** Did a closed-out ticket meet its targets? (For the report.) null = can't tell yet. */
+export function metTargets(t: SlaFields & { resolved_at: string | null }, nowMs: number) {
+  const firstOk = t.first_response_due
+    ? t.first_response_at
+      ? t.first_response_at <= t.first_response_due
+      : new Date(t.first_response_due).getTime() > nowMs
+        ? null
+        : false
+    : null;
+  const fixOk = t.resolve_due
+    ? t.resolved_at
+      ? new Date(t.resolved_at).getTime() <= new Date(t.resolve_due).getTime()
+      : t.paused_since || new Date(t.resolve_due).getTime() > nowMs
+        ? null
+        : false
+    : null;
+  return { firstOk, fixOk };
+}
+
+export const TARGET_PRIORITIES: { value: TicketPriority; label: string }[] = [
+  { value: "urgent", label: "Urgent" },
+  { value: "high", label: "High" },
+  { value: "normal", label: "Normal" },
+  { value: "low", label: "Low" },
 ];

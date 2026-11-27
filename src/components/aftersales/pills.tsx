@@ -1,5 +1,5 @@
-import { ShieldCheck, ShieldOff } from "lucide-react";
-import { TICKET_PRIORITY, TICKET_STATUS, warrantyState } from "@/lib/aftersales";
+import { AlarmClock, Pause, ShieldCheck, ShieldOff } from "lucide-react";
+import { TICKET_PRIORITY, TICKET_STATUS, warrantyState, type SlaInfo } from "@/lib/aftersales";
 import { cn, formatDate } from "@/lib/utils";
 import type { TicketPriority, TicketStatus } from "@/types/database";
 
@@ -24,6 +24,23 @@ export function WarrantyBadge({ end, today, className }: { end: string | null; t
   ) : (
     <span className={cn(pill, "bg-muted text-muted-foreground", className)}>
       <ShieldOff className="size-3.5" aria-hidden /> Warranty ended {formatDate(end)}
+    </span>
+  );
+}
+
+/** "Reply due in 3 h" (amber when under 2 h), "Reply overdue 2 h" (red), or the clock stopped while waiting. */
+export function SlaPill({ info, className, showPaused }: { info: SlaInfo | null; className?: string; showPaused?: boolean }) {
+  if (!info || (info.paused && !showPaused)) return null;
+  const tone = info.paused
+    ? "bg-muted text-muted-foreground"
+    : info.overdue
+      ? "bg-red-600 text-white"
+      : info.soon
+        ? "bg-amber-500/25 text-amber-900 dark:text-amber-300"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={cn(pill, tone, className)}>
+      {info.paused ? <Pause className="size-3.5" aria-hidden /> : <AlarmClock className="size-3.5" aria-hidden />} {info.label}
     </span>
   );
 }

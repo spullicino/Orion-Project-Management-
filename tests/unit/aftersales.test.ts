@@ -42,3 +42,47 @@ describe("aftersales validation", () => {
     expect(messageSchema.safeParse({ ticket_id: id, kind: "reply", body: " " }).success).toBe(false);
   });
 });
+
+describe("response targets on screen", async () => {
+  const { slaInfo, metTargets, roughDuration } = await import("@/lib/aftersales");
+  const now = Date.parse("2030-01-14T10:00:00Z");
+  const at = (h: number) => new Date(now + h * 3_600_000).toISOString();
+  const base = { status: "in_progress" as const, first_response_at: null, first_response_due: at(3), resolve_due: at(30), paused_since: null };
+
+  it("shows the next target: first reply, then the fix", () => {
+    expect(slaInfo(base, now)).toMatchObject({ kind: "first", overdue: false, soon: false, label: "Reply due in 3 h" });
+    expect(slaInfo({ ...base, first_response_due: at(-2) }, now)).toMatchObject({ overdue: true, label: "Reply overdue 2 h" });
+    expect(slaInfo({ ...base, first_response_due: at(1) }, now)).toMatchObject({ soon: true });
+    expect(slaInfo({ ...base, first_response_at: at(-1) }, now)).toMatchObject({ kind: "resolve", label: "Fix due in 30 h" });
+    expect(slaInfo({ ...base, first_response_at: at(-1), resolve_due: at(-72) }, now)).toMatchObject({ overdue: true, label: "Fix overdue 3 days" });
+  });
+  it("is quiet while waiting for the customer, and gone once resolved", () => {
+    expect(slaInfo({ ...base, status: "waiting", paused_since: at(-1), first_response_due: at(-5) }, now)).toMatchObject({ paused: true, overdue: false });
+    expect(slaInfo({ ...base, status: "resolved" }, now)).toBeNull();
+  });
+  it("on time or late, for the report", () => {
+    expect(metTargets({ ...base, first_response_at: at(1), resolved_at: at(20) }, now)).toEqual({ firstOk: true, fixOk: true });
+    expect(metTargets({ ...base, first_response_at: at(4), resolved_at: at(31) }, now)).toEqual({ firstOk: false, fixOk: false });
+    expect(metTargets({ ...base, resolved_at: null }, now)).toEqual({ firstOk: null, fixOk: null });
+    expect(roughDuration(30 * 60_000)).toBe("30 min");
+  });
+});
+
+describe("monthly report", async () => {
+  const { buildReport, pct } = await import("@/lib/aftersales-report");
+  const now = Date.parse("2030-01-31T12:00:00Z");
+  const t = (o: Partial<Parameters<typeof buildReport>[0][number]>) => ({
+    number: 1, subject: "x", priority: "normal" as const, status: "resolved" as const, created_at: "2030-01-02T08:00:00Z",
+    first_response_at: "2030-01-02T09:00:00Z", first_response_due: "2030-01-02T16:00:00Z", resolve_due: "2030-01-09T16:00:00Z",
+    resolved_at: "2030-01-05T10:00:00Z", paused_since: null, assignee: "Joe", category: "CCTV", customer: "Solair", ...o,
+  });
+  it("counts on time and late per person and category", () => {
+    const r = buildReport([t({}), t({ first_response_at: "2030-01-03T09:00:00Z", resolved_at: "2030-01-12T10:00:00Z" }), t({ assignee: null, category: "Intercom", status: "in_progress", resolved_at: null })], now);
+    expect(r.total).toMatchObject({ tickets: 3, firstOn: 2, firstLate: 1, fixOn: 1, fixLate: 2, open: 1 });
+    expect(r.people.map((p) => [p.name, p.tickets])).toEqual([["Joe", 2], ["Not assigned", 1]]);
+    expect(r.categories[0]).toMatchObject({ name: "CCTV", tickets: 2 });
+    expect(r.byStatus.resolved).toBe(2);
+    expect(pct(2, 1)).toBe("67%");
+    expect(pct(0, 0)).toBe("—");
+  });
+});

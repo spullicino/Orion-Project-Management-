@@ -327,3 +327,54 @@ export async function saveCategory(id: string | null, name: string, active = tru
   refresh();
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Response targets, working hours, holidays (managers)
+// ---------------------------------------------------------------------------
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a time");
+const target = z.object({ first: z.number().int().min(15).max(60 * 24 * 60), resolve: z.number().int().min(15).max(60 * 24 * 120) });
+const slaSchema = z
+  .object({
+    workStart: hhmm,
+    workEnd: hhmm,
+    workDays: z.array(z.number().int().min(1).max(7)).min(1, "Choose at least one working day").max(7),
+    targets: z.object({ urgent: target, high: target, normal: target, low: target }),
+    autoCloseDays: z.number().int().min(0).max(60),
+  })
+  .refine((v) => v.workStart < v.workEnd, { message: "The working day must end after it starts", path: ["workEnd"] })
+  .refine((v) => Object.values(v.targets).every((t) => t.resolve >= t.first), { message: "“Fixed within” can't be shorter than the first reply", path: ["targets"] });
+
+export async function saveSlaSettings(input: unknown): Promise<Result> {
+  if (!(await member("manager"))) return fail("Only Aftersales managers can change the targets.");
+  const parsed = slaSchema.safeParse(input);
+  if (!parsed.success) return fail(first(parsed.error));
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("as_sla_settings")
+    .update({ work_start: v.workStart, work_end: v.workEnd, work_days: [...new Set(v.workDays)].sort(), targets: v.targets, auto_close_days: v.autoCloseDays, updated_at: new Date().toISOString() })
+    .eq("id", true);
+  if (error) return fail(/does not exist|schema cache/.test(error.message) ? "Run database update 0036 first." : friendly(error.message));
+  refresh();
+  return { ok: true };
+}
+
+export async function addHoliday(day: string, name: string): Promise<Result> {
+  if (!(await member("manager"))) return fail("Only Aftersales managers can change holidays.");
+  const parsed = z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a date"), name: z.string().trim().min(1, "Name the holiday").max(80) }).safeParse({ day, name });
+  if (!parsed.success) return fail(first(parsed.error));
+  const supabase = await createClient();
+  const { error } = await supabase.from("as_holidays").insert(parsed.data);
+  if (error) return fail(/duplicate/.test(error.message) ? "That day is already a holiday." : friendly(error.message));
+  refresh();
+  return { ok: true };
+}
+
+export async function removeHoliday(day: string): Promise<Result> {
+  if (!(await member("manager"))) return fail("Only Aftersales managers can change holidays.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("as_holidays").delete().eq("day", day);
+  if (error) return fail(friendly(error.message));
+  refresh();
+  return { ok: true };
+}

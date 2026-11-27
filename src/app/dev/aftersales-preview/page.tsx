@@ -6,6 +6,8 @@ import { TicketFilters, TicketList } from "@/components/aftersales/ticket-list";
 import { TicketView } from "@/components/aftersales/ticket-view";
 import { ModulesView } from "@/components/admin/modules-view";
 import { MailSettings } from "@/components/aftersales/mail-settings";
+import { ReportView } from "@/components/aftersales/report-view";
+import { SlaSettingsCard } from "@/components/aftersales/sla-settings";
 import { PageHeader } from "@/components/layout/page-header";
 import type { AsLookups, TicketDetail, TicketRow } from "@/types/aftersales";
 
@@ -38,18 +40,19 @@ export default async function AftersalesPreview({ searchParams }: { searchParams
   };
   const row = (n: number, subject: string, status: TicketRow["status"], priority: TicketRow["priority"], h: number, extra: Partial<TicketRow> = {}): TicketRow => ({
     id: `t${n}`, number: n, subject, status, priority, source: "email", created_at: ago(h + 5), updated_at: ago(h), last_customer_at: ago(h),
-    customer: "Solair Owners Association", site: "Solair Apartments – Block B", category: "Fire Alarm", assignee: "Joe Vella", assigned_to: "u2", ...extra,
+    customer: "Solair Owners Association", site: "Solair Apartments – Block B", category: "Fire Alarm", assignee: "Joe Vella", assigned_to: "u2",
+    first_response_at: null, first_response_due: ago(h - 3), resolve_due: ago(h - 40), paused_since: null, ...extra,
   });
   const tickets = [
-    row(1024, "Fire alarm panel beeping – fault on zone 3", "new", "urgent", 0.3, { assignee: null, assigned_to: null }),
-    row(1023, "CCTV camera 12 offline since the storm", "in_progress", "high", 3, { category: "CCTV" }),
-    row(1021, "Intercom at main entrance not ringing flat 5", "waiting", "normal", 26, { category: "Intercom", source: "staff" }),
+    row(1024, "Fire alarm panel beeping – fault on zone 3", "new", "urgent", 0.3, { assignee: null, assigned_to: null, first_response_due: ago(-0.7) }),
+    row(1023, "CCTV camera 12 offline since the storm", "in_progress", "high", 3, { category: "CCTV", first_response_due: ago(5) }),
+    row(1021, "Intercom at main entrance not ringing flat 5", "waiting", "normal", 26, { category: "Intercom", source: "staff", first_response_at: ago(25), paused_since: ago(20) }),
     row(1019, "Bathroom extractor fan noisy", "resolved", "low", 80, { customer: "Mark Borg", site: null, category: "Ventilation" }),
   ];
   const ticket: TicketDetail = {
     id: "t1024", number: 1024, subject: "Fire alarm panel beeping – fault on zone 3", status: "in_progress", priority: "urgent", source: "email",
     category_id: "c0", customer_id: "k1", contact_id: "p1", site_id: "s1", assigned_to: "u2", created_at: ago(5), created_by: null, creator: null,
-    first_response_at: ago(4), last_customer_at: ago(1), resolved_at: null, closed_at: null,
+    first_response_at: ago(4), last_customer_at: ago(1), resolved_at: null, closed_at: null, first_response_due: ago(4.5), resolve_due: ago(-4), paused_since: null,
     messages: [
       { id: "m1", kind: "event", author: null, from_name: null, from_email: null, body: "Ticket opened from an email", email_status: null, email_to: null, email_error: null, created_at: ago(5) },
       { id: "m2", kind: "customer", author: null, from_name: "Anna Zammit", from_email: "anna@solair.com.mt", body: "Good morning,\n\nThe fire alarm panel in Block B has been beeping since last night and shows a fault on zone 3. Residents are complaining. Can someone come today?\n\nThanks,\nAnna", email_status: null, email_to: null, email_error: null, created_at: ago(5) },
@@ -62,9 +65,32 @@ export default async function AftersalesPreview({ searchParams }: { searchParams
     files: [{ id: "f1", file_name: "panel-display.jpg", mime_type: "image/jpeg", size_bytes: 412_000, uploaded_by: null, uploader: "Anna Zammit", created_at: ago(5) }],
   };
 
-  if (page === "ticket") return <TicketView ticket={ticket} lookups={lookups} meId="me" isManager today="2026-11-27" mailbox="support@oriongroup.com.mt" />;
+  if (page === "ticket") return <TicketView ticket={ticket} lookups={lookups} meId="me" isManager today="2026-11-27" mailbox="support@oriongroup.com.mt" nowMs={now} />;
   if (page === "customer")
-    return <CustomerDetail customer={lookups.customers[0]} lookups={lookups} tickets={tickets.slice(0, 3)} clients={[]} projects={[]} isManager today="2026-11-27" />;
+    return <CustomerDetail customer={lookups.customers[0]} lookups={lookups} tickets={tickets.slice(0, 3)} clients={[]} projects={[]} isManager today="2026-11-27" nowMs={now} />;
+  if (page === "sla")
+    return (
+      <SlaSettingsCard
+        settings={{ work_start: "08:00:00", work_end: "17:00:00", work_days: [1, 2, 3, 4, 5], targets: { urgent: { first: 60, resolve: 540 }, high: { first: 240, resolve: 1620 }, normal: { first: 480, resolve: 2700 }, low: { first: 1080, resolve: 5400 } }, auto_close_days: 7 }}
+        holidays={[{ day: "2026-12-08", name: "Immaculate Conception" }, { day: "2026-12-13", name: "Republic Day" }, { day: "2026-12-25", name: "Christmas Day" }, { day: "2027-01-01", name: "New Year's Day" }]}
+        isManager
+        today="2026-11-27"
+      />
+    );
+  if (page === "report") {
+    const rt = (n: number, assignee: string | null, category: string, firstH: number, fixH: number | null, status: "resolved" | "in_progress" = "resolved") => ({
+      number: n, subject: `Ticket ${n}`, priority: "normal" as const, status, created_at: ago(200), first_response_at: ago(200 - firstH), first_response_due: ago(192), resolve_due: ago(120),
+      resolved_at: fixH === null ? null : ago(200 - fixH), paused_since: null, assignee, category, customer: "Solair Owners Association",
+    });
+    return (
+      <ReportView
+        month="2026-11"
+        months={["2026-11", "2026-10", "2026-09"]}
+        nowMs={now}
+        tickets={[rt(1010, "Joe Vella", "Fire Alarm", 2, 40), rt(1011, "Joe Vella", "CCTV", 9, 90), rt(1012, "Mark Grech", "Intercom", 1, 30), rt(1013, null, "Fire Alarm", 3, null, "in_progress")]}
+      />
+    );
+  }
   if (page === "settings") {
     const base = { mailbox: "support@oriongroup.com.mt", connected: true, connected_at: ago(30), connected_by: "Sarah Pullicino", last_sync_at: ago(48), last_error: null, last_error_at: null, auto_ack: true, ack_text: "Thank you for contacting Orion Group. We have received your request and logged it as {ticket}.\n\nOur aftersales team will get back to you as soon as possible.", signature: "Orion Group — Aftersales\nsupport@oriongroup.com.mt" };
     return (
@@ -94,7 +120,7 @@ export default async function AftersalesPreview({ searchParams }: { searchParams
       <PageHeader title="Tickets" description="Aftersales requests from customers." actions={<NewTicketButton lookups={lookups} />} />
       <div className="grid gap-4">
         <TicketFilters view="open" categories={lookups.categories} counts={{ open: 3, mine: 1, unassigned: 1 }} />
-        <TicketList tickets={tickets} empty="" />
+        <TicketList tickets={tickets} empty="" nowMs={now} />
       </div>
     </>
   );

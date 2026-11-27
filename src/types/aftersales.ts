@@ -31,6 +31,10 @@ export type TicketRow = {
   category: string | null;
   assignee: string | null;
   assigned_to: string | null;
+  first_response_at: string | null;
+  first_response_due: string | null;
+  resolve_due: string | null;
+  paused_since: string | null;
 };
 
 export type TicketMessage = {
@@ -66,6 +70,9 @@ export type TicketDetail = {
   last_customer_at: string | null;
   resolved_at: string | null;
   closed_at: string | null;
+  first_response_due: string | null;
+  resolve_due: string | null;
+  paused_since: string | null;
   messages: TicketMessage[];
   files: TicketFile[];
 };

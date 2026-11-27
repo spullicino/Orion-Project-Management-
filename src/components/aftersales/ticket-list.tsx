@@ -6,10 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { TICKET_PRIORITIES, TICKET_PRIORITY, TICKET_VIEWS, ticketRef, type TicketView } from "@/lib/aftersales";
+import { slaInfo, TICKET_PRIORITIES, TICKET_PRIORITY, TICKET_VIEWS, ticketRef, type TicketView } from "@/lib/aftersales";
 import { cn } from "@/lib/utils";
 import type { AsCategory, TicketRow } from "@/types/aftersales";
-import { PriorityPill, StatusPill } from "./pills";
+import { PriorityPill, SlaPill, StatusPill } from "./pills";
 
 const when = (iso: string) => {
   const d = new Date(iso);
@@ -84,7 +84,7 @@ export function TicketFilters({ view, categories, counts }: { view: TicketView; 
   );
 }
 
-export function TicketList({ tickets, empty }: { tickets: TicketRow[]; empty: string }) {
+export function TicketList({ tickets, empty, nowMs }: { tickets: TicketRow[]; empty: string; nowMs: number }) {
   if (!tickets.length) return <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">{empty}</p>;
   return (
     <ul className="grid divide-y overflow-hidden rounded-xl border bg-card">
@@ -104,6 +104,7 @@ export function TicketList({ tickets, empty }: { tickets: TicketRow[]; empty: st
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               <StatusPill status={t.status} />
               <PriorityPill priority={t.priority} hideNormal />
+              <SlaPill info={slaInfo(t, nowMs)} />
               {t.source === "email" && <Mail className="size-4 text-muted-foreground" aria-label="From an email" />}
               <span className="min-w-0 truncate text-muted-foreground">{[t.customer, t.site].filter(Boolean).join(" · ") || "No customer yet"}</span>
               <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">

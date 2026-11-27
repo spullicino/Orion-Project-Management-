@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Customer · Aftersales" };
 const maltaToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Malta" }).format(new Date());
+const nowMs = () => Date.now();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
       projects={projects ?? []}
       isManager={level === "manager"}
       today={maltaToday()}
+      nowMs={nowMs()}
     />
   );
 }

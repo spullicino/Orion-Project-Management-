@@ -385,6 +385,14 @@ export type Database = {
           resolved_at: string | null;
           closed_at: string | null;
           gmail_thread_id: string | null;
+          first_response_due: string | null;
+          resolve_due: string | null;
+          paused_minutes: number;
+          paused_since: string | null;
+          sla_first_warned_at: string | null;
+          sla_first_breached_at: string | null;
+          sla_resolve_warned_at: string | null;
+          sla_resolve_breached_at: string | null;
         },
         {
           id?: string;
@@ -457,6 +465,16 @@ export type Database = {
         signature: string;
         updated_at: string;
       }>;
+      as_sla_settings: Table<{
+        id: boolean;
+        work_start: string;
+        work_end: string;
+        work_days: number[];
+        targets: Record<TicketPriority, { first: number; resolve: number }>;
+        auto_close_days: number;
+        updated_at: string;
+      }>;
+      as_holidays: Table<{ day: string; name: string }>;
       banner_messages: Table<
         {
           id: string;
@@ -578,6 +596,7 @@ export type Database = {
       get_digest_recipients: { Args: Record<string, never>; Returns: Json };
       cleanup_old_data: { Args: Record<string, never>; Returns: undefined };
       get_unread_total: { Args: Record<string, never>; Returns: number };
+      queue_ticket_sla_alerts: { Args: Record<string, never>; Returns: number };
       aftersales_mail_status: { Args: Record<string, never>; Returns: Json };
       set_aftersales_mail_options: { Args: { p_auto_ack: boolean; p_ack_text: string; p_signature: string }; Returns: undefined };
       module_members: { Args: { p_module: string }; Returns: { user_id: string; first_name: string; last_name: string; email: string; level: "agent" | "manager" }[] };

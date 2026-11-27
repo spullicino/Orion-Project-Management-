@@ -841,6 +841,27 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        title: "Response targets and alerts",
+        steps: [
+          "Every ticket has a time for the **first reply** and a time by which it should be **fixed**, from its priority — counted in working hours (Mon–Fri 08:00–17:00 Malta, not on public holidays).",
+          "Defaults: **Urgent** reply within 1 h, fixed within 1 working day · **High** 4 h / 3 days · **Normal** 8 h / 5 days · **Low** 2 days / 10 days.",
+          "The list and the ticket show **Reply due in 3 h** (amber when it's close) or **Overdue** in red. The **Overdue** tab lists them all.",
+          "The clock stops while a ticket is **Waiting for customer** (or Resolved), and goes on when it comes back.",
+          "At 75% of the time, whoever has the ticket gets a notification (the Aftersales managers, if nobody has it). When a target is missed, they and the managers are told.",
+          "Saving a reply on the ticket counts as the first reply — even if it isn't emailed.",
+          "Resolved tickets close by themselves after 7 days if the customer doesn't write back.",
+        ],
+        tip: "Managers change the targets, working hours, public holidays and when tickets close in Aftersales → Settings.",
+      },
+      {
+        title: "See how quickly tickets are handled (Report)",
+        steps: [
+          "Open **Aftersales → Report** and choose the month.",
+          "See how many tickets came in, and the share answered and fixed on time — overall, **by person** and **by category**.",
+          "Tap **Excel** to download every ticket of that month with on time / late.",
+        ],
+      },
+      {
         title: "Customers, contacts and sites",
         steps: [
           "Open **Aftersales → Customers & sites**. Customers don't need to be clients or projects in the app.",

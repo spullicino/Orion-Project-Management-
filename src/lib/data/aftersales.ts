@@ -31,7 +31,7 @@ export type TicketFilters = { view: TicketView; q?: string; category?: string; p
 export async function loadTickets(supabase: Db, me: string, f: TicketFilters, lookups: AsLookups): Promise<TicketRow[] | null> {
   let q = supabase
     .from("as_tickets")
-    .select("id, number, subject, status, priority, source, created_at, updated_at, last_customer_at, customer_id, site_id, category_id, assigned_to")
+    .select("*")
     .order("updated_at", { ascending: false })
     .limit(300);
   if (f.view === "open") q = q.in("status", OPEN_STATUSES);
@@ -39,6 +39,13 @@ export async function loadTickets(supabase: Db, me: string, f: TicketFilters, lo
   if (f.view === "unassigned") q = q.is("assigned_to", null).in("status", OPEN_STATUSES);
   if (f.view === "waiting") q = q.eq("status", "waiting");
   if (f.view === "done") q = q.in("status", ["resolved", "closed"]);
+  if (f.view === "overdue") {
+    const now = new Date().toISOString();
+    q = q
+      .in("status", ["new", "assigned", "in_progress"])
+      .is("paused_since", null)
+      .or(`and(first_response_at.is.null,first_response_due.lt.${now}),resolve_due.lt.${now}`);
+  }
   if (f.category) q = q.eq("category_id", f.category);
   if (f.priority) q = q.eq("priority", f.priority as TicketPriority);
   if (f.customer) q = q.eq("customer_id", f.customer);
@@ -76,6 +83,10 @@ export async function loadTickets(supabase: Db, me: string, f: TicketFilters, lo
     category: name(lookups.categories, t.category_id),
     assignee: name(lookups.people, t.assigned_to),
     assigned_to: t.assigned_to,
+    first_response_at: t.first_response_at,
+    first_response_due: t.first_response_due ?? null,
+    resolve_due: t.resolve_due ?? null,
+    paused_since: t.paused_since ?? null,
   }));
 }
 
@@ -118,6 +129,9 @@ export async function loadTicket(supabase: Db, number: number): Promise<TicketDe
     last_customer_at: t.last_customer_at,
     resolved_at: t.resolved_at,
     closed_at: t.closed_at,
+    first_response_due: t.first_response_due ?? null,
+    resolve_due: t.resolve_due ?? null,
+    paused_since: t.paused_since ?? null,
     messages: (messages ?? []).map((m) => ({ id: m.id, kind: m.kind, author: by(m.author_id), from_name: m.from_name, from_email: m.from_email, body: m.body, email_status: m.email_status, email_to: m.email_to, email_error: m.email_error, created_at: m.created_at })),
     files: (files ?? []).map((f) => ({ ...f, uploader: by(f.uploaded_by) })),
   };

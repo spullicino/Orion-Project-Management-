@@ -29,8 +29,10 @@ async function handle(request: NextRequest) {
     if (error) throw error;
     // Important messages not read yet are sent again (database update 0025; before it this just errors).
     const { data: messages } = await admin.rpc("queue_announcement_reminders");
+    // Aftersales response targets: warnings, missed targets, auto-close (database update 0036).
+    const { data: tickets } = await admin.rpc("queue_ticket_sla_alerts");
     const push = await sendPendingPush();
-    return NextResponse.json({ ok: true, reminded, messages: messages ?? 0, push });
+    return NextResponse.json({ ok: true, reminded, messages: messages ?? 0, tickets: tickets ?? 0, push });
   } catch (e) {
     console.error("reminder job failed", e);
     return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });

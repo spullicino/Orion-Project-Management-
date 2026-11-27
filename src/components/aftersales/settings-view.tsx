@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Loader2, Plus, Save } from "lucide-react";
+import { Loader2, Plus, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ function CategoryRow({ c, canEdit }: { c: AsCategory; canEdit: boolean }) {
   );
 }
 
-export function AftersalesSettings({ categories, isManager, mail }: { categories: AsCategory[]; isManager: boolean; mail: React.ReactNode }) {
+export function AftersalesSettings({ categories, isManager, mail, sla }: { categories: AsCategory[]; isManager: boolean; mail: React.ReactNode; sla: React.ReactNode }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -81,16 +81,7 @@ export function AftersalesSettings({ categories, isManager, mail }: { categories
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="size-5 text-primary" aria-hidden /> Response targets
-          </CardTitle>
-          <CardDescription>
-            Coming next: alerts when a ticket isn&apos;t answered or fixed in time. Planned targets (working hours, Mon–Fri 08:00–17:00): Urgent — reply 1 h, fixed 1 day · High — 4 h, 3 days · Normal — 8 h, 5 days · Low — 2 days, 10 days.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {sla}
     </div>
   );
 }
