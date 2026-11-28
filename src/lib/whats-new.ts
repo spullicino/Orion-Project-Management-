@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-28-arrange-home",
+    date: "2026-11-28",
+    title: "Arrange your Home",
+    body: "Tap Arrange on Home to put the cards in your own order — drag them or use the arrows — and hide the ones you don't need. It's saved to your account, on all your devices.",
+    help: "/help#home",
+  },
+  {
     id: "2026-11-28-my-tickets",
     date: "2026-11-28",
     title: "Your Aftersales tickets in My Tasks",

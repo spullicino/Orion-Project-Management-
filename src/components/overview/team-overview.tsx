@@ -28,17 +28,22 @@ export function sortOpenRequests(list: MaterialListItem[]) {
  * Managers' and admins' at-a-glance view: today's daily updates (who has / hasn't posted)
  * and open material requests. Shown on Home and on the Overview page.
  */
-export async function TeamOverview({ size = "compact" }: { size?: "compact" | "full" }) {
+/** The data both overview cards need (fetched once). */
+export async function loadTeamOverview(size: "compact" | "full" = "compact") {
   const today = todayISO();
-  const full = size === "full";
   // If a database update hasn't been run yet, the card just shows nothing rather than breaking Home.
   const [status, feed, requests] = await Promise.all([
     getDailyStatus(today).catch(() => null),
-    getDailyFeed({ from: today, to: today, limit: full ? 15 : 3 }).catch(() => []),
+    getDailyFeed({ from: today, to: today, limit: size === "full" ? 15 : 3 }).catch(() => []),
     getMaterialRequests(null).catch(() => [] as MaterialListItem[]),
   ]);
+  return { status, feed, requests };
+}
 
-  return <TeamOverviewCards size={size} status={status} feed={feed} requests={requests} />;
+export async function TeamOverview({ size = "compact", only }: { size?: "compact" | "full"; only?: "daily" | "materials" }) {
+  const { status, feed, requests } = await loadTeamOverview(size);
+
+  return <TeamOverviewCards size={size} status={status} feed={feed} requests={requests} only={only} />;
 }
 
 export function TeamOverviewCards({
@@ -46,11 +51,14 @@ export function TeamOverviewCards({
   status,
   feed,
   requests,
+  only,
 }: {
   size: "compact" | "full";
   status: DailyStatus | null;
   feed: DailyUpdate[];
   requests: MaterialListItem[];
+  /** Just one of the two cards (Home, where people arrange the cards themselves). */
+  only?: "daily" | "materials";
 }) {
   const full = size === "full";
   const rows = status ?? [];
@@ -68,12 +76,7 @@ export function TeamOverviewCards({
   const maxProjects = full ? 50 : 4;
   const perProject = full ? 10 : 2;
 
-  return (
-    <section aria-labelledby="team-overview" className={cn("mb-4 grid grid-cols-1 gap-3", full ? "lg:grid-cols-2" : "md:grid-cols-2")}>
-      <h2 id="team-overview" className="sr-only">
-        Team overview
-      </h2>
-
+  const daily = (
       <Card className="min-w-0">
         <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
           <Link href="/daily-update/team" className="flex min-h-11 items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -136,7 +139,8 @@ export function TeamOverviewCards({
           </Link>
         </CardContent>
       </Card>
-
+  );
+  const materials = (
       <Card className="min-w-0">
         <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-5">
           <Link href="/materials" className="flex min-h-11 items-center gap-3 rounded-lg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -199,6 +203,16 @@ export function TeamOverviewCards({
           </Link>
         </CardContent>
       </Card>
+  );
+  if (only === "daily") return daily;
+  if (only === "materials") return materials;
+  return (
+    <section aria-labelledby="team-overview" className={cn("mb-4 grid grid-cols-1 gap-3", full ? "lg:grid-cols-2" : "md:grid-cols-2")}>
+      <h2 id="team-overview" className="sr-only">
+        Team overview
+      </h2>
+      {daily}
+      {materials}
     </section>
   );
 }

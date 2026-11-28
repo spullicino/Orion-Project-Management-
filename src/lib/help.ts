@@ -71,6 +71,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     where: "Home",
     guides: [
       {
+        title: "Arrange your Home",
+        steps: [
+          "On Home, tap **Arrange** (top right, above the cards).",
+          "Drag a card by its grip (⋮⋮) — or use the ↑ ↓ arrows — to put it where you want, e.g. **My Tasks** at the top.",
+          "Tap the eye to hide a card you don't need; tap it again to bring it back.",
+          "Tap **Done**. Your Home is saved to your account, so it's the same on your phone and computer. **Reset to default** puts everything back.",
+        ],
+        tip: "Everyone arranges their own Home — it doesn't change anyone else's. “People waiting for approval” always stays at the top.",
+      },
+      {
         title: "Use the Home page",
         steps: [
           "Open **Home**.",

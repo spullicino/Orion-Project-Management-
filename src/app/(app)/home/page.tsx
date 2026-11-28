@@ -1,4 +1,16 @@
-import { AlertTriangle, ArrowRight, NotebookTabs, Package, UserPen, CalendarClock, ClipboardPenLine, FolderKanban, ListChecks, MessagesSquare, UserCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  NotebookTabs,
+  Package,
+  UserPen,
+  CalendarClock,
+  ClipboardPenLine,
+  FolderKanban,
+  ListChecks,
+  MessagesSquare,
+  UserCheck,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,7 +28,12 @@ import { HealthBadge } from "@/components/health-badge";
 import { healthSummary } from "@/lib/health";
 import { createClient } from "@/lib/supabase/server";
 import type { GeneralTask } from "@/types/general-tasks";
-import { TeamOverview } from "@/components/overview/team-overview";
+import {
+  loadTeamOverview,
+  TeamOverviewCards,
+} from "@/components/overview/team-overview";
+import { HomeCards } from "@/components/home/home-cards";
+import { normalizeLayout, type HomeCardId } from "@/lib/home-layout";
 import { MyTickets } from "@/components/aftersales/my-tickets";
 import { loadMyTickets } from "@/lib/data/aftersales";
 import { getModuleLevel } from "@/lib/modules";
@@ -26,69 +43,176 @@ const nowMs = () => Date.now();
 export const metadata: Metadata = { title: "Home" };
 
 function greeting() {
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Malta" }).format(new Date()));
-  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "Europe/Malta",
+    }).format(new Date()),
+  );
+  return hour < 12
+    ? "Good morning"
+    : hour < 18
+      ? "Good afternoon"
+      : "Good evening";
 }
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
-  const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string }>;
+}) {
+  const [{ denied }, profile, supabase] = await Promise.all([
+    searchParams,
+    requireActiveProfile(),
+    createClient(),
+  ]);
 
   // Everything Home needs, fetched at the same time (not one after another).
-  const [allMyTasks, { count: projectCount }, projects, pendingCount, generalRes, myTickets] = await Promise.all([
+  const isManager = hasRole(profile.role, "manager");
+  const [
+    allMyTasks,
+    { count: projectCount },
+    projects,
+    pendingCount,
+    generalRes,
+    ticketAccess,
+    overview,
+    { data: authUser },
+  ] = await Promise.all([
     // If the latest database update hasn't been run yet, show Home without the task summary.
     getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>),
-    supabase.from("projects").select("id", { count: "exact", head: true }).eq("is_template", false).neq("status", "archived"),
-    can.seeAllProjects(profile.role) ? listProjects().catch(() => []) : Promise.resolve([]),
+    supabase
+      .from("projects")
+      .select("id", { count: "exact", head: true })
+      .eq("is_template", false)
+      .neq("status", "archived"),
+    can.seeAllProjects(profile.role)
+      ? listProjects().catch(() => [])
+      : Promise.resolve([]),
     can.manageUsers(profile.role)
-      ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending").then((r) => r.count ?? 0)
+      ? supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending")
+          .then((r) => r.count ?? 0)
       : Promise.resolve(0),
     // General tasks (database update 0026); before it this returns an error and is ignored.
     supabase.rpc("get_general_tasks", { p_all: false }),
-    getModuleLevel(profile, "aftersales").then((l) => (l ? loadMyTickets(supabase, profile.id) : [])),
+    getModuleLevel(profile, "aftersales"),
+    isManager ? loadTeamOverview("compact") : Promise.resolve(null),
+    // The person's own Home layout (kept on their account).
+    supabase.auth.getUser(),
   ]);
-  const myGeneral = (generalRes.error ? [] : ((generalRes.data ?? []) as unknown as GeneralTask[])).filter(
+  const hasTickets = !!ticketAccess;
+  const myTickets = hasTickets ? await loadMyTickets(supabase, profile.id) : [];
+  const available: HomeCardId[] = [
+    ...(isManager ? (["daily", "materials"] as const) : []),
+    "tasks",
+    ...(hasTickets ? (["tickets"] as const) : []),
+    ...(can.seeAllProjects(profile.role) ? (["attention"] as const) : []),
+    "shortcuts",
+  ];
+  const layout = normalizeLayout(
+    authUser.user?.user_metadata?.home_layout,
+    available,
+  );
+  const myGeneral = (
+    generalRes.error
+      ? []
+      : ((generalRes.data ?? []) as unknown as GeneralTask[])
+  ).filter(
     (t) => !t.completed_at && t.assignees.some((a) => a.id === profile.id),
   );
   const myTasks = [...allMyTasks.filter((t) => !t.completed_at), ...myGeneral];
   const today = todayISO();
-  const overdue = myTasks.filter((t) => t.due_date && t.due_date < today).length;
+  const overdue = myTasks.filter(
+    (t) => t.due_date && t.due_date < today,
+  ).length;
   const dueToday = myTasks.filter((t) => t.due_date === today).length;
 
   // Managers: projects whose health is amber or red, worst first.
   const attention = projects
     .filter((p) => p.health && p.health.level !== "green")
-    .sort((a, b) => (a.health!.level === b.health!.level ? b.health!.red - a.health!.red : a.health!.level === "red" ? -1 : 1));
+    .sort((a, b) =>
+      a.health!.level === b.health!.level
+        ? b.health!.red - a.health!.red
+        : a.health!.level === "red"
+          ? -1
+          : 1,
+    );
 
   const shortcuts = [
-    { href: "/projects", label: "Projects", detail: `${projectCount ?? 0} active`, icon: FolderKanban },
+    {
+      href: "/projects",
+      label: "Projects",
+      detail: `${projectCount ?? 0} active`,
+      icon: FolderKanban,
+    },
     ...(can.postDailyUpdate(profile.role)
       ? [
-          { href: "/daily-update", label: "Post a daily update", detail: "What did you do today?", icon: ClipboardPenLine },
-          { href: "/materials?new=1", label: "Request materials", detail: "Get materials delivered to site", icon: Package },
+          {
+            href: "/daily-update",
+            label: "Post a daily update",
+            detail: "What did you do today?",
+            icon: ClipboardPenLine,
+          },
+          {
+            href: "/materials?new=1",
+            label: "Request materials",
+            detail: "Get materials delivered to site",
+            icon: Package,
+          },
         ]
       : []),
-    { href: "/chats", label: "Chats", detail: "Project and team conversations", icon: MessagesSquare },
-    { href: "/personal", label: "Personal", detail: "Your private to-dos and notes", icon: NotebookTabs },
+    {
+      href: "/chats",
+      label: "Chats",
+      detail: "Project and team conversations",
+      icon: MessagesSquare,
+    },
+    {
+      href: "/personal",
+      label: "Personal",
+      detail: "Your private to-dos and notes",
+      icon: NotebookTabs,
+    },
   ];
 
   return (
     <>
       <PageHeader
-        title={profile.first_name.trim() ? `${greeting()}, ${profile.first_name.trim()}` : greeting()}
+        title={
+          profile.first_name.trim()
+            ? `${greeting()}, ${profile.first_name.trim()}`
+            : greeting()
+        }
         description={
           <span className="inline-flex items-center gap-2">
             You are signed in as <Badge>{ROLE_LABEL[profile.role]}</Badge>
           </span>
         }
-        actions={<WhatsNewButton entries={whatsNewFor(profile.role, hasRole)} seen={(await getSessionState()).whatsNewSeen ?? null} />}
+        actions={
+          <WhatsNewButton
+            entries={whatsNewFor(profile.role, hasRole)}
+            seen={(await getSessionState()).whatsNewSeen ?? null}
+          />
+        }
       />
 
       {!profile.first_name.trim() && (
-        <Link href="/profile" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Alert variant="info" className="flex items-center gap-3 [&>svg]:static [&>svg~*]:pl-0">
+        <Link
+          href="/profile"
+          className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Alert
+            variant="info"
+            className="flex items-center gap-3 [&>svg]:static [&>svg~*]:pl-0"
+          >
             <UserPen className="text-primary" aria-hidden />
             <AlertDescription className="flex-1">
-              <span className="font-medium">Add your name</span> so colleagues recognise you on tasks, chats and daily updates.
+              <span className="font-medium">Add your name</span> so colleagues
+              recognise you on tasks, chats and daily updates.
             </AlertDescription>
             <ArrowRight className="size-4" aria-hidden />
           </Alert>
@@ -97,95 +221,195 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {denied && (
         <Alert variant="destructive" className="mb-4">
-          <AlertDescription>You don&apos;t have access to that page.</AlertDescription>
+          <AlertDescription>
+            You don&apos;t have access to that page.
+          </AlertDescription>
         </Alert>
       )}
 
       {pendingCount > 0 && (
-        <Link href="/admin" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Alert variant="info" className="flex items-center gap-3 [&>svg]:static [&>svg~*]:pl-0">
+        <Link
+          href="/admin"
+          className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Alert
+            variant="info"
+            className="flex items-center gap-3 [&>svg]:static [&>svg~*]:pl-0"
+          >
             <UserCheck className="text-primary" aria-hidden />
             <AlertDescription className="flex-1 font-medium">
-              {pendingCount} {pendingCount === 1 ? "person is" : "people are"} waiting for approval
+              {pendingCount} {pendingCount === 1 ? "person is" : "people are"}{" "}
+              waiting for approval
             </AlertDescription>
             <ArrowRight className="size-4" aria-hidden />
           </Alert>
         </Link>
       )}
 
-      {hasRole(profile.role, "manager") && <TeamOverview />}
-
-      <Link href="/my-tasks" className="mb-4 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Card className="transition-colors hover:bg-accent/40">
-          <CardContent className="grid gap-4 p-5">
-            <div className="flex items-center gap-3">
-              <ListChecks className="size-6 text-primary" aria-hidden />
-              <span className="flex-1 text-lg font-semibold">My Tasks</span>
-              <ArrowRight className="size-5 text-muted-foreground" aria-hidden />
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className={overdue ? "rounded-lg bg-destructive/10 p-3 text-destructive" : "rounded-lg bg-muted p-3"}>
-                <p className="text-2xl font-bold tabular-nums">{overdue}</p>
-                <p className="flex items-center justify-center gap-1 text-xs font-medium">
-                  <AlertTriangle className="size-3.5" aria-hidden /> Overdue
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted p-3">
-                <p className="text-2xl font-bold tabular-nums">{dueToday}</p>
-                <p className="flex items-center justify-center gap-1 text-xs font-medium">
-                  <CalendarClock className="size-3.5" aria-hidden /> Due today
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted p-3">
-                <p className="text-2xl font-bold tabular-nums">{myTasks.length}</p>
-                <p className="text-xs font-medium">Open</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-
-      <MyTickets tickets={myTickets} nowMs={nowMs()} limit={3} className="mb-4" />
-
-      {attention.length > 0 && (
-        <Card className="mb-4">
-          <CardContent className="p-5">
-            <p className="mb-3 text-lg font-semibold">Projects that need attention</p>
-            <ul className="divide-y">
-              {attention.map((p) => (
-                <li key={p.id}>
-                  <Link href={`/projects/${p.id}/dashboard`} className="flex items-center gap-3 py-2.5 hover:underline">
-                    <span className="size-3 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{p.name}</span>
-                      <span className="block truncate text-sm text-muted-foreground">{healthSummary(p.health!)}</span>
-                    </span>
-                    <HealthBadge level={p.health!.level} />
+      <HomeCards
+        initial={layout}
+        cards={[
+          ...(isManager
+            ? [
+                {
+                  id: "daily" as const,
+                  node: (
+                    <TeamOverviewCards
+                      size="compact"
+                      only="daily"
+                      {...overview!}
+                    />
+                  ),
+                },
+                {
+                  id: "materials" as const,
+                  node: (
+                    <TeamOverviewCards
+                      size="compact"
+                      only="materials"
+                      {...overview!}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          {
+            id: "tasks",
+            node: (
+              <Link
+                href="/my-tasks"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Card className="transition-colors hover:bg-accent/40">
+                  <CardContent className="grid gap-4 p-5">
+                    <div className="flex items-center gap-3">
+                      <ListChecks className="size-6 text-primary" aria-hidden />
+                      <span className="flex-1 text-lg font-semibold">
+                        My Tasks
+                      </span>
+                      <ArrowRight
+                        className="size-5 text-muted-foreground"
+                        aria-hidden
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div
+                        className={
+                          overdue
+                            ? "rounded-lg bg-destructive/10 p-3 text-destructive"
+                            : "rounded-lg bg-muted p-3"
+                        }
+                      >
+                        <p className="text-2xl font-bold tabular-nums">
+                          {overdue}
+                        </p>
+                        <p className="flex items-center justify-center gap-1 text-xs font-medium">
+                          <AlertTriangle className="size-3.5" aria-hidden />{" "}
+                          Overdue
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted p-3">
+                        <p className="text-2xl font-bold tabular-nums">
+                          {dueToday}
+                        </p>
+                        <p className="flex items-center justify-center gap-1 text-xs font-medium">
+                          <CalendarClock className="size-3.5" aria-hidden /> Due
+                          today
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted p-3">
+                        <p className="text-2xl font-bold tabular-nums">
+                          {myTasks.length}
+                        </p>
+                        <p className="text-xs font-medium">Open</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ),
+          },
+          ...(hasTickets
+            ? [
+                {
+                  id: "tickets" as const,
+                  node: myTickets.length ? (
+                    <MyTickets tickets={myTickets} nowMs={nowMs()} limit={3} />
+                  ) : null,
+                },
+              ]
+            : []),
+          ...(can.seeAllProjects(profile.role)
+            ? [
+                {
+                  id: "attention" as const,
+                  node: attention.length ? (
+                    <Card>
+                      <CardContent className="p-5">
+                        <p className="mb-3 text-lg font-semibold">
+                          Projects that need attention
+                        </p>
+                        <ul className="divide-y">
+                          {attention.map((p) => (
+                            <li key={p.id}>
+                              <Link
+                                href={`/projects/${p.id}/dashboard`}
+                                className="flex items-center gap-3 py-2.5 hover:underline"
+                              >
+                                <span
+                                  className="size-3 shrink-0 rounded-full"
+                                  style={{ background: p.color }}
+                                  aria-hidden
+                                />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate font-medium">
+                                    {p.name}
+                                  </span>
+                                  <span className="block truncate text-sm text-muted-foreground">
+                                    {healthSummary(p.health!)}
+                                  </span>
+                                </span>
+                                <HealthBadge level={p.health!.level} />
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  ) : null,
+                },
+              ]
+            : []),
+          {
+            id: "shortcuts",
+            node: (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {shortcuts.map(({ href, label, detail, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Card className="h-full transition-colors hover:bg-accent/50">
+                      <CardContent className="flex items-center gap-4 p-5">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Icon className="size-6" aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-semibold">{label}</span>
+                          <span className="block text-sm text-muted-foreground">
+                            {detail}
+                          </span>
+                        </span>
+                      </CardContent>
+                    </Card>
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shortcuts.map(({ href, label, detail, icon: Icon }) => (
-          <Link key={href} href={href} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Card className="h-full transition-colors hover:bg-accent/50">
-              <CardContent className="flex items-center gap-4 p-5">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="size-6" aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-semibold">{label}</span>
-                  <span className="block text-sm text-muted-foreground">{detail}</span>
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                ))}
+              </div>
+            ),
+          },
+        ]}
+      />
     </>
   );
 }
