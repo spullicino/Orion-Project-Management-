@@ -139,3 +139,52 @@ export async function loadTicket(supabase: Db, number: number): Promise<TicketDe
     files: (files ?? []).map((f) => ({ ...f, uploader: by(f.uploaded_by) })),
   };
 }
+
+export type MyTicket = {
+  number: number;
+  subject: string;
+  status: TicketRow["status"];
+  priority: TicketRow["priority"];
+  customer: string | null;
+  site: string | null;
+  first_response_at: string | null;
+  first_response_due: string | null;
+  resolve_due: string | null;
+  paused_since: string | null;
+};
+
+/** Open tickets assigned to this person (for My Tasks and Home). [] without access or before update 0033. */
+export async function loadMyTickets(supabase: Db, me: string): Promise<MyTicket[]> {
+  const { data, error } = await supabase
+    .from("as_tickets")
+    .select("*")
+    .eq("assigned_to", me)
+    .in("status", OPEN_STATUSES)
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  if (error || !data?.length) return [];
+  const customerIds = [...new Set(data.map((t) => t.customer_id).filter(Boolean) as string[])];
+  const siteIds = [...new Set(data.map((t) => t.site_id).filter(Boolean) as string[])];
+  const [{ data: customers }, { data: sites }] = await Promise.all([
+    customerIds.length ? supabase.from("as_customers").select("id, name").in("id", customerIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    siteIds.length ? supabase.from("as_sites").select("id, name").in("id", siteIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const name = (list: { id: string; name: string }[] | null, id: string | null) => (id ? (list?.find((x) => x.id === id)?.name ?? null) : null);
+  const due = (t: (typeof data)[number]) => (!t.first_response_at ? t.first_response_due : t.resolve_due) ?? "9999";
+  return data
+    .map((t) => ({
+      number: t.number,
+      subject: t.subject,
+      status: t.status,
+      priority: t.priority,
+      customer: name(customers, t.customer_id),
+      site: name(sites, t.site_id),
+      first_response_at: t.first_response_at,
+      first_response_due: t.first_response_due ?? null,
+      resolve_due: t.resolve_due ?? null,
+      paused_since: t.paused_since ?? null,
+      _due: t.paused_since ? "9999" : due(t),
+    }))
+    .sort((a, b) => a._due.localeCompare(b._due))
+    .map(({ _due, ...t }) => (void _due, t));
+}

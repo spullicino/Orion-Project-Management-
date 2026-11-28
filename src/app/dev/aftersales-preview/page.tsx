@@ -6,6 +6,7 @@ import { TicketFilters, TicketList } from "@/components/aftersales/ticket-list";
 import { TicketView } from "@/components/aftersales/ticket-view";
 import { ModulesView } from "@/components/admin/modules-view";
 import { MailSettings } from "@/components/aftersales/mail-settings";
+import { MyTickets } from "@/components/aftersales/my-tickets";
 import { ReportView } from "@/components/aftersales/report-view";
 import { SlaSettingsCard } from "@/components/aftersales/sla-settings";
 import { PageHeader } from "@/components/layout/page-header";
@@ -68,6 +69,17 @@ export default async function AftersalesPreview({ searchParams }: { searchParams
   if (page === "ticket") return <TicketView ticket={ticket} lookups={lookups} meId="me" isManager today="2026-11-27" mailbox="support@oriongroup.com.mt" nowMs={now} />;
   if (page === "customer")
     return <CustomerDetail customer={lookups.customers[0]} lookups={lookups} tickets={tickets.slice(0, 3)} clients={[]} projects={[]} isManager today="2026-11-27" nowMs={now} />;
+  if (page === "mine")
+    return (
+      <MyTickets
+        nowMs={now}
+        tickets={[
+          { number: 1023, subject: "CCTV camera 12 offline since the storm", status: "in_progress", priority: "high", customer: "Solair Owners Association", site: "Block B", first_response_at: null, first_response_due: ago(2), resolve_due: ago(-20), paused_since: null },
+          { number: 1024, subject: "Fire alarm panel beeping – fault on zone 3", status: "assigned", priority: "urgent", customer: "Solair Owners Association", site: "Block B", first_response_at: null, first_response_due: ago(-0.6), resolve_due: ago(-8), paused_since: null },
+          { number: 1021, subject: "Intercom at main entrance not ringing flat 5", status: "waiting", priority: "normal", customer: "Mark Borg", site: null, first_response_at: ago(20), first_response_due: ago(18), resolve_due: ago(-30), paused_since: ago(3) },
+        ]}
+      />
+    );
   if (page === "sla")
     return (
       <SlaSettingsCard

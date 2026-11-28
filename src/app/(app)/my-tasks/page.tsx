@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import { DatabaseUpdateNotice } from "@/components/database-update-notice";
 import { PageHeader } from "@/components/layout/page-header";
+import { MyTickets } from "@/components/aftersales/my-tickets";
 import { MyTasksView } from "@/components/my-tasks/my-tasks-view";
 import { can, hasRole } from "@/lib/auth/roles";
 import { requireActiveProfile } from "@/lib/auth/session";
+import { loadMyTickets } from "@/lib/data/aftersales";
 import { DatabaseUpdateNeeded } from "@/lib/data/db-errors";
+import { getModuleLevel } from "@/lib/modules";
 import { getMyTasks, listActivePeople, listClients, listProjects } from "@/lib/data/projects";
 import { createClient } from "@/lib/supabase/server";
 import { fullName } from "@/lib/utils";
 import type { GeneralTask } from "@/types/general-tasks";
 
 export const metadata: Metadata = { title: "My Tasks" };
+const nowMs = () => Date.now();
 
 export default async function MyTasksPage({ searchParams }: { searchParams: Promise<{ general?: string }> }) {
   const [me, { general: openId }] = await Promise.all([requireActiveProfile(), searchParams]);
@@ -28,11 +32,13 @@ export default async function MyTasksPage({ searchParams }: { searchParams: Prom
   }
   const isManagerPlus = hasRole(me.role, "manager");
   const supabase = await createClient();
-  const [generalRes, people, clients, projects] = await Promise.all([
+  const [generalRes, people, clients, projects, myTickets] = await Promise.all([
     supabase.rpc("get_general_tasks", { p_all: false }),
     isManagerPlus ? listActivePeople().catch(() => []) : Promise.resolve([]),
     isManagerPlus ? listClients().catch(() => []) : Promise.resolve([]),
     isManagerPlus ? listProjects().catch(() => []) : Promise.resolve([]),
+    // Aftersales tickets assigned to me (only with the module).
+    getModuleLevel(me, "aftersales").then((l) => (l ? loadMyTickets(supabase, me.id) : [])),
   ]);
   // Projects a manager can add tasks to from here: active ones, with their groups and people.
   const active = projects.filter((p) => p.status === "active" && !p.is_template);
@@ -53,7 +59,8 @@ export default async function MyTasksPage({ searchParams }: { searchParams: Prom
   const general = generalRes.error ? null : ((generalRes.data ?? []) as unknown as GeneralTask[]);
   return (
     <>
-      <PageHeader title="My Tasks" description="Everything assigned to you — project tasks and general tasks." />
+      <PageHeader title="My Tasks" description={`Everything assigned to you — project tasks and general tasks${myTickets.length ? ", and your Aftersales tickets" : ""}.`} />
+      <MyTickets tickets={myTickets} nowMs={nowMs()} className="mb-5" />
       <MyTasksView
         projectTasks={tasks}
         general={general}

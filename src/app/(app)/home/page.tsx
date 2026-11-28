@@ -17,6 +17,11 @@ import { healthSummary } from "@/lib/health";
 import { createClient } from "@/lib/supabase/server";
 import type { GeneralTask } from "@/types/general-tasks";
 import { TeamOverview } from "@/components/overview/team-overview";
+import { MyTickets } from "@/components/aftersales/my-tickets";
+import { loadMyTickets } from "@/lib/data/aftersales";
+import { getModuleLevel } from "@/lib/modules";
+
+const nowMs = () => Date.now();
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -29,7 +34,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const [{ denied }, profile, supabase] = await Promise.all([searchParams, requireActiveProfile(), createClient()]);
 
   // Everything Home needs, fetched at the same time (not one after another).
-  const [allMyTasks, { count: projectCount }, projects, pendingCount, generalRes] = await Promise.all([
+  const [allMyTasks, { count: projectCount }, projects, pendingCount, generalRes, myTickets] = await Promise.all([
     // If the latest database update hasn't been run yet, show Home without the task summary.
     getMyTasks().catch(() => [] as Awaited<ReturnType<typeof getMyTasks>>),
     supabase.from("projects").select("id", { count: "exact", head: true }).eq("is_template", false).neq("status", "archived"),
@@ -39,6 +44,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       : Promise.resolve(0),
     // General tasks (database update 0026); before it this returns an error and is ignored.
     supabase.rpc("get_general_tasks", { p_all: false }),
+    getModuleLevel(profile, "aftersales").then((l) => (l ? loadMyTickets(supabase, profile.id) : [])),
   ]);
   const myGeneral = (generalRes.error ? [] : ((generalRes.data ?? []) as unknown as GeneralTask[])).filter(
     (t) => !t.completed_at && t.assignees.some((a) => a.id === profile.id),
@@ -138,6 +144,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </CardContent>
         </Card>
       </Link>
+
+      <MyTickets tickets={myTickets} nowMs={nowMs()} limit={3} className="mb-4" />
 
       {attention.length > 0 && (
         <Card className="mb-4">

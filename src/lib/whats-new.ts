@@ -17,6 +17,13 @@ export type WhatsNewEntry = {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-11-28-my-tickets",
+    date: "2026-11-28",
+    title: "Your Aftersales tickets in My Tasks",
+    body: "If you use Aftersales, the tickets assigned to you now show as “My tickets” at the top of My Tasks and on Home — overdue ones first, with when a reply or fix is due.",
+    help: "/help#aftersales",
+  },
+  {
     id: "2026-11-27-gantt-column",
     date: "2026-11-27",
     title: "Gantt: drag to widen the task names",
